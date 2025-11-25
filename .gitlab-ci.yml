@@ -1,85 +1,43 @@
 stages:
   - validate
-  - test
   - build
-  - deploy
+  - test
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
 
 cache:
-  key: "${CI_COMMIT_REF_SLUG}"
   paths:
     - .m2/repository/
 
+before_script:
+  - chmod +x ./mvnw
+
 validate-project:
   stage: validate
-  tags:
-    - shell
   script:
     - echo "Validating project structure..."
-    - cd $CI_PROJECT_DIR
     - ./mvnw validate --batch-mode
-    - echo "Project structure is valid"
-
-run-tests:
-  stage: test
   tags:
     - shell
+
+build-project:
+  stage: build
+  script:
+    - echo "Building the project..."
+    - ./mvnw compile --batch-mode
+  tags:
+    - shell
+
+test-project:
+  stage: test
   script:
     - echo "Running tests..."
-    - cd $CI_PROJECT_DIR
     - ./mvnw test --batch-mode
-    - echo "All tests passed"
+  tags:
+    - shell
   artifacts:
     when: always
-    paths:
-      - target/surefire-reports/
     reports:
-      junit: target/surefire-reports/TEST-*.xml
-    expire_in: 7 days
-
-build-jar:
-  stage: build
-  tags:
-    - shell
-  script:
-    - echo "Building executable JAR..."
-    - cd $CI_PROJECT_DIR
-    - ./mvnw clean package -DskipTests --batch-mode
-    - echo "JAR created"
-    - ls -lh target/*.jar
-  artifacts:
-    paths:
-      - target/*.jar
-    expire_in: 30 days
-  only:
-    - main
-    - develop
-    - merge_requests
-
-deploy-dev:
-  stage: deploy
-  tags:
-    - shell
-  script:
-    - echo "Deploying to development..."
-    - echo "Deployment complete"
-  environment:
-    name: development
-  only:
-    - develop
-  when: manual
-
-deploy-prod:
-  stage: deploy
-  tags:
-    - shell
-  script:
-    - echo "Deploying to production..."
-    - echo "Production deployment complete"
-  environment:
-    name: production
-  only:
-    - main
-  when: manual
+      junit:
+        - target/surefire-reports/*.xml
