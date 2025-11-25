@@ -1,0 +1,135 @@
+# =============================================================================
+# GitLab CI/CD Pipeline для warehouse-api
+# Java 17 + Spring Boot 3.2 + Maven
+# =============================================================================
+
+# Базовый образ с JDK 17 для всех job'ов
+image: maven:3.9.6-eclipse-temurin-17
+
+# Стадии выполнения pipeline (последовательно)
+stages:
+  - validate    # Проверка структуры проекта
+  - test        # Запуск тестов
+  - build       # Сборка JAR
+  - package     # (опционально) Docker образ
+  - deploy      # Деплой
+
+# =============================================================================
+# ГЛОБАЛЬНЫЕ НАСТРОЙКИ
+# =============================================================================
+
+variables:
+  # Отключаем интерактивный режим Maven
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  # Имя артефакта
+  JAR_NAME: "warehouse-api-0.0.1-SNAPSHOT.jar"
+
+# Кэширование Maven-зависимостей между pipeline'ами
+# Экономит 2-5 минут на каждом запуске
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .m2/repository/
+
+# =============================================================================
+# VALIDATE STAGE — проверка что проект корректен
+# =============================================================================
+validate-project:
+  stage: validate
+  tags:
+    - k8s
+  script:
+    - echo "🔍 Validating project structure..."
+    - ./mvnw validate --batch-mode
+    - echo "✅ Project structure is valid"
+
+# =============================================================================
+# TEST STAGE — запуск unit и integration тестов
+# =============================================================================
+run-tests:
+  stage: test
+  tags:
+    - k8s
+  script:
+    - echo "🧪 Running tests with H2 in-memory database..."
+    - ./mvnw test --batch-mode
+    - echo "✅ All tests passed!"
+  artifacts:
+    # Сохраняем отчёты о тестах
+    when: always
+    paths:
+      - target/surefire-reports/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 7 days
+
+# =============================================================================
+# BUILD STAGE — сборка исполняемого JAR
+# =============================================================================
+build-jar:
+  stage: build
+  tags:
+    - k8s
+  script:
+    - echo "🔨 Building executable JAR..."
+    - ./mvnw clean package -DskipTests --batch-mode
+    - echo "📦 JAR created: target/$JAR_NAME"
+    - ls -lh target/*.jar
+  artifacts:
+    # Сохраняем JAR для следующих стадий и скачивания
+    paths:
+      - target/*.jar
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# =============================================================================
+# PACKAGE STAGE — сборка Docker образа (опционально)
+# =============================================================================
+build-docker:
+  stage: package
+  tags:
+    - k8s
+  script:
+    - echo "🐳 Docker build stage (placeholder)"
+    - echo "TODO: Add Dockerfile and build image"
+  only:
+    - main
+  when: manual
+  allow_failure: true
+
+# =============================================================================
+# DEPLOY STAGE — деплой на целевое окружение
+# =============================================================================
+deploy-dev:
+  stage: deploy
+  tags:
+    - k8s
+  script:
+    - echo "🚀 Deploying to DEVELOPMENT environment..."
+    - echo "JAR: target/$JAR_NAME"
+    - echo "Commit: $CI_COMMIT_SHORT_SHA"
+    - echo "Branch: $CI_COMMIT_REF_NAME"
+    - echo "✅ Deployment simulation complete"
+  environment:
+    name: development
+    url: http://192.168.1.74:8080
+  only:
+    - develop
+  when: manual
+
+deploy-prod:
+  stage: deploy
+  tags:
+    - k8s
+  script:
+    - echo "🚀 Deploying to PRODUCTION environment..."
+    - echo "⚠️  This is a production deployment!"
+    - echo "✅ Production deployment simulation complete"
+  environment:
+    name: production
+  only:
+    - main
+  when: manual
