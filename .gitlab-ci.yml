@@ -1,5 +1,3 @@
-image: maven:3.9.6-eclipse-temurin-17
-
 stages:
   - validate
   - test
@@ -17,18 +15,20 @@ cache:
 validate-project:
   stage: validate
   tags:
-    - k8s
+    - shell
   script:
     - echo "Validating project structure..."
+    - cd $CI_PROJECT_DIR
     - ./mvnw validate --batch-mode
     - echo "Project structure is valid"
 
 run-tests:
   stage: test
   tags:
-    - k8s
+    - shell
   script:
     - echo "Running tests..."
+    - cd $CI_PROJECT_DIR
     - ./mvnw test --batch-mode
     - echo "All tests passed"
   artifacts:
@@ -42,9 +42,10 @@ run-tests:
 build-jar:
   stage: build
   tags:
-    - k8s
+    - shell
   script:
     - echo "Building executable JAR..."
+    - cd $CI_PROJECT_DIR
     - ./mvnw clean package -DskipTests --batch-mode
     - echo "JAR created"
     - ls -lh target/*.jar
@@ -60,7 +61,7 @@ build-jar:
 deploy-dev:
   stage: deploy
   tags:
-    - k8s
+    - shell
   script:
     - echo "Deploying to development..."
     - echo "Deployment complete"
@@ -73,7 +74,7 @@ deploy-dev:
 deploy-prod:
   stage: deploy
   tags:
-    - k8s
+    - shell
   script:
     - echo "Deploying to production..."
     - echo "Production deployment complete"
