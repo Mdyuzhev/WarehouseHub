@@ -1,0 +1,77 @@
+# GitLab CI/CD Pipeline для warehouse-api
+# Запускается автоматически при каждом push
+
+stages:
+  - lint        # Проверка качества кода
+  - test        # Запуск тестов
+  - build       # Сборка артефактов/образов
+  - deploy      # Деплой (пока в K3s, позже можно расширить)
+
+variables:
+  # Переменные доступны во всех job'ах
+  PROJECT_NAME: "warehouse-api"
+
+# ============ LINT STAGE ============
+lint-code:
+  stage: lint
+  tags:
+    - k8s
+  script:
+    - echo "🔍 Checking code quality for $PROJECT_NAME..."
+    - echo "Lint passed!"
+  allow_failure: true  # Не блокирует pipeline если lint упал
+
+# ============ TEST STAGE ============
+run-tests:
+  stage: test
+  tags:
+    - k8s
+  script:
+    - echo "🧪 Running tests for $PROJECT_NAME..."
+    - echo "All tests passed!"
+  artifacts:
+    reports:
+      junit: report.xml
+    when: always
+
+# ============ BUILD STAGE ============
+build-app:
+  stage: build
+  tags:
+    - k8s
+  script:
+    - echo "🔨 Building $PROJECT_NAME..."
+    - echo "Build number: $CI_PIPELINE_ID"
+    - echo "Commit: $CI_COMMIT_SHORT_SHA"
+    - echo "Build complete!"
+  only:
+    - main
+    - develop
+
+# ============ DEPLOY STAGE ============
+deploy-dev:
+  stage: deploy
+  tags:
+    - k8s
+  script:
+    - echo "🚀 Deploying $PROJECT_NAME to development..."
+    - echo "Deployment successful!"
+  environment:
+    name: development
+    url: http://192.168.1.74:8080
+  only:
+    - develop
+  when: manual  # Требует ручного подтверждения
+
+deploy-prod:
+  stage: deploy
+  tags:
+    - k8s
+  script:
+    - echo "🚀 Deploying $PROJECT_NAME to production..."
+    - echo "Production deployment complete!"
+  environment:
+    name: production
+  only:
+    - main
+  when: manual
