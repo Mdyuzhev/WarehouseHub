@@ -8,6 +8,7 @@ import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +16,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -40,7 +41,6 @@ class ProductControllerTest {
     private PasswordEncoder passwordEncoder;
 
     private String employeeToken;
-    private String superUserToken;
 
     @BeforeEach
     void setUp() {
@@ -57,16 +57,6 @@ class ProductControllerTest {
         employeeUser.setEnabled(true);
         employeeUser = userRepository.save(employeeUser);
         employeeToken = jwtService.generateToken(employeeUser);
-
-        // Create super user for all access
-        User superUser = new User();
-        superUser.setUsername("testsuperuser");
-        superUser.setPassword(passwordEncoder.encode("password"));
-        superUser.setFullName("Test Super User");
-        superUser.setRole(Role.SUPER_USER);
-        superUser.setEnabled(true);
-        superUser = userRepository.save(superUser);
-        superUserToken = jwtService.generateToken(superUser);
     }
 
     @Test
@@ -97,14 +87,18 @@ class ProductControllerTest {
         product.setQuantity(10);
         product.setPrice(99.99);
 
-        given()
+        // Log the response to debug
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer " + superUserToken)
+                .header("Authorization", "Bearer " + employeeToken)
                 .body(product)
         .when()
-                .post("/api/products")
-        .then()
-                .statusCode(400);
+                .post("/api/products");
+        
+        System.out.println("Response status: " + response.getStatusCode());
+        System.out.println("Response body: " + response.getBody().asString());
+        
+        assertEquals(400, response.getStatusCode(), "Expected 400 but got " + response.getStatusCode() + ": " + response.getBody().asString());
     }
 
     @Test
