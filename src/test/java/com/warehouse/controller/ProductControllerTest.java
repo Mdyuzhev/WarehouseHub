@@ -11,6 +11,9 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -23,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProductControllerTest {
 
     @LocalServerPort
@@ -44,7 +48,10 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Reset RestAssured config completely
+        RestAssured.reset();
         RestAssured.port = port;
+        
         productRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -60,6 +67,7 @@ class ProductControllerTest {
     }
 
     @Test
+    @Order(1)
     void shouldCreateProductSuccessfully() {
         Product product = new Product();
         product.setName("Test Product");
@@ -81,27 +89,25 @@ class ProductControllerTest {
     }
 
     @Test
+    @Order(2)
     void shouldReturnBadRequestWhenNameIsEmpty() {
         Product product = new Product();
         product.setName("");
         product.setQuantity(10);
         product.setPrice(99.99);
 
-        // Log the response to debug
-        Response response = given()
+        given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + employeeToken)
                 .body(product)
         .when()
-                .post("/api/products");
-        
-        System.out.println("Response status: " + response.getStatusCode());
-        System.out.println("Response body: " + response.getBody().asString());
-        
-        assertEquals(400, response.getStatusCode(), "Expected 400 but got " + response.getStatusCode() + ": " + response.getBody().asString());
+                .post("/api/products")
+        .then()
+                .statusCode(400);
     }
 
     @Test
+    @Order(3)
     void shouldReturnForbiddenWithoutToken() {
         Product product = new Product();
         product.setName("Test Product");
