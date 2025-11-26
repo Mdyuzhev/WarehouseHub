@@ -81,15 +81,14 @@ test-project:
 build-image:
   stage: image
   script:
-    - echo "Building Docker image (no cache)..."
-    - docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG .
-    - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - echo "Building Docker image with SHA tag..."
+    - docker build --no-cache -t $IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
 
     - echo "Exporting image for K3s..."
-    - docker save $IMAGE_NAME:$IMAGE_TAG -o /tmp/$IMAGE_NAME.tar
+    - docker save $IMAGE_NAME:$CI_COMMIT_SHORT_SHA -o /tmp/$IMAGE_NAME.tar
 
-    - echo "Removing old image from K3s..."
-    - sudo k3s ctr images rm docker.io/library/$IMAGE_NAME:$IMAGE_TAG || true
+    - echo "Removing ALL old images from K3s..."
+    - sudo k3s ctr images list | grep warehouse-api | awk '{print $1}' | xargs -r sudo k3s ctr images rm || true
 
     - echo "Importing image into K3s containerd..."
     - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
@@ -119,8 +118,8 @@ deploy-k8s:
     - kubectl apply -f k8s/deployment.yaml
     - kubectl apply -f k8s/service.yaml
 
-    - echo "Updating deployment with new image annotation..."
-    - kubectl set env deployment/warehouse-api -n $K8S_NAMESPACE DEPLOY_SHA=$CI_COMMIT_SHORT_SHA
+    - echo "Setting new image tag in deployment..."
+    - kubectl set image deployment/warehouse-api -n $K8S_NAMESPACE warehouse-api=$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
 
     - echo "Waiting for rollout to complete..."
     - kubectl rollout status deployment/warehouse-api -n $K8S_NAMESPACE --timeout=120s
