@@ -8,6 +8,7 @@ import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -43,6 +44,7 @@ class ProductControllerTest {
     private PasswordEncoder passwordEncoder;
 
     private String employeeToken;
+    private User employeeUser;
 
     @BeforeEach
     void setUp() {
@@ -51,8 +53,8 @@ class ProductControllerTest {
         
         productRepository.deleteAll();
         
-        // Do not delete users - reuse existing or create if not exists
-        User employeeUser = userRepository.findByUsername("testemployee").orElse(null);
+        // Reuse existing user or create new
+        employeeUser = userRepository.findByUsername("testemployee").orElse(null);
         if (employeeUser == null) {
             employeeUser = new User();
             employeeUser.setUsername("testemployee");
@@ -63,23 +65,36 @@ class ProductControllerTest {
             employeeUser = userRepository.saveAndFlush(employeeUser);
         }
         employeeToken = jwtService.generateToken(employeeUser);
+        
+        System.out.println("=== TEST SETUP ===");
+        System.out.println("Port: " + port);
+        System.out.println("User ID: " + employeeUser.getId());
+        System.out.println("Username: " + employeeUser.getUsername());
+        System.out.println("Role: " + employeeUser.getRole());
+        System.out.println("Token (first 50 chars): " + employeeToken.substring(0, Math.min(50, employeeToken.length())));
     }
 
     @Test
     @Order(1)
     void shouldCreateProductSuccessfully() {
+        System.out.println("=== TEST: shouldCreateProductSuccessfully ===");
+        
         Product product = new Product();
         product.setName("Test Product");
         product.setQuantity(10);
         product.setPrice(99.99);
 
-        given()
+        Response response = given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + employeeToken)
                 .body(product)
         .when()
-                .post("/api/products")
-        .then()
+                .post("/api/products");
+        
+        System.out.println("Response status: " + response.getStatusCode());
+        System.out.println("Response body: " + response.getBody().asString());
+        
+        response.then()
                 .statusCode(201)
                 .body("id", notNullValue())
                 .body("name", equalTo("Test Product"))
@@ -90,24 +105,34 @@ class ProductControllerTest {
     @Test
     @Order(2)
     void shouldReturnBadRequestWhenNameIsEmpty() {
+        System.out.println("=== TEST: shouldReturnBadRequestWhenNameIsEmpty ===");
+        System.out.println("Using token: " + employeeToken.substring(0, Math.min(50, employeeToken.length())));
+        
         Product product = new Product();
         product.setName("");
         product.setQuantity(10);
         product.setPrice(99.99);
 
-        given()
+        Response response = given()
                 .contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + employeeToken)
                 .body(product)
+                .log().headers()
         .when()
-                .post("/api/products")
-        .then()
-                .statusCode(400);
+                .post("/api/products");
+        
+        System.out.println("Response status: " + response.getStatusCode());
+        System.out.println("Response headers: " + response.getHeaders());
+        System.out.println("Response body: " + response.getBody().asString());
+        
+        response.then().statusCode(400);
     }
 
     @Test
     @Order(3)
     void shouldReturnForbiddenWithoutToken() {
+        System.out.println("=== TEST: shouldReturnForbiddenWithoutToken ===");
+        
         Product product = new Product();
         product.setName("Test Product");
         product.setQuantity(10);
