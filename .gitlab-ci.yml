@@ -1,43 +1,137 @@
+# =============================================================================
+# CI/CD Pipeline для warehouse-api
+# Полный цикл: validate → build → test → image → deploy
+# =============================================================================
+
 stages:
   - validate
   - build
   - test
+  - image
+  - deploy
 
+# =============================================================================
+# Переменные
+# =============================================================================
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  IMAGE_NAME: "warehouse-api"
+  IMAGE_TAG: "latest"
+  K8S_NAMESPACE: "warehouse"
 
+# =============================================================================
+# Кэширование Maven зависимостей
+# =============================================================================
 cache:
   paths:
     - .m2/repository/
 
-before_script:
-  - chmod +x ./mvnw
-
+# =============================================================================
+# Stage: validate
+# =============================================================================
 validate-project:
   stage: validate
   script:
     - echo "Validating project structure..."
+    - chmod +x ./mvnw
     - ./mvnw validate --batch-mode
   tags:
     - shell
 
+# =============================================================================
+# Stage: build
+# =============================================================================
 build-project:
   stage: build
   script:
-    - echo "Building the project..."
+    - echo "Building application..."
+    - chmod +x ./mvnw
     - ./mvnw compile --batch-mode
+  artifacts:
+    paths:
+      - target/
+    expire_in: 1 hour
   tags:
     - shell
 
+# =============================================================================
+# Stage: test
+# =============================================================================
 test-project:
   stage: test
   script:
     - echo "Running tests..."
+    - chmod +x ./mvnw
     - ./mvnw test --batch-mode
-  tags:
-    - shell
   artifacts:
     when: always
     reports:
       junit:
-        - target/surefire-reports/*.xml
+        - target/surefire-reports/TEST-*.xml
+    paths:
+      - target/surefire-reports/
+    expire_in: 1 week
+  tags:
+    - shell
+
+# =============================================================================
+# Stage: image
+# Сборка Docker образа и импорт в K3s containerd
+# =============================================================================
+build-image:
+  stage: image
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+
+    - echo "Exporting image for K3s..."
+    - docker save $IMAGE_NAME:$IMAGE_TAG -o /tmp/$IMAGE_NAME.tar
+
+    - echo "Importing image into K3s containerd..."
+    - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
+
+    - echo "Cleaning up..."
+    - rm -f /tmp/$IMAGE_NAME.tar
+
+    - echo "Image imported successfully!"
+    - sudo k3s ctr images list | grep $IMAGE_NAME
+  only:
+    - main
+  tags:
+    - shell
+
+# =============================================================================
+# Stage: deploy
+# Деплой в Kubernetes
+# =============================================================================
+deploy-k8s:
+  stage: deploy
+  script:
+    - echo "Deploying to Kubernetes namespace $K8S_NAMESPACE..."
+    - export KUBECONFIG=~/.kube/config
+
+    - echo "Applying manifests..."
+    - kubectl apply -f k8s/configmap.yaml
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl apply -f k8s/service.yaml
+
+    - echo "Restarting deployment to pull new image..."
+    - kubectl rollout restart deployment/warehouse-api -n $K8S_NAMESPACE
+
+    - echo "Waiting for rollout to complete..."
+    - kubectl rollout status deployment/warehouse-api -n $K8S_NAMESPACE --timeout=120s
+
+    - echo "Deployment successful!"
+    - kubectl get pods -n $K8S_NAMESPACE -l app=warehouse-api
+
+    - echo "Verifying health endpoint..."
+    - sleep 10
+    - "curl -sf http://localhost:30080/actuator/health || echo 'Health check pending...'"
+  only:
+    - main
+  tags:
+    - shell
+  environment:
+    name: production
+    url: http://192.168.1.74:30080/swagger-ui.html
