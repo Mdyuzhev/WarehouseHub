@@ -8,7 +8,6 @@ import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -22,7 +21,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -48,21 +46,22 @@ class ProductControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Reset RestAssured config completely
         RestAssured.reset();
         RestAssured.port = port;
         
         productRepository.deleteAll();
-        userRepository.deleteAll();
-
-        // Create test user with EMPLOYEE role (can create/delete products)
-        User employeeUser = new User();
-        employeeUser.setUsername("testemployee");
-        employeeUser.setPassword(passwordEncoder.encode("password"));
-        employeeUser.setFullName("Test Employee");
-        employeeUser.setRole(Role.EMPLOYEE);
-        employeeUser.setEnabled(true);
-        employeeUser = userRepository.save(employeeUser);
+        
+        // Do not delete users - reuse existing or create if not exists
+        User employeeUser = userRepository.findByUsername("testemployee").orElse(null);
+        if (employeeUser == null) {
+            employeeUser = new User();
+            employeeUser.setUsername("testemployee");
+            employeeUser.setPassword(passwordEncoder.encode("password"));
+            employeeUser.setFullName("Test Employee");
+            employeeUser.setRole(Role.EMPLOYEE);
+            employeeUser.setEnabled(true);
+            employeeUser = userRepository.saveAndFlush(employeeUser);
+        }
         employeeToken = jwtService.generateToken(employeeUser);
     }
 
