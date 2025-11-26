@@ -4,6 +4,46 @@
 
 Данный документ описывает настройку CI/CD pipeline для автоматической сборки, тестирования и деплоя warehouse-api в Kubernetes при каждом пуше в ветку main.
 
+## Требования к окружению
+
+Перед настройкой CI/CD pipeline необходимо выполнить следующие настройки на сервере, где работает GitLab Runner.
+
+### Права Docker для gitlab-runner
+
+Пользователь gitlab-runner должен иметь доступ к Docker daemon. Для этого добавьте его в группу docker:
+
+```bash
+sudo usermod -aG docker gitlab-runner
+sudo systemctl restart gitlab-runner
+```
+
+### Права sudo для K3s
+
+Создайте файл sudoers для разрешения импорта образов в K3s без пароля:
+
+```bash
+sudo bash -c 'cat > /etc/sudoers.d/cicd-automation << EOF
+# CI/CD automation for gitlab-runner
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images import *
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images list
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images rm *
+gitlab-runner ALL=(ALL) NOPASSWD: /bin/rm -f /tmp/warehouse-api.tar
+EOF'
+
+sudo chmod 440 /etc/sudoers.d/cicd-automation
+```
+
+### Kubeconfig для gitlab-runner
+
+Скопируйте kubeconfig K3s для пользователя gitlab-runner:
+
+```bash
+sudo mkdir -p /home/gitlab-runner/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml /home/gitlab-runner/.kube/config
+sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.kube
+sudo chmod 600 /home/gitlab-runner/.kube/config
+```
+
 ## Архитектура Pipeline
 
 Pipeline состоит из пяти последовательных стадий, каждая из которых выполняется только при успешном завершении предыдущей.
