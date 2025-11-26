@@ -119,8 +119,8 @@ deploy-k8s:
     - kubectl apply -f k8s/deployment.yaml
     - kubectl apply -f k8s/service.yaml
 
-    - echo "Forcing pod recreation with new image..."
-    - kubectl delete pod -n $K8S_NAMESPACE -l app=warehouse-api --force --grace-period=0 || true
+    - echo "Updating deployment with new image annotation..."
+    - kubectl set env deployment/warehouse-api -n $K8S_NAMESPACE DEPLOY_SHA=$CI_COMMIT_SHORT_SHA
 
     - echo "Waiting for rollout to complete..."
     - kubectl rollout status deployment/warehouse-api -n $K8S_NAMESPACE --timeout=120s
