@@ -81,8 +81,8 @@ test-project:
 build-image:
   stage: image
   script:
-    - echo "Building Docker image..."
-    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - echo "Building Docker image (no cache)..."
+    - docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG .
     - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
 
     - echo "Exporting image for K3s..."
