@@ -88,6 +88,9 @@ build-image:
     - echo "Exporting image for K3s..."
     - docker save $IMAGE_NAME:$IMAGE_TAG -o /tmp/$IMAGE_NAME.tar
 
+    - echo "Removing old image from K3s..."
+    - sudo k3s ctr images rm docker.io/library/$IMAGE_NAME:$IMAGE_TAG || true
+
     - echo "Importing image into K3s containerd..."
     - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
 
