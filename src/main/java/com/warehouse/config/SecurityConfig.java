@@ -45,7 +45,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/actuator/mappings").permitAll()
+                .requestMatchers("/actuator/beans").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()
                 
                 // System status - SUPER_USER and ADMIN only
                 .requestMatchers("/actuator/**").hasAnyRole("SUPER_USER", "ADMIN")
