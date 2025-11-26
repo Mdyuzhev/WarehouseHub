@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -38,25 +39,34 @@ class ProductControllerTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private String authToken;
+    private String employeeToken;
+    private String superUserToken;
 
     @BeforeEach
     void setUp() {
         RestAssured.port = port;
         productRepository.deleteAll();
+        userRepository.deleteAll();
 
         // Create test user with EMPLOYEE role (can create/delete products)
-        userRepository.deleteAll();
-        User testUser = new User();
-        testUser.setUsername("testuser");
-        testUser.setPassword(passwordEncoder.encode("password"));
-        testUser.setFullName("Test User");
-        testUser.setRole(Role.EMPLOYEE);
-        testUser.setEnabled(true);
-        userRepository.save(testUser);
+        User employeeUser = new User();
+        employeeUser.setUsername("testemployee");
+        employeeUser.setPassword(passwordEncoder.encode("password"));
+        employeeUser.setFullName("Test Employee");
+        employeeUser.setRole(Role.EMPLOYEE);
+        employeeUser.setEnabled(true);
+        employeeUser = userRepository.save(employeeUser);
+        employeeToken = jwtService.generateToken(employeeUser);
 
-        // Generate JWT token
-        authToken = jwtService.generateToken(testUser);
+        // Create super user for all access
+        User superUser = new User();
+        superUser.setUsername("testsuperuser");
+        superUser.setPassword(passwordEncoder.encode("password"));
+        superUser.setFullName("Test Super User");
+        superUser.setRole(Role.SUPER_USER);
+        superUser.setEnabled(true);
+        superUser = userRepository.save(superUser);
+        superUserToken = jwtService.generateToken(superUser);
     }
 
     @Test
@@ -68,7 +78,7 @@ class ProductControllerTest {
 
         given()
                 .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer " + authToken)
+                .header("Authorization", "Bearer " + employeeToken)
                 .body(product)
         .when()
                 .post("/api/products")
@@ -89,7 +99,7 @@ class ProductControllerTest {
 
         given()
                 .contentType(ContentType.JSON)
-                .header("Authorization", "Bearer " + authToken)
+                .header("Authorization", "Bearer " + superUserToken)
                 .body(product)
         .when()
                 .post("/api/products")
