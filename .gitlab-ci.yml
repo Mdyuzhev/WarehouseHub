@@ -92,7 +92,7 @@ build-image:
     - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
 
     - echo "Cleaning up..."
-    - rm -f /tmp/$IMAGE_NAME.tar
+    - sudo rm -f /tmp/$IMAGE_NAME.tar || true
 
     - echo "Image imported successfully!"
     - sudo k3s ctr images list | grep $IMAGE_NAME
