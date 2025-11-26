@@ -81,20 +81,23 @@ test-project:
 build-image:
   stage: image
   script:
+    - echo "Cleaning up old tar files..."
+    - sudo rm -f /tmp/warehouse-api*.tar || true
+
     - echo "Building Docker image (no cache)..."
     - docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG .
 
-    - echo "Exporting image for K3s..."
-    - docker save $IMAGE_NAME:$IMAGE_TAG -o /tmp/$IMAGE_NAME.tar
+    - echo "Exporting image for K3s with unique name..."
+    - docker save $IMAGE_NAME:$IMAGE_TAG -o /tmp/$IMAGE_NAME-$CI_COMMIT_SHORT_SHA.tar
 
     - echo "Removing old image from K3s..."
     - sudo k3s ctr images rm docker.io/library/$IMAGE_NAME:$IMAGE_TAG || true
 
     - echo "Importing image into K3s containerd..."
-    - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
+    - sudo k3s ctr images import /tmp/$IMAGE_NAME-$CI_COMMIT_SHORT_SHA.tar
 
     - echo "Cleaning up temp file..."
-    - rm -f /tmp/$IMAGE_NAME.tar || true
+    - sudo rm -f /tmp/$IMAGE_NAME-$CI_COMMIT_SHORT_SHA.tar || true
 
     - echo "Image imported successfully!"
     - sudo k3s ctr images list | grep $IMAGE_NAME
