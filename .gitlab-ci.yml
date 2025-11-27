@@ -231,7 +231,7 @@ push-prod:
     - docker tag $IMAGE_NAME:$IMAGE_TAG $YC_REGISTRY/$IMAGE_NAME:latest
 
     - echo "Logging into Yandex Container Registry..."
-    - cat ~/secrets/yc-registry-key.json | docker login --username json_key --password-stdin cr.yandex
+    - cat /home/flomaster/secrets/yc-registry-key.json | docker login --username json_key --password-stdin cr.yandex
 
     - echo "Pushing images..."
     - docker push $YC_REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
@@ -253,7 +253,7 @@ deploy-prod:
   stage: deploy-prod
   before_script:
     - mkdir -p ~/.ssh
-    - cp ~/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
