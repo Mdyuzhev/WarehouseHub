@@ -1,6 +1,6 @@
 # =============================================================================
 # CI/CD Pipeline для warehouse-api
-# Полный цикл: validate → build → test → e2e-test → report → image → deploy
+# Полный цикл: validate → build → test → e2e-test → report → image → deploy → load-test
 # =============================================================================
 
 stages:
@@ -11,6 +11,7 @@ stages:
   - report
   - image
   - deploy
+  - load-test
 
 # =============================================================================
 # Переменные
@@ -122,8 +123,7 @@ allure-report:
         for file in target/allure-results/*; do
           if [ -f "$file" ]; then
             curl -X POST "http://192.168.1.74:5050/allure-docker-service/send-results?project_id=warehouse-api" \
-              -H "Content-Type: multipart/form-data" \
-              -F "results[]=@$file"
+              -F "files[]=@$file"
           fi
         done
 
@@ -212,3 +212,34 @@ deploy-k8s:
   environment:
     name: production
     url: http://192.168.1.74:30080/swagger-ui.html
+
+# =============================================================================
+# Stage: load-test
+# Нагрузочное тестирование через Locust (потому что надо знать, когда API сдастся)
+# =============================================================================
+load-test:
+  stage: load-test
+  variables:
+    LOCUST_HOST: "http://192.168.1.74:30089"
+    TARGET_HOST: "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
+    USERS: "100"
+    SPAWN_RATE: "10"
+    DURATION: "900"  # 15 минут - хватит времени на пару чашек кофе
+  script:
+    - echo "=============================================="
+    - echo "   Время проверить, на что способен наш API!"
+    - echo "   Готовьте попкорн, будет интересно..."
+    - echo "=============================================="
+    - chmod +x ./scripts/load-test.sh
+    - ./scripts/load-test.sh
+  artifacts:
+    when: always
+    paths:
+      - target/load-test-results/
+    expire_in: 1 week
+  only:
+    - main
+  tags:
+    - shell
+  when: manual  # Ручной запуск - нагрузочное тестирование не для каждого коммита
+  allow_failure: true  # Не ломаем pipeline если API не выдержал - просто грустим
