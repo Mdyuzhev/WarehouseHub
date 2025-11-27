@@ -3,7 +3,7 @@ package com.warehouse.service;
 import com.warehouse.model.Product;
 import com.warehouse.repository.ProductRepository;
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,14 +15,12 @@ public class ProductService {
     private final Counter productsCreatedCounter;
     private final Counter productsDeletedCounter;
 
-    public ProductService(ProductRepository productRepository, MeterRegistry registry) {
+    public ProductService(ProductRepository productRepository,
+                          @Qualifier("productsCreatedCounter") Counter productsCreatedCounter,
+                          @Qualifier("productsDeletedCounter") Counter productsDeletedCounter) {
         this.productRepository = productRepository;
-        this.productsCreatedCounter = Counter.builder("warehouse.products.created")
-                .description("Total products created")
-                .register(registry);
-        this.productsDeletedCounter = Counter.builder("warehouse.products.deleted")
-                .description("Total products deleted")
-                .register(registry);
+        this.productsCreatedCounter = productsCreatedCounter;
+        this.productsDeletedCounter = productsDeletedCounter;
     }
 
     public Product createProduct(Product product) {
