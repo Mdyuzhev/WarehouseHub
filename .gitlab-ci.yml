@@ -1,12 +1,14 @@
 # =============================================================================
 # CI/CD Pipeline для warehouse-api
-# Полный цикл: validate → build → test → image → deploy
+# Полный цикл: validate → build → test → e2e-test → report → image → deploy
 # =============================================================================
 
 stages:
   - validate
   - build
   - test
+  - e2e-test
+  - report
   - image
   - deploy
 
@@ -15,16 +17,20 @@ stages:
 # =============================================================================
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_CLI_OPTS: "-B -DskipTests"
   IMAGE_NAME: "warehouse-api"
   IMAGE_TAG: "latest"
   K8S_NAMESPACE: "warehouse"
+  ALLURE_RESULTS: "target/allure-results"
 
 # =============================================================================
 # Кэширование Maven зависимостей
 # =============================================================================
 cache:
+  key: ${CI_COMMIT_REF_SLUG}
   paths:
     - .m2/repository/
+    - target/
 
 # =============================================================================
 # Stage: validate
@@ -49,20 +55,20 @@ build-project:
     - ./mvnw compile --batch-mode
   artifacts:
     paths:
-      - target/
+      - target/classes/
     expire_in: 1 hour
   tags:
     - shell
 
 # =============================================================================
-# Stage: test
+# Stage: test (Unit tests only)
 # =============================================================================
 test-project:
   stage: test
   script:
-    - echo "Running tests..."
+    - echo "Running unit tests..."
     - chmod +x ./mvnw
-    - ./mvnw test --batch-mode
+    - ./mvnw test --batch-mode -Dtest="!*E2E*"
   artifacts:
     when: always
     reports:
@@ -75,6 +81,70 @@ test-project:
     - shell
 
 # =============================================================================
+# Stage: e2e-test (E2E tests with Allure)
+# =============================================================================
+e2e-test:
+  stage: e2e-test
+  script:
+    - echo "Running E2E tests..."
+    - chmod +x ./mvnw
+    - ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
+  artifacts:
+    when: always
+    paths:
+      - target/allure-results/
+      - target/surefire-reports/
+    expire_in: 1 week
+  tags:
+    - shell
+  allow_failure: false
+
+# =============================================================================
+# Stage: report (Upload to Allure server)
+# =============================================================================
+allure-report:
+  stage: report
+  script:
+    - |
+      echo "Uploading results to Allure server..."
+
+      # Создаём project если не существует
+      curl -X POST "http://192.168.1.74:5050/allure-docker-service/projects" \
+        -H "Content-Type: application/json" \
+        -d '{"id": "warehouse-api"}' || true
+
+      # Очищаем предыдущие results
+      curl -X DELETE "http://192.168.1.74:5050/allure-docker-service/clean-results?project_id=warehouse-api" || true
+
+      # Загружаем новые results
+      if [ -d "target/allure-results" ] && [ "$(ls -A target/allure-results 2>/dev/null)" ]; then
+        echo "Found allure results, uploading..."
+        for file in target/allure-results/*; do
+          if [ -f "$file" ]; then
+            curl -X POST "http://192.168.1.74:5050/allure-docker-service/send-results?project_id=warehouse-api" \
+              -H "Content-Type: multipart/form-data" \
+              -F "results[]=@$file"
+          fi
+        done
+
+        # Генерируем отчёт
+        curl -X GET "http://192.168.1.74:5050/allure-docker-service/generate-report?project_id=warehouse-api"
+
+        echo ""
+        echo "========================================="
+        echo "Allure Report: http://192.168.1.74:5050/allure-docker-service/projects/warehouse-api/reports/latest"
+        echo "Allure UI: http://192.168.1.74:5252"
+        echo "========================================="
+      else
+        echo "No allure results found"
+      fi
+  dependencies:
+    - e2e-test
+  tags:
+    - shell
+  when: always
+
+# =============================================================================
 # Stage: image
 # Сборка Docker образа и импорт в K3s containerd
 # =============================================================================
@@ -85,6 +155,8 @@ build-image:
     - sudo rm -f /tmp/warehouse-api*.tar || true
 
     - echo "Building Docker image (no cache)..."
+    - chmod +x ./mvnw
+    - ./mvnw package -DskipTests --batch-mode
     - docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG .
 
     - echo "Exporting image for K3s with unique name..."
