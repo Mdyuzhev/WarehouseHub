@@ -1,6 +1,6 @@
 # =============================================================================
 # CI/CD Pipeline для warehouse-api
-# Полный цикл: validate → build → test → e2e-test → report → image → deploy → load-test
+# Полный цикл: validate → build → test → e2e-test → report → image → deploy → push-prod → deploy-prod → load-test
 # =============================================================================
 
 stages:
@@ -11,6 +11,8 @@ stages:
   - report
   - image
   - deploy
+  - push-prod
+  - deploy-prod
   - load-test
 
 # =============================================================================
@@ -23,6 +25,10 @@ variables:
   IMAGE_TAG: "latest"
   K8S_NAMESPACE: "warehouse"
   ALLURE_RESULTS: "target/allure-results"
+  # Yandex Cloud Production
+  YC_REGISTRY: "cr.yandex/crpf5fukf1ili7kudopb"
+  PROD_HOST: "130.193.44.34"
+  PROD_USER: "ubuntu"
 
 # =============================================================================
 # Кэширование Maven зависимостей
@@ -212,6 +218,69 @@ deploy-k8s:
   environment:
     name: production
     url: http://192.168.1.74:30080/swagger-ui.html
+
+# =============================================================================
+# Stage: push-prod
+# Push Docker образа в Yandex Container Registry
+# =============================================================================
+push-prod:
+  stage: push-prod
+  script:
+    - echo "Tagging image for Yandex Container Registry..."
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $YC_REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $YC_REGISTRY/$IMAGE_NAME:latest
+
+    - echo "Logging into Yandex Container Registry..."
+    - cat ~/secrets/yc-registry-key.json | docker login --username json_key --password-stdin cr.yandex
+
+    - echo "Pushing images..."
+    - docker push $YC_REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $YC_REGISTRY/$IMAGE_NAME:latest
+
+    - echo "Push completed successfully!"
+  only:
+    - main
+  tags:
+    - shell
+  dependencies:
+    - build-image
+
+# =============================================================================
+# Stage: deploy-prod
+# Деплой на Production сервер в Yandex Cloud
+# =============================================================================
+deploy-prod:
+  stage: deploy-prod
+  before_script:
+    - mkdir -p ~/.ssh
+    - cp ~/.ssh/yc_deploy_key ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - |
+      echo "Deploying to Production ($PROD_HOST)..."
+      ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
+        cd /opt/warehouse
+        echo "Pulling latest API image..."
+        docker compose pull api
+        echo "Restarting API container..."
+        docker compose up -d api
+        docker image prune -f
+        echo "API deployed successfully!"
+        docker ps | grep warehouse-api
+      ENDSSH
+    - echo "Production deployment completed!"
+  after_script:
+    - rm -f ~/.ssh/deploy_key
+  only:
+    - main
+  tags:
+    - shell
+  environment:
+    name: production
+    url: https://api.wh-lab.ru
+  dependencies:
+    - push-prod
 
 # =============================================================================
 # Stage: load-test
