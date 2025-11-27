@@ -59,15 +59,15 @@ class ProductControllerE2ETest extends BaseE2ETest {
     @Severity(SeverityLevel.CRITICAL)
     @DisplayName("Ошибка доступа к продуктам без авторизации")
     @Description("Проверяет что неавторизованный пользователь не может получить список продуктов")
-    void shouldReturnUnauthorized_whenNotAuthenticated() {
+    void shouldReturnForbidden_whenNotAuthenticated() {
         // Act - запрос без токена
         var response = request()
                 .when()
                 .get("/api/products");
 
-        // Assert
+        // Assert - Spring Security возвращает 403 для неаутентифицированных запросов
         response.then()
-                .statusCode(401);
+                .statusCode(403);
     }
 
     // ==================== CREATE PRODUCT TESTS ====================

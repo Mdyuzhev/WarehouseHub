@@ -6,7 +6,15 @@
       "Bash(./mvnw compile:*)",
       "Bash(git add:*)",
       "Bash(git rebase:*)",
-      "Bash(GIT_EDITOR=true git rebase:*)"
+      "Bash(GIT_EDITOR=true git rebase:*)",
+      "Bash(LD_PRELOAD= git push:*)",
+      "Bash(git stash:*)",
+      "Bash(LD_PRELOAD= ./mvnw test:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)",
+      "Bash(LD_PRELOAD= ./mvnw clean test:*)",
+      "Bash(LD_PRELOAD= git diff:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n#WH-25 Fix test failures caused by AspectJ weaver conflict\n\n- Remove AspectJ javaagent from surefire config (conflicts with Spring Data JPA)\n- Fix expected status code in E2E test (403 instead of 401 for unauthenticated)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
