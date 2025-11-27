@@ -40,7 +40,7 @@ validate-project:
   script:
     - echo "Validating project structure..."
     - chmod +x ./mvnw
-    - ./mvnw validate --batch-mode
+    - LD_PRELOAD= ./mvnw validate --batch-mode
   tags:
     - shell
 
@@ -52,7 +52,7 @@ build-project:
   script:
     - echo "Building application..."
     - chmod +x ./mvnw
-    - ./mvnw compile --batch-mode
+    - LD_PRELOAD= ./mvnw compile --batch-mode
   artifacts:
     paths:
       - target/classes/
@@ -68,7 +68,7 @@ test-project:
   script:
     - echo "Running unit tests..."
     - chmod +x ./mvnw
-    - ./mvnw test --batch-mode -Dtest="!*E2E*"
+    - LD_PRELOAD= ./mvnw test --batch-mode -Dtest="!*E2E*"
   artifacts:
     when: always
     reports:
@@ -88,7 +88,7 @@ e2e-test:
   script:
     - echo "Running E2E tests..."
     - chmod +x ./mvnw
-    - ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
+    - LD_PRELOAD= ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
   artifacts:
     when: always
     paths:
@@ -156,7 +156,7 @@ build-image:
 
     - echo "Building Docker image (no cache)..."
     - chmod +x ./mvnw
-    - ./mvnw package -DskipTests --batch-mode
+    - LD_PRELOAD= ./mvnw package -DskipTests --batch-mode
     - docker build --no-cache -t $IMAGE_NAME:$IMAGE_TAG .
 
     - echo "Exporting image for K3s with unique name..."
