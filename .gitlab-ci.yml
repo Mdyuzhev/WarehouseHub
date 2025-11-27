@@ -253,7 +253,7 @@ deploy-prod:
   stage: deploy-prod
   before_script:
     - mkdir -p ~/.ssh
-    - cp ~/.ssh/yc_deploy_key ~/.ssh/deploy_key
+    - cp ~/.ssh/yc_prod_key ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
