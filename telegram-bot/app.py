@@ -43,9 +43,28 @@ LOCUST_MASTER_URL = os.getenv("LOCUST_MASTER_URL", "http://locust-master.loadtes
 
 # GitLab и Allure конфигурация
 GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
-GITLAB_PROJECT_ID = os.getenv("GITLAB_PROJECT_ID", "2")  # warehouse-api project
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3")
 GITLAB_TRIGGER_TOKEN = os.getenv("GITLAB_TRIGGER_TOKEN", "")
 ALLURE_SERVER_URL = os.getenv("ALLURE_SERVER_URL", "http://192.168.1.74:5050")
+
+# GitLab Project IDs
+GITLAB_PROJECTS = {
+    "warehouse-master": 4,
+    "warehouse-frontend": 3,
+    "warehouse-api": 1,
+}
+
+# Маппинг job names для триггеров
+GITLAB_JOBS = {
+    "deploy_api_staging": {"project": "warehouse-master", "job": "deploy-api-staging"},
+    "deploy_frontend_staging": {"project": "warehouse-master", "job": "deploy-frontend-staging"},
+    "deploy_all_staging": {"project": "warehouse-master", "job": "deploy-all-staging"},
+    "deploy_api_prod": {"project": "warehouse-master", "job": "deploy-api-prod"},
+    "deploy_frontend_prod": {"project": "warehouse-master", "job": "deploy-frontend-prod"},
+    "deploy_all_prod": {"project": "warehouse-master", "job": "deploy-all-prod"},
+    "run_e2e": {"project": "warehouse-master", "job": "run-e2e-tests"},
+    "run_load": {"project": "warehouse-master", "job": "run-load-tests"},
+}
 
 # Последний обработанный update_id
 last_update_id = 0
@@ -163,7 +182,180 @@ JOKES = {
         "Хьюстон, у нас проблема! 🚨",
         "Не получилось, но я старался! 😬",
     ],
+    "deploy_start": [
+        "Поехали деплоить! Держитесь, сервера! 🚀",
+        "Запускаю деплой... Надеюсь, ты всё проверил! 🤞",
+        "Деплой пошёл! Время пить кофе и ждать... ☕",
+        "Отправляю код на сервера! Скрестил пальцы! 🎯",
+    ],
+    "deploy_success": [
+        "Деплой успешен! 🎉 Всё взлетело!",
+        "Готово! Сервера обновлены! ✅",
+        "Задеплоено! Идём проверять... 🔍",
+        "Успех! Ты молодец (ну или CI молодец)! 🏆",
+    ],
+    "deploy_error": [
+        "Деплой упал... 😱 Кто-то будет дебажить!",
+        "Ой-ой-ой! Что-то пошло не так! 🔥",
+        "Провал! Но не паникуем. Паникуем? 😅",
+        "Деплой failed. Время смотреть логи! 📜",
+    ],
 }
+
+
+# ==================== GITLAB CI FUNCTIONS ====================
+
+async def trigger_gitlab_job(project_name: str, job_name: str, ref: str = "main") -> dict:
+    """Триггерит manual job в GitLab CI.
+
+    Returns:
+        dict с полями: success, job_id, web_url, error
+    """
+    project_id = GITLAB_PROJECTS.get(project_name)
+    if not project_id:
+        return {"success": False, "error": f"Unknown project: {project_name}"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # 1. Получаем последний pipeline
+            pipelines_url = f"{GITLAB_URL}/api/v4/projects/{project_id}/pipelines"
+            resp = await client.get(
+                pipelines_url,
+                headers={"PRIVATE-TOKEN": GITLAB_TOKEN},
+                params={"ref": ref, "per_page": 1}
+            )
+
+            if resp.status_code != 200:
+                # Создаём новый pipeline если нет
+                create_resp = await client.post(
+                    pipelines_url,
+                    headers={"PRIVATE-TOKEN": GITLAB_TOKEN},
+                    json={"ref": ref}
+                )
+                if create_resp.status_code not in [200, 201]:
+                    return {"success": False, "error": f"Failed to create pipeline: {create_resp.status_code}"}
+                pipeline = create_resp.json()
+            else:
+                pipelines = resp.json()
+                if not pipelines:
+                    # Создаём новый pipeline
+                    create_resp = await client.post(
+                        pipelines_url,
+                        headers={"PRIVATE-TOKEN": GITLAB_TOKEN},
+                        json={"ref": ref}
+                    )
+                    if create_resp.status_code not in [200, 201]:
+                        return {"success": False, "error": f"Failed to create pipeline: {create_resp.status_code}"}
+                    pipeline = create_resp.json()
+                else:
+                    pipeline = pipelines[0]
+
+            pipeline_id = pipeline["id"]
+
+            # 2. Получаем jobs этого pipeline
+            jobs_url = f"{GITLAB_URL}/api/v4/projects/{project_id}/pipelines/{pipeline_id}/jobs"
+            jobs_resp = await client.get(
+                jobs_url,
+                headers={"PRIVATE-TOKEN": GITLAB_TOKEN},
+                params={"per_page": 100}
+            )
+
+            if jobs_resp.status_code != 200:
+                return {"success": False, "error": f"Failed to get jobs: {jobs_resp.status_code}"}
+
+            jobs = jobs_resp.json()
+
+            # 3. Находим нужный job
+            target_job = None
+            for job in jobs:
+                if job["name"] == job_name:
+                    target_job = job
+                    break
+
+            if not target_job:
+                return {"success": False, "error": f"Job '{job_name}' not found in pipeline {pipeline_id}"}
+
+            job_id = target_job["id"]
+            job_status = target_job["status"]
+
+            # 4. Запускаем job (play для manual jobs)
+            if job_status == "manual":
+                play_url = f"{GITLAB_URL}/api/v4/projects/{project_id}/jobs/{job_id}/play"
+                play_resp = await client.post(
+                    play_url,
+                    headers={"PRIVATE-TOKEN": GITLAB_TOKEN}
+                )
+
+                if play_resp.status_code not in [200, 201]:
+                    return {"success": False, "error": f"Failed to play job: {play_resp.status_code}"}
+
+                job_data = play_resp.json()
+                return {
+                    "success": True,
+                    "job_id": job_data["id"],
+                    "web_url": job_data.get("web_url", f"{GITLAB_URL}/root/{project_name}/-/jobs/{job_id}"),
+                    "status": job_data.get("status", "pending")
+                }
+            elif job_status in ["pending", "running"]:
+                return {
+                    "success": True,
+                    "job_id": job_id,
+                    "web_url": target_job.get("web_url", f"{GITLAB_URL}/root/{project_name}/-/jobs/{job_id}"),
+                    "status": job_status,
+                    "message": "Job already running"
+                }
+            elif job_status == "success":
+                # Job уже выполнен, retry
+                retry_url = f"{GITLAB_URL}/api/v4/projects/{project_id}/jobs/{job_id}/retry"
+                retry_resp = await client.post(
+                    retry_url,
+                    headers={"PRIVATE-TOKEN": GITLAB_TOKEN}
+                )
+
+                if retry_resp.status_code not in [200, 201]:
+                    return {"success": False, "error": f"Failed to retry job: {retry_resp.status_code}"}
+
+                job_data = retry_resp.json()
+                return {
+                    "success": True,
+                    "job_id": job_data["id"],
+                    "web_url": job_data.get("web_url", f"{GITLAB_URL}/root/{project_name}/-/jobs/{job_data['id']}"),
+                    "status": job_data.get("status", "pending")
+                }
+            else:
+                return {"success": False, "error": f"Job status is '{job_status}', cannot trigger"}
+
+    except Exception as e:
+        logger.error(f"GitLab trigger error: {e}")
+        return {"success": False, "error": str(e)[:100]}
+
+
+async def get_job_status(project_name: str, job_id: int) -> dict:
+    """Получает статус job."""
+    project_id = GITLAB_PROJECTS.get(project_name)
+    if not project_id:
+        return {"success": False, "error": f"Unknown project: {project_name}"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            url = f"{GITLAB_URL}/api/v4/projects/{project_id}/jobs/{job_id}"
+            resp = await client.get(
+                url,
+                headers={"PRIVATE-TOKEN": GITLAB_TOKEN}
+            )
+
+            if resp.status_code == 200:
+                job = resp.json()
+                return {
+                    "success": True,
+                    "status": job.get("status"),
+                    "duration": job.get("duration"),
+                    "web_url": job.get("web_url"),
+                    "finished_at": job.get("finished_at")
+                }
+            return {"success": False, "error": f"HTTP {resp.status_code}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)[:100]}
 
 
 # ==================== HEALTH CHECK FUNCTIONS ====================
@@ -363,8 +555,8 @@ def get_reply_keyboard():
     """Возвращает постоянную клавиатуру снизу экрана."""
     return {
         "keyboard": [
-            [{"text": "🏥 Статус"}, {"text": "📊 Метрики"}, {"text": "🧪 E2E"}],
-            [{"text": "🔥 Нагрузка"}, {"text": "📈 Тест"}, {"text": "🛑 Стоп"}],
+            [{"text": "🏥 Статус"}, {"text": "📊 Метрики"}, {"text": "🚀 Деплой"}],
+            [{"text": "🧪 E2E"}, {"text": "🔥 Нагрузка"}, {"text": "🛑 Стоп"}],
             [{"text": "🤖 Claude"}, {"text": "🎰 Шутка"}, {"text": "❓"}],
         ],
         "resize_keyboard": True,
@@ -380,6 +572,10 @@ def get_main_menu_keyboard():
             [
                 {"text": "🏥 Статус серверов", "callback_data": "health"},
                 {"text": "📊 Метрики", "callback_data": "metrics"},
+            ],
+            [
+                {"text": "🚀 Деплой", "callback_data": "deploy_menu"},
+                {"text": "🧪 E2E тесты", "callback_data": "e2e_run"},
             ],
             [
                 {"text": "🔥 Нагрузка: STAGING", "callback_data": "load_staging"},
@@ -520,17 +716,17 @@ async def process_command(chat_id: int, text: str):
     elif text == "📊 Метрики":
         await handle_metrics_command(chat_id)
         return
+    elif text == "🚀 Деплой":
+        await handle_deploy_menu(chat_id)
+        return
     elif text == "🔥 Нагрузка":
         await handle_load_menu(chat_id)
         return
     elif text == "🛑 Стоп":
         await handle_stop_load_test(chat_id)
         return
-    elif text == "📈 Тест":
-        await handle_load_status(chat_id)
-        return
     elif text == "🧪 E2E":
-        await handle_e2e_menu(chat_id)
+        await handle_e2e_run_via_gitlab(chat_id)
         return
     elif text == "🎰 Шутка":
         await send_random_joke(chat_id)
@@ -564,21 +760,29 @@ async def process_command(chat_id: int, text: str):
 
     elif text == "/help":
         help_msg = """
-<b>❓ Справка</b>
+<b>❓ Справка - Warehouse Bot v5.0</b>
 
-<b>Кнопки:</b>
-🏥 - статус серверов
-📊 - метрики K8s
-🔥 - нагрузочный тест (пароль!)
-🛑 - остановить тест
-📈 - статус НТ
-🎰 - анекдот
-❓ - эта справка
+<b>📱 Кнопки внизу:</b>
+🏥 статус | 📊 метрики | 🧪 E2E
+🔥 нагрузка | 📈 тест | 🛑 стоп
+🤖 Claude | 🎰 шутка | ❓ помощь
 
-<b>Нагрузочное тестирование:</b>
-🔐 Защищено паролем
-📊 Отчёты каждые 3 мин
-🏁 Финальный отчёт с вердиктом
+<b>🚀 Команды деплоя:</b>
+/deploy - меню деплоя
+/deploy_api_staging - API на staging
+/deploy_frontend_staging - Frontend на staging
+/deploy_all_staging - Всё на staging
+/deploy_api_prod - API на production
+/deploy_frontend_prod - Frontend на production
+/deploy_all_prod - Всё на production
+
+<b>🧪 Тестирование:</b>
+/e2e - Запуск E2E тестов
+/load - Нагрузочное тестирование
+
+<b>📊 Мониторинг:</b>
+/status - Статус серверов
+/pods - Поды K8s
 
 <i>Бот 24/7, в отличие от разрабов...</i> 😏
         """
@@ -599,6 +803,296 @@ async def process_command(chat_id: int, text: str):
 
     elif text == "/joke":
         await send_random_joke(chat_id)
+
+    # ========== DEPLOY COMMANDS ==========
+    elif text == "/deploy":
+        await handle_deploy_menu(chat_id)
+
+    elif text == "/deploy_api_staging":
+        await handle_deploy_command(chat_id, "deploy_api_staging", "API", "staging")
+
+    elif text == "/deploy_frontend_staging":
+        await handle_deploy_command(chat_id, "deploy_frontend_staging", "Frontend", "staging")
+
+    elif text == "/deploy_all_staging":
+        await handle_deploy_command(chat_id, "deploy_all_staging", "API + Frontend", "staging")
+
+    elif text == "/deploy_api_prod":
+        await handle_deploy_command(chat_id, "deploy_api_prod", "API", "production")
+
+    elif text == "/deploy_frontend_prod":
+        await handle_deploy_command(chat_id, "deploy_frontend_prod", "Frontend", "production")
+
+    elif text == "/deploy_all_prod":
+        await handle_deploy_command(chat_id, "deploy_all_prod", "API + Frontend", "production")
+
+    elif text == "/e2e":
+        await handle_e2e_run_via_gitlab(chat_id)
+
+    elif text == "/pods":
+        await handle_pods_command(chat_id)
+
+
+async def handle_deploy_menu(chat_id: int):
+    """Показывает меню деплоя."""
+    msg = """
+<b>🚀 Меню деплоя</b>
+
+Выбери что и куда деплоить:
+    """
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "🧪 STAGING", "callback_data": "deploy_menu_staging"}],
+            [
+                {"text": "🔧 API", "callback_data": "deploy_api_staging"},
+                {"text": "🎨 Frontend", "callback_data": "deploy_frontend_staging"},
+            ],
+            [{"text": "📦 Всё", "callback_data": "deploy_all_staging"}],
+            [{"text": "─────────────", "callback_data": "noop"}],
+            [{"text": "🚀 PRODUCTION", "callback_data": "deploy_menu_prod"}],
+            [
+                {"text": "🔧 API", "callback_data": "deploy_api_prod"},
+                {"text": "🎨 Frontend", "callback_data": "deploy_frontend_prod"},
+            ],
+            [{"text": "📦 Всё", "callback_data": "deploy_all_prod"}],
+            [{"text": "⬅️ Назад", "callback_data": "menu"}],
+        ]
+    }
+    await send_telegram_message_with_keyboard(msg.strip(), keyboard, chat_id=chat_id)
+
+
+async def handle_deploy_command(chat_id: int, job_key: str, component: str, env: str):
+    """Запускает деплой через GitLab CI."""
+    job_config = GITLAB_JOBS.get(job_key)
+    if not job_config:
+        await send_message_with_reply_keyboard(
+            f"❌ Неизвестная команда: {job_key}",
+            chat_id=chat_id
+        )
+        return
+
+    env_emoji = "🧪" if env == "staging" else "🚀"
+    joke = random.choice(JOKES["deploy_start"])
+
+    await send_message_with_reply_keyboard(
+        f"{joke}\n\n"
+        f"<b>{env_emoji} Деплой {component} → {env.upper()}</b>\n\n"
+        f"<i>⏳ Запускаю GitLab CI job...</i>",
+        chat_id=chat_id
+    )
+
+    # Триггерим job
+    result = await trigger_gitlab_job(job_config["project"], job_config["job"])
+
+    if result.get("success"):
+        job_url = result.get("web_url", "")
+        job_id = result.get("job_id")
+        status = result.get("status", "pending")
+        message = result.get("message", "")
+
+        status_text = "⏳ Запущен" if status in ["pending", "running"] else f"📊 {status}"
+        if message:
+            status_text += f" ({message})"
+
+        await send_message_with_reply_keyboard(
+            f"✅ <b>Job запущен!</b>\n\n"
+            f"<b>Компонент:</b> {component}\n"
+            f"<b>Окружение:</b> {env_emoji} {env.upper()}\n"
+            f"<b>Статус:</b> {status_text}\n"
+            f"<b>Job ID:</b> #{job_id}\n\n"
+            f"🔗 <a href=\"{job_url}\">Открыть в GitLab</a>\n\n"
+            f"<i>Слежу за статусом...</i>",
+            chat_id=chat_id
+        )
+
+        # Запускаем мониторинг в фоне
+        asyncio.create_task(monitor_deploy_job(chat_id, job_config["project"], job_id, component, env))
+    else:
+        error = result.get("error", "Unknown error")
+        joke_error = random.choice(JOKES["deploy_error"])
+        await send_message_with_reply_keyboard(
+            f"{joke_error}\n\n"
+            f"<b>❌ Не удалось запустить деплой</b>\n\n"
+            f"<b>Ошибка:</b> {error}\n\n"
+            f"<i>Попробуй позже или проверь GitLab</i>",
+            chat_id=chat_id
+        )
+
+
+async def monitor_deploy_job(chat_id: int, project: str, job_id: int, component: str, env: str):
+    """Мониторит статус деплой job и отправляет уведомление по завершению."""
+    max_wait = 600  # 10 минут максимум
+    check_interval = 15
+    elapsed = 0
+
+    while elapsed < max_wait:
+        await asyncio.sleep(check_interval)
+        elapsed += check_interval
+
+        result = await get_job_status(project, job_id)
+        if not result.get("success"):
+            continue
+
+        status = result.get("status")
+
+        if status == "success":
+            joke = random.choice(JOKES["deploy_success"])
+            duration = result.get("duration", 0)
+            await send_message_with_reply_keyboard(
+                f"{joke}\n\n"
+                f"<b>✅ Деплой завершён успешно!</b>\n\n"
+                f"<b>Компонент:</b> {component}\n"
+                f"<b>Окружение:</b> {'🧪' if env == 'staging' else '🚀'} {env.upper()}\n"
+                f"<b>Время:</b> {int(duration)}с\n\n"
+                f"🔗 <a href=\"{result.get('web_url', '')}\">Подробности в GitLab</a>",
+                chat_id=chat_id
+            )
+            return
+
+        elif status == "failed":
+            joke = random.choice(JOKES["deploy_error"])
+            await send_message_with_reply_keyboard(
+                f"{joke}\n\n"
+                f"<b>❌ Деплой провалился!</b>\n\n"
+                f"<b>Компонент:</b> {component}\n"
+                f"<b>Окружение:</b> {'🧪' if env == 'staging' else '🚀'} {env.upper()}\n\n"
+                f"🔗 <a href=\"{result.get('web_url', '')}\">Смотри логи в GitLab</a>",
+                chat_id=chat_id
+            )
+            return
+
+        elif status == "canceled":
+            await send_message_with_reply_keyboard(
+                f"⚠️ <b>Деплой отменён</b>\n\n"
+                f"<b>Компонент:</b> {component}\n"
+                f"<b>Окружение:</b> {env.upper()}",
+                chat_id=chat_id
+            )
+            return
+
+    # Таймаут
+    await send_message_with_reply_keyboard(
+        f"⏱ <b>Деплой всё ещё выполняется...</b>\n\n"
+        f"Прошло больше 10 минут. Проверь статус вручную в GitLab.",
+        chat_id=chat_id
+    )
+
+
+async def handle_e2e_run_via_gitlab(chat_id: int):
+    """Запускает E2E тесты через GitLab CI."""
+    job_config = GITLAB_JOBS.get("run_e2e")
+    joke = random.choice(JOKES["e2e_start"])
+
+    await send_message_with_reply_keyboard(
+        f"{joke}\n\n"
+        f"<b>🧪 Запускаю E2E тесты...</b>\n\n"
+        f"<i>⏳ Это может занять 2-5 минут</i>",
+        chat_id=chat_id
+    )
+
+    result = await trigger_gitlab_job(job_config["project"], job_config["job"])
+
+    if result.get("success"):
+        job_url = result.get("web_url", "")
+        job_id = result.get("job_id")
+
+        await send_message_with_reply_keyboard(
+            f"✅ <b>Тесты запущены!</b>\n\n"
+            f"<b>Job ID:</b> #{job_id}\n\n"
+            f"🔗 <a href=\"{job_url}\">Смотреть в GitLab</a>\n"
+            f"📊 <a href=\"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest\">Allure отчёт</a>\n\n"
+            f"<i>Пришлю результат по завершению...</i>",
+            chat_id=chat_id
+        )
+
+        # Мониторим тесты
+        asyncio.create_task(monitor_e2e_job(chat_id, job_config["project"], job_id))
+    else:
+        error = result.get("error", "Unknown error")
+        await send_message_with_reply_keyboard(
+            f"❌ <b>Не удалось запустить тесты</b>\n\n"
+            f"<b>Ошибка:</b> {error}",
+            chat_id=chat_id
+        )
+
+
+async def monitor_e2e_job(chat_id: int, project: str, job_id: int):
+    """Мониторит E2E тесты и отправляет результат."""
+    max_wait = 600
+    check_interval = 20
+    elapsed = 0
+
+    while elapsed < max_wait:
+        await asyncio.sleep(check_interval)
+        elapsed += check_interval
+
+        result = await get_job_status(project, job_id)
+        if not result.get("success"):
+            continue
+
+        status = result.get("status")
+
+        if status == "success":
+            joke = random.choice(JOKES["e2e_success"])
+            duration = result.get("duration", 0)
+
+            # Пробуем получить детали из Allure
+            allure_details = await get_allure_report_details()
+            if allure_details and allure_details.get("statistic"):
+                stats = allure_details["statistic"]
+                passed = stats.get("passed", 0)
+                failed = stats.get("failed", 0)
+                total = stats.get("total", 0)
+
+                await send_message_with_reply_keyboard(
+                    f"{joke}\n\n"
+                    f"<b>✅ E2E тесты завершены!</b>\n\n"
+                    f"📊 <b>Результат:</b>\n"
+                    f"✅ Passed: {passed}\n"
+                    f"❌ Failed: {failed}\n"
+                    f"📋 Total: {total}\n\n"
+                    f"⏱ <b>Время:</b> {int(duration)}с\n\n"
+                    f"📊 <a href=\"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest\">Открыть Allure отчёт</a>",
+                    chat_id=chat_id
+                )
+            else:
+                await send_message_with_reply_keyboard(
+                    f"{joke}\n\n"
+                    f"<b>✅ E2E тесты завершены!</b>\n\n"
+                    f"⏱ <b>Время:</b> {int(duration)}с\n\n"
+                    f"📊 <a href=\"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest\">Открыть Allure отчёт</a>",
+                    chat_id=chat_id
+                )
+            return
+
+        elif status == "failed":
+            joke = random.choice(JOKES["e2e_failure"])
+            await send_message_with_reply_keyboard(
+                f"{joke}\n\n"
+                f"<b>❌ E2E тесты упали!</b>\n\n"
+                f"🔗 <a href=\"{result.get('web_url', '')}\">Смотри логи</a>\n"
+                f"📊 <a href=\"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest\">Allure отчёт</a>",
+                chat_id=chat_id
+            )
+            return
+
+
+async def handle_pods_command(chat_id: int):
+    """Показывает статус подов K8s."""
+    await send_chat_action(chat_id, "typing")
+    k8s = await get_k8s_resources()
+
+    msg = "<b>📦 Поды Kubernetes</b>\n\n"
+
+    if k8s.get("pods"):
+        for pod in k8s["pods"]:
+            icon = "🟢" if pod["status"] == "Running" else "🔴" if pod["status"] == "Error" else "🟡"
+            restarts = f" (↻{pod['restarts']})" if pod.get('restarts') and pod['restarts'] != "0" else ""
+            msg += f"{icon} <code>{pod['name']}</code>{restarts}\n"
+    else:
+        msg += "<i>Не удалось получить информацию о подах</i>"
+
+    await send_message_with_reply_keyboard(msg.strip(), chat_id=chat_id)
 
 
 async def handle_load_menu(chat_id: int):
@@ -962,6 +1456,32 @@ async def process_callback(callback_query: dict):
 
     elif data == "e2e_report":
         await send_e2e_report(chat_id)
+
+    # ========== Deploy Commands ==========
+    elif data == "deploy_menu":
+        await handle_deploy_menu(chat_id)
+
+    elif data == "deploy_api_staging":
+        await handle_deploy_command(chat_id, "deploy_api_staging", "API", "staging")
+
+    elif data == "deploy_frontend_staging":
+        await handle_deploy_command(chat_id, "deploy_frontend_staging", "Frontend", "staging")
+
+    elif data == "deploy_all_staging":
+        await handle_deploy_command(chat_id, "deploy_all_staging", "API + Frontend", "staging")
+
+    elif data == "deploy_api_prod":
+        await handle_deploy_command(chat_id, "deploy_api_prod", "API", "production")
+
+    elif data == "deploy_frontend_prod":
+        await handle_deploy_command(chat_id, "deploy_frontend_prod", "Frontend", "production")
+
+    elif data == "deploy_all_prod":
+        await handle_deploy_command(chat_id, "deploy_all_prod", "API + Frontend", "production")
+
+    elif data == "noop":
+        # Ничего не делаем - разделитель
+        pass
 
 
 async def request_password_for_load_test(chat_id: int, target: str, users: int, duration: int = 300, ramp_up: str = "smooth"):
