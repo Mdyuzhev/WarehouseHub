@@ -262,10 +262,10 @@ deploy-prod:
       ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
         cd /opt/warehouse
         echo "Pulling latest API image..."
-        docker compose pull api
+        sudo docker compose pull api
         echo "Restarting API container..."
-        docker compose up -d api
-        docker image prune -f
+        sudo docker compose up -d api
+        sudo docker image prune -f
         echo "API deployed successfully!"
         docker ps | grep warehouse-api
       ENDSSH
