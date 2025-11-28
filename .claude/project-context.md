@@ -105,7 +105,7 @@ stages: lint → build → test → package
 - YouTrack: admin / Misha2021@1@
 - Load Test: Misha2021@1@
 - Guest Load Test: Guest
-- GitLab Token: glpat-yxPPmkSxkGZ1D-R8MgH8
+- GitLab Token: glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3
 
 ## Telegram Bot
 - Token: 8532494921:AAEoxQ87qQVcutgCSa8d8DntT_47xhvrCAI
