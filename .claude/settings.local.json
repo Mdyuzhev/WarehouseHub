@@ -1,74 +1,70 @@
 {
   "permissions": {
     "allow": [
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get pods -n monitoring')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get svc -n monitoring')",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl exec -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -- wget -qO- \"\"http://localhost:9090/api/v1/label/__name__/values\"\" 2>/dev/null | grep -oE \"\"\\\"\"locust[^\\\"\"]*\\\"\"\"\" | sort -u\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl exec -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -- wget -qO- \"\"http://localhost:9090/api/v1/query?query=locust_users\"\" 2>/dev/null | jq \"\".data.result\"\"\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\n# Проверим конфигурацию Locust - какой host используется\nkubectl get configmap -n loadtest locust-script -o jsonpath=\"\"{.data[\\\"\"locustfile.py\\\"\"]}\"\" | head -30\n')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get configmap -n loadtest locust-script -o yaml | head -50')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get deployment -n loadtest locust-master -o jsonpath=\"\"{.spec.template.spec.containers[0].env}\"\"')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get deployment -n loadtest locust-master -o yaml | grep -A20 \"\"containers:\"\"')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get svc -n default | grep warehouse')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get pods -n default | grep warehouse')",
-      "Bash(env -u LD_PRELOAD bash -c 'kubectl get svc --all-namespaces | grep -E \"\"warehouse|8080\"\"')",
-      "Bash(env -u LD_PRELOAD bash -c 'docker ps 2>/dev/null | grep warehouse')",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl set env deployment/locust-master -n loadtest --list\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\n# Патчим master deployment с правильным host\nkubectl patch deployment locust-master -n loadtest --type=json -p ''''[\n  {\"\"op\"\": \"\"replace\"\", \"\"path\"\": \"\"/spec/template/spec/containers/0/args\"\", \"\"value\"\": [\n    \"\"--master\"\",\n    \"\"--host=http://warehouse-api-service.warehouse.svc.cluster.local:8080\"\",\n    \"\"--expect-workers=3\"\"\n  ]}\n]''''\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\n# Патчим worker deployment с правильным host\nkubectl patch deployment locust-worker -n loadtest --type=json -p ''''[\n  {\"\"op\"\": \"\"replace\"\", \"\"path\"\": \"\"/spec/template/spec/containers/0/args\"\", \"\"value\"\": [\n    \"\"--worker\"\",\n    \"\"--master-host=locust-master\"\",\n    \"\"--host=http://warehouse-api-service.warehouse.svc.cluster.local:8080\"\"\n  ]}\n]''''\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\n# Ждём пересоздания подов\nsleep 5\nkubectl get pods -n loadtest -w 2>&1 &\nsleep 20\nkill %1 2>/dev/null\nkubectl get pods -n loadtest\n')",
-      "Bash(env -u LD_PRELOAD curl -s -X POST \"http://192.168.1.74:30089/swarm\" )",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl exec -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -- wget -qO- \"\"http://localhost:9090/api/v1/query?query=locust_requests_current_rps\"\" 2>/dev/null | jq -r \"\".data.result[] | \\\"\"\\\\(.metric.method) \\\\(.metric.name): \\\\(.value[1]) rps\\\"\"\"\"\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl exec -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -- wget -qO- \"\"http://localhost:9090/api/v1/query?query=locust_users\"\" 2>/dev/null | jq -r \"\".data.result[0].value[1]\"\"\n')",
-      "Bash(env -u LD_PRELOAD bash -c '\nkubectl exec -n monitoring prometheus-grafana-8dfd898c7-252hs -- wget -qO- \"\"http://admin:prom-operator@localhost:3000/api/dashboards/uid/locust-loadtest\"\" 2>/dev/null | jq \"\".meta.slug // .message\"\"\n')",
-      "Bash(env -u LD_PRELOAD bash:*)",
-      "Bash(chmod:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(env -u LD_PRELOAD git push:*)",
-      "Bash(env -u LD_PRELOAD GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa\" git push:*)",
-      "Bash(env -u LD_PRELOAD ssh-keygen:*)",
-      "Bash(cat:*)",
-      "Bash(env -u LD_PRELOAD curl -s -X POST \"http://192.168.1.74:8929/api/v4/user/keys\" )",
-      "Bash(env -u LD_PRELOAD curl -s \"http://192.168.1.74:8929/api/v4/version\")",
-      "Bash(env -u LD_PRELOAD curl -s \"http://192.168.1.74:80/api/v4/version\")",
-      "Bash(env -u LD_PRELOAD curl -s \"http://192.168.1.74/api/v4/version\")",
-      "Bash(env -u LD_PRELOAD curl -s \"http://localhost:8929/api/v4/version\")",
-      "Bash(env -u LD_PRELOAD curl -s \"http://127.0.0.1:8929/api/v4/version\")",
-      "Bash(sudo gitlab-ctl status:*)",
-      "Bash(env -u LD_PRELOAD ss:*)",
-      "Bash(env -u LD_PRELOAD ssh:*)",
-      "Bash(env -u LD_PRELOAD kubectl:*)",
-      "Bash(env -u LD_PRELOAD curl -s \"http://192.168.1.74:8080/api/v4/version\")",
-      "Bash(env -u LD_PRELOAD curl -s -X POST \"http://192.168.1.74:8080/api/v4/user/keys\" )",
-      "Bash(env -u LD_PRELOAD GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519\" git push:*)",
-      "Bash(env -u LD_PRELOAD docker build:*)",
-      "Bash(env -u LD_PRELOAD git clone ssh://git@192.168.1.74:2222/root/warehouse-frontend.git /tmp/test-frontend)",
-      "Bash(git init:*)",
-      "Bash(git remote add:*)",
-      "Bash(git branch:*)",
-      "Bash(git config:*)",
-      "Bash(env -u LD_PRELOAD GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519\" git fetch:*)",
-      "Bash(git rebase:*)",
-      "Bash(git reset:*)",
-      "Bash(sudo ls:*)",
-      "Bash(sudo mkdir:*)",
-      "Bash(sudo cp:*)",
-      "Bash(sudo chown:*)",
-      "Bash(sudo chmod:*)",
-      "Bash(sudo cat:*)",
-      "Bash(env -u LD_PRELOAD curl -s -X POST http://192.168.1.74:8080/api/v4/projects/root%2Fwarehouse-frontend/hooks -H 'PRIVATE-TOKEN: glpat-sZDJHzL3xz5gxPz1JAVE' -H 'Content-Type: application/json' -d '{\n    \"\"\"\"url\"\"\"\": \"\"\"\"http://192.168.1.74:30088/webhook/gitlab\"\"\"\",\n    \"\"\"\"token\"\"\"\": \"\"\"\"warehouse-webhook-secret-2024\"\"\"\",\n    \"\"\"\"pipeline_events\"\"\"\": true,\n    \"\"\"\"job_events\"\"\"\": true,\n    \"\"\"\"push_events\"\"\"\": false,\n    \"\"\"\"merge_requests_events\"\"\"\": false\n  }')",
-      "Bash(env -u LD_PRELOAD docker exec gitlab gitlab-rails runner '\nproject = Project.find_by_full_path(\"\"root/warehouse-frontend\"\")\nif project\n  hook = project.hooks.create!(\n    url: \"\"http://192.168.1.74:30088/webhook/gitlab\"\",\n    token: \"\"warehouse-webhook-secret-2024\"\",\n    pipeline_events: true,\n    job_events: true,\n    push_events: false,\n    enable_ssl_verification: false\n  )\n  puts \"\"Webhook created: #{hook.id}\"\"\nelse\n  puts \"\"Project not found\"\"\nend\n')",
-      "Bash(sudo systemctl restart:*)",
-      "Bash(sudo systemctl status:*)",
-      "Bash(env -u LD_PRELOAD curl -s -X POST \"http://192.168.1.74:8080/api/v4/projects/root%2Fwarehouse-frontend/pipeline\" )",
-      "Bash(env -u LD_PRELOAD docker exec gitlab gitlab-rails runner '\nproject = Project.find_by_full_path(\"\"root/warehouse-frontend\"\")\npipeline = project.ci_pipelines.order(id: :desc).first\nputs \"\"Pipeline ##{pipeline.id}: #{pipeline.status}\"\"\npipeline.statuses.each do |job|\n  puts \"\"  #{job.name}: #{job.status}\"\"\nend\n')",
-      "Bash(env -u LD_PRELOAD ls:*)",
-      "Bash(env -u LD_PRELOAD docker exec gitlab gitlab-rails runner '\nputs \"\"=== Frontend ===\"\"\nproject = Project.find_by_full_path(\"\"root/warehouse-frontend\"\")\npipeline = project.ci_pipelines.order(id: :desc).first\nputs \"\"Pipeline ##{pipeline.id}: #{pipeline.status}\"\"\npipeline.statuses.each { |job| puts \"\"  #{job.name}: #{job.status}\"\" }\n\nputs \"\"\"\"\nputs \"\"=== API ===\"\"\nproject2 = Project.find_by_full_path(\"\"root/warehouse-api\"\")\npipeline2 = project2.ci_pipelines.order(id: :desc).first\nputs \"\"Pipeline ##{pipeline2.id}: #{pipeline2.status}\"\"\npipeline2.statuses.each { |job| puts \"\"  #{job.name}: #{job.status}\"\" }\n')",
-      "Bash(env -u LD_PRELOAD docker exec gitlab gitlab-rails runner '\nputs \"\"=== API ===\"\"\nproject2 = Project.find_by_full_path(\"\"root/warehouse-api\"\")\npipeline2 = project2.ci_pipelines.order(id: :desc).first\nputs \"\"Pipeline ##{pipeline2.id}: #{pipeline2.status}\"\"\npipeline2.statuses.each { |job| puts \"\"  #{job.name}: #{job.status}\"\" }\n')"
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "TodoWrite",
+      "NotebookEdit",
+      "mcp__*"
     ],
     "deny": [],
     "ask": []
+  },
+  "preferences": {
+    "communication_style": "humorous_russian",
+    "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация - наше всё!"
+  },
+  "environment": {
+    "description": "Перед началом работы ВСЕГДА проверять текущее состояние окружения!",
+    "docker_services": {
+      "youtrack": "localhost:8088 (Docker container)",
+      "gitlab": "localhost:8080 (Docker container)",
+      "allure_server": "localhost:5050 (Docker container)",
+      "allure_ui": "localhost:5252 (Docker container)"
+    },
+    "k8s_services": {
+      "warehouse_api": "K8s namespace: warehouse, NodePort: 30080",
+      "warehouse_frontend": "K8s namespace: warehouse, NodePort: 30081",
+      "postgresql": "K8s namespace: warehouse (StatefulSet)",
+      "telegram_bot": "K8s namespace: notifications",
+      "locust": "K8s namespace: warehouse, NodePort: 30089"
+    },
+    "production": {
+      "api": "https://api.wh-lab.ru (Yandex Cloud)",
+      "frontend": "https://wh-lab.ru (Yandex Cloud)",
+      "host": "130.193.44.34"
+    }
+  },
+  "workflow": {
+    "task_tracking": {
+      "enabled": true,
+      "tracker": "YouTrack",
+      "tracker_url": "http://192.168.1.74:8088",
+      "project_id": "0-1",
+      "project_short": "WH",
+      "auth": {
+        "user": "admin",
+        "password": "Misha2021@1@"
+      },
+      "rules": [
+        "Перед началом значимой задачи - создать таск в YouTrack через API",
+        "В начале работы - добавить комментарий о старте в таск",
+        "В конце работы - добавить комментарий с результатом",
+        "Закрыть таск командой 'State Fixed'",
+        "Перед работой - проверить состояние всех сервисов (docker ps, kubectl get pods)"
+      ],
+      "api_examples": {
+        "create_issue": "POST /api/issues - {project:{id:'0-1'}, summary:'...'}",
+        "add_comment": "POST /api/issues/WH-XX/comments - {text:'...'}",
+        "close_issue": "POST /api/commands - {issues:[{idReadable:'WH-XX'}], query:'State Fixed'}"
+      }
+    }
   }
 }
