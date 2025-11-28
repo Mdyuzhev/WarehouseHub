@@ -100,7 +100,7 @@ package-image:
     - docker save $IMAGE_NAME:latest -o /tmp/$IMAGE_NAME.tar
     - sudo k3s ctr images rm docker.io/library/$IMAGE_NAME:latest || true
     - sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
-    - rm /tmp/$IMAGE_NAME.tar
+    - sudo rm -f /tmp/$IMAGE_NAME.tar || true
 
     - echo "✅ Image ready! Deploy via warehouse-master"
   only:
