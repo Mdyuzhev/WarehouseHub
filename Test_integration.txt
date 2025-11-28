@@ -1,1 +1,0 @@
-#WH-1 Test YouTrack integration
