@@ -85,7 +85,10 @@ public class SecurityConfig {
             "http://localhost:3000",
             "http://localhost:5173",
             "http://192.168.1.74:30000",
-            "http://warehouse.local"
+            "http://192.168.1.74:30081",
+            "http://warehouse.local",
+            "https://wh-lab.ru",
+            "https://www.wh-lab.ru"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
