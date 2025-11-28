@@ -1,0 +1,252 @@
+# =============================================================================
+# Warehouse Master - Оркестрация деплоя и тестирования
+# =============================================================================
+
+stages:
+  - build
+  - deploy-staging
+  - deploy-prod
+  - test
+  - notify
+
+# =============================================================================
+# Переменные
+# =============================================================================
+variables:
+  # Yandex Cloud Registry
+  YC_REGISTRY: "cr.yandex/crpf5fukf1ili7kudopb"
+
+  # K8s
+  K8S_NAMESPACE_APP: "warehouse"
+  K8S_NAMESPACE_LOADTEST: "loadtest"
+  K8S_NAMESPACE_NOTIFICATIONS: "notifications"
+
+  # Production
+  PROD_HOST: "130.193.44.34"
+  PROD_USER: "ubuntu"
+
+  # Locust
+  LOCUST_MASTER_URL: "http://192.168.1.74:30089"
+
+  # Allure
+  ALLURE_SERVER_URL: "http://192.168.1.74:5050"
+
+# =============================================================================
+# DEPLOY STAGING
+# =============================================================================
+
+deploy-api-staging:
+  stage: deploy-staging
+  script:
+    - echo "🚀 Deploying API to Staging..."
+    - kubectl apply -f k8s/warehouse/api-configmap.yaml
+    - kubectl apply -f k8s/warehouse/api-deployment.yaml
+    - kubectl apply -f k8s/warehouse/api-service.yaml
+    - kubectl rollout restart deployment/warehouse-api -n $K8S_NAMESPACE_APP
+    - kubectl rollout status deployment/warehouse-api -n $K8S_NAMESPACE_APP --timeout=120s
+    - echo "✅ API deployed to Staging"
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: staging-api
+    url: http://192.168.1.74:30080
+
+deploy-frontend-staging:
+  stage: deploy-staging
+  script:
+    - echo "🚀 Deploying Frontend to Staging..."
+    - kubectl apply -f k8s/warehouse/frontend-configmap.yaml
+    - kubectl apply -f k8s/warehouse/frontend-deployment.yaml
+    - kubectl apply -f k8s/warehouse/frontend-service.yaml
+    - kubectl rollout restart deployment/warehouse-frontend -n $K8S_NAMESPACE_APP
+    - kubectl rollout status deployment/warehouse-frontend -n $K8S_NAMESPACE_APP --timeout=120s
+    - echo "✅ Frontend deployed to Staging"
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: staging-frontend
+    url: http://192.168.1.74:30081
+
+deploy-all-staging:
+  stage: deploy-staging
+  script:
+    - echo "🚀 Deploying ALL to Staging..."
+    # API
+    - kubectl apply -f k8s/warehouse/
+    - kubectl rollout restart deployment/warehouse-api -n $K8S_NAMESPACE_APP
+    - kubectl rollout restart deployment/warehouse-frontend -n $K8S_NAMESPACE_APP
+    - kubectl rollout status deployment/warehouse-api -n $K8S_NAMESPACE_APP --timeout=120s
+    - kubectl rollout status deployment/warehouse-frontend -n $K8S_NAMESPACE_APP --timeout=120s
+    - echo "✅ All services deployed to Staging"
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: staging
+    url: http://192.168.1.74:30080
+
+# =============================================================================
+# DEPLOY PRODUCTION
+# =============================================================================
+
+deploy-api-prod:
+  stage: deploy-prod
+  before_script:
+    - mkdir -p ~/.ssh
+    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - |
+      echo "🚀 Deploying API to Production..."
+      ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
+        cd /opt/warehouse
+        sudo docker compose pull api
+        sudo docker compose up -d api
+        sudo docker image prune -f
+        echo "✅ API deployed!"
+      ENDSSH
+  after_script:
+    - rm -f ~/.ssh/deploy_key
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: production-api
+    url: https://api.wh-lab.ru
+
+deploy-frontend-prod:
+  stage: deploy-prod
+  before_script:
+    - mkdir -p ~/.ssh
+    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - |
+      echo "🚀 Deploying Frontend to Production..."
+      ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
+        cd /opt/warehouse
+        sudo docker compose pull frontend
+        sudo docker compose up -d frontend
+        sudo docker image prune -f
+        echo "✅ Frontend deployed!"
+      ENDSSH
+  after_script:
+    - rm -f ~/.ssh/deploy_key
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: production-frontend
+    url: https://wh-lab.ru
+
+deploy-all-prod:
+  stage: deploy-prod
+  before_script:
+    - mkdir -p ~/.ssh
+    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - |
+      echo "🚀 Deploying ALL to Production..."
+      ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
+        cd /opt/warehouse
+        sudo docker compose pull
+        sudo docker compose up -d
+        sudo docker image prune -f
+        echo "✅ All services deployed!"
+      ENDSSH
+  after_script:
+    - rm -f ~/.ssh/deploy_key
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: production
+    url: https://wh-lab.ru
+
+# =============================================================================
+# TESTING
+# =============================================================================
+
+run-e2e-tests:
+  stage: test
+  script:
+    - echo "🧪 Running E2E tests..."
+    - cd /home/flomaster/warehouse-api
+    - chmod +x ./mvnw
+    - LD_PRELOAD= ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
+    - |
+      echo "📊 Uploading to Allure..."
+      curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" \
+        -H "Content-Type: application/json" \
+        -d '{"id": "warehouse-api"}' || true
+      curl -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-api" || true
+      for file in target/allure-results/*; do
+        [ -f "$file" ] && curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-api" -F "files[]=@$file"
+      done
+      curl -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-api"
+    - echo "✅ E2E tests completed"
+    - echo "📊 Report: $ALLURE_SERVER_URL/allure-docker-service/projects/warehouse-api/reports/latest"
+  artifacts:
+    when: always
+    paths:
+      - /home/flomaster/warehouse-api/target/allure-results/
+    expire_in: 1 week
+  tags:
+    - shell
+  when: manual
+
+run-load-tests:
+  stage: test
+  variables:
+    TARGET_HOST: "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
+    USERS: "100"
+    SPAWN_RATE: "10"
+    DURATION: "300"
+  script:
+    - echo "🔥 Starting Load Test..."
+    - echo "Target: $TARGET_HOST, Users: $USERS, Duration: ${DURATION}s"
+    - |
+      # Запуск теста
+      curl -X POST "$LOCUST_MASTER_URL/swarm" \
+        -d "user_count=$USERS&spawn_rate=$SPAWN_RATE&host=$TARGET_HOST"
+
+      echo "⏳ Test running for ${DURATION}s..."
+      sleep $DURATION
+
+      # Остановка и получение результатов
+      curl -X GET "$LOCUST_MASTER_URL/stop"
+
+      echo "📊 Fetching results..."
+      curl -s "$LOCUST_MASTER_URL/stats/requests" | jq '.stats[] | select(.name == "Aggregated")'
+    - echo "✅ Load test completed"
+  tags:
+    - shell
+  when: manual
+
+# =============================================================================
+# TELEGRAM BOT
+# =============================================================================
+
+deploy-telegram-bot:
+  stage: deploy-staging
+  script:
+    - echo "🤖 Deploying Telegram Bot..."
+    - cd telegram-bot
+    - docker build -t gitlab-telegram-bot:latest .
+    - docker save gitlab-telegram-bot:latest -o /tmp/bot.tar
+    - sudo k3s ctr images rm docker.io/library/gitlab-telegram-bot:latest || true
+    - sudo k3s ctr images import /tmp/bot.tar
+    - rm /tmp/bot.tar
+    - kubectl apply -f ../k8s/notifications/
+    - kubectl rollout restart deployment/gitlab-telegram-bot -n $K8S_NAMESPACE_NOTIFICATIONS
+    - kubectl rollout status deployment/gitlab-telegram-bot -n $K8S_NAMESPACE_NOTIFICATIONS --timeout=60s
+    - echo "✅ Telegram Bot deployed"
+  tags:
+    - shell
+  when: manual

@@ -1,0 +1,87 @@
+# =============================================================================
+# Deployment для warehouse-api
+# Spring Boot приложение с подключением к PostgreSQL
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warehouse-api
+  namespace: warehouse
+  labels:
+    app: warehouse-api
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warehouse-api
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: warehouse-api
+        component: backend
+    spec:
+      containers:
+        - name: warehouse-api
+          # Локальный образ, импортированный в K3s
+          image: warehouse-api:latest
+          imagePullPolicy: Never
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # Переменные окружения из ConfigMap
+          envFrom:
+            - configMapRef:
+                name: warehouse-api-config
+
+          # Переменные окружения из Secret (PostgreSQL credentials)
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service.warehouse.svc.cluster.local:5432/warehouse"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: APP_DB_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: APP_DB_PASSWORD
+
+          # Ресурсы контейнера
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          # Проверка готовности (для маршрутизации трафика)
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Проверка жизнеспособности (для перезапуска при зависании)
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "TodoWrite",
+      "NotebookEdit",
+      "mcp__*"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "preferences": {
+    "communication_style": "humorous_russian",
+    "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация - наше всё!"
+  },
+  "environment": {
+    "description": "Мастер-репозиторий для оркестрации всего проекта Warehouse",
+    "docker_services": {
+      "youtrack": "http://192.168.1.74:8088",
+      "gitlab": "http://192.168.1.74:8080",
+      "allure_server": "http://192.168.1.74:5050",
+      "allure_ui": "http://192.168.1.74:5252",
+      "claude_proxy": "http://192.168.1.74:8765"
+    },
+    "k8s_namespaces": {
+      "warehouse": "API + Frontend + PostgreSQL",
+      "loadtest": "Locust master + workers",
+      "notifications": "Telegram Bot",
+      "monitoring": "Prometheus + Grafana"
+    },
+    "production": {
+      "api": "https://api.wh-lab.ru",
+      "frontend": "https://wh-lab.ru",
+      "host": "130.193.44.34"
+    }
+  },
+  "workflow": {
+    "task_tracking": {
+      "enabled": true,
+      "tracker": "YouTrack",
+      "tracker_url": "http://192.168.1.74:8088",
+      "project_id": "0-1",
+      "project_short": "WH",
+      "auth": {
+        "user": "admin",
+        "password": "Misha2021@1@"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# =============================================================================
+# Service для warehouse-api
+# ClusterIP для внутреннего доступа, NodePort для внешнего
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: warehouse-api-service
+  namespace: warehouse
+  labels:
+    app: warehouse-api
+    component: backend
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      protocol: TCP
+  selector:
+    app: warehouse-api
+    component: backend

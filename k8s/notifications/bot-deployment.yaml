@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-telegram-bot
+  namespace: notifications
+  labels:
+    app: gitlab-telegram-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-telegram-bot
+  template:
+    metadata:
+      labels:
+        app: gitlab-telegram-bot
+    spec:
+      containers:
+        - name: bot
+          image: gitlab-telegram-bot:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: telegram-bot-secrets
+          env:
+            - name: CLAUDE_PROXY_URL
+              value: "http://192.168.1.74:8765"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
