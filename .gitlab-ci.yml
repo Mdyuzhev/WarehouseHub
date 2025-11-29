@@ -212,24 +212,42 @@ run-ui-tests:
   stage: test
   variables:
     BASE_URL: "http://192.168.1.74:30081"
-    SELENOID_URL: "http://selenoid.warehouse.svc.cluster.local:4444/wd/hub"
+    SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
   script:
     - echo "🎭 Running UI Tests with Selenide..."
+    # Автоматически поднимаем Selenoid если не запущен
+    - echo "📦 Ensuring Selenoid is running..."
+    - |
+      if ! curl -s "http://192.168.1.74:4444/status" | grep -q "total"; then
+        echo "🚀 Starting Selenoid..."
+        cd selenoid && docker-compose up -d
+        sleep 10
+        cd ..
+      fi
+    - echo "✅ Selenoid is ready!"
+    # Запуск тестов
     - cd ui-tests
+    - rm -rf target/ || true
     - |
       mvn test \
         -Dbase.url=$BASE_URL \
         -Dselenoid.url=$SELENOID_URL \
         -Dbrowser=chrome \
-        -Dheadless=true \
+        -Dbrowser.size=1920x1080 \
         --batch-mode || true
     - echo "📊 Uploading UI test results to Allure..."
-    - curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-ui"}' || true
-    - curl -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-ui" || true
-    - find target/allure-results -type f -exec curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-ui" -F "files[]=@{}" \; || true
-    - curl -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-ui" || true
-    - echo "✅ UI Tests completed"
-    - echo "📊 Report - $ALLURE_SERVER_URL/allure-docker-service/projects/warehouse-ui/reports/latest"
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-ui"}' || true
+    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-ui" || true
+    - |
+      for file in target/allure-results/*; do
+        [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-ui" -F "files[]=@$file" || true
+      done
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-ui" || true
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 ALLURE REPORT (со скриншотами):"
+    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest"
+    - echo "═══════════════════════════════════════════════════════════"
   artifacts:
     when: always
     paths:
@@ -238,9 +256,6 @@ run-ui-tests:
   tags:
     - shell
   when: manual
-  needs:
-    - job: deploy-all-staging
-      optional: true
 
 run-load-tests:
   stage: test

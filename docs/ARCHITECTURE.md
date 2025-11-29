@@ -1,6 +1,6 @@
 # Warehouse Project - Architecture
 
-> Полная архитектура проекта. Обновлено: 2025-11-29
+> Полная архитектура проекта. Обновлено: 2025-11-29 (аудит)
 
 ---
 
@@ -15,7 +15,8 @@
 7. [Инфраструктура Production](#инфраструктура-production)
 8. [CI/CD Pipeline](#cicd-pipeline)
 9. [Мониторинг и тестирование](#мониторинг-и-тестирование)
-10. [Сетевая схема](#сетевая-схема)
+10. [UI и E2E тестирование](#ui-и-e2e-тестирование)
+11. [Сетевая схема](#сетевая-схема)
 
 ---
 
@@ -202,9 +203,10 @@ warehouse-master/
 │   ├── INFRASTRUCTURE_GUIDE.md # Полная инвентаризация
 │   ├── PROJECT_STATUS.md
 │   ├── TROUBLESHOOTING_GUIDE.md
-│   └── AUDIT_REPORT.md
+│   ├── BUGFIX_REPORT_*.md      # Отчёты об исправлениях
+│   └── PLAN_PM_BOT.md          # План PM-бота для Telegram
 ├── k8s/
-│   ├── warehouse/              # API + Frontend + PostgreSQL
+│   ├── warehouse/              # API + Frontend + PostgreSQL + доп. сервисы
 │   │   ├── api-deployment.yaml
 │   │   ├── api-service.yaml
 │   │   ├── api-configmap.yaml
@@ -212,21 +214,34 @@ warehouse-master/
 │   │   ├── api-servicemonitor.yaml
 │   │   ├── frontend-deployment.yaml
 │   │   ├── frontend-service.yaml
-│   │   └── frontend-ingress.yaml
+│   │   ├── frontend-ingress.yaml
+│   │   ├── redis-deployment.yaml     # Redis для кэширования
+│   │   ├── redis-service.yaml
+│   │   ├── redis-configmap.yaml
+│   │   ├── kafka-deployment.yaml     # Kafka KRaft (без Zookeeper)
+│   │   ├── kafka-service.yaml
+│   │   └── kafka-configmap.yaml
 │   ├── loadtest/               # Locust нагрузочное тестирование
 │   │   ├── namespace.yaml
-│   │   ├── locust-configmap.yaml  # locustfile.py
-│   │   ├── locust-deployment.yaml # master + workers
+│   │   ├── locust-configmap.yaml
+│   │   ├── locust-deployment.yaml
 │   │   └── locust-service.yaml
 │   ├── notifications/          # Telegram Bot
 │   │   ├── bot-deployment.yaml
 │   │   ├── bot-service.yaml
 │   │   └── bot-secret.yaml
-│   └── monitoring/             # Prometheus
+│   └── monitoring/             # Prometheus + Grafana
 │       ├── namespace.yaml
 │       ├── prometheus-configmap.yaml
 │       ├── prometheus-deployment.yaml
-│       └── prometheus-service.yaml
+│       ├── prometheus-service.yaml
+│       ├── prometheus-nodeport.yaml
+│       ├── grafana-deployment.yaml   # Grafana с дашбордами
+│       ├── grafana-service.yaml
+│       ├── grafana-secret.yaml
+│       ├── grafana-datasources.yaml
+│       ├── grafana-dashboards-config.yaml
+│       └── grafana-dashboards.yaml   # Warehouse API дашборд
 ├── telegram-bot/               # Telegram бот для уведомлений
 │   ├── app.py                  # Точка входа
 │   ├── config.py               # Все настройки
@@ -238,22 +253,29 @@ warehouse-master/
 │   │   │   ├── claude.py       # AI интеграция
 │   │   │   └── gitlab_webhook.py
 │   │   ├── keyboards.py
-│   │   └── messages.py
+│   │   ├── messages.py
+│   │   └── telegram.py
 │   ├── services/
 │   │   ├── gitlab.py
 │   │   ├── locust.py
 │   │   ├── allure.py
 │   │   └── health.py
 │   ├── claude_proxy.py         # Прокси для Anthropic API
+│   ├── test_payloads/          # Тестовые webhook payloads
 │   └── Dockerfile
 ├── orchestrator-ui/            # 8-bit консоль управления
 │   ├── app/
-│   │   ├── main.py             # FastAPI приложение
+│   │   ├── main.py             # FastAPI приложение (WebSocket, webhook)
 │   │   ├── agent.py            # Claude AI агент
 │   │   ├── gitlab.py           # GitLab API
 │   │   ├── services.py         # K8s статусы
 │   │   ├── database.py         # SQLite история
 │   │   └── config.py           # Конфигурация
+│   ├── templates/              # Jinja2 шаблоны
+│   │   ├── index.html
+│   │   ├── notifications.html
+│   │   └── partials/
+│   ├── static/                 # CSS, JS
 │   ├── docker-compose.yml
 │   └── Dockerfile
 ├── loadtest/
@@ -261,8 +283,21 @@ warehouse-master/
 ├── scripts/
 │   ├── deploy-local.sh         # Локальный деплой в K3s
 │   └── load-test.sh            # Запуск НТ
-├── e2e-tests/
-│   └── src/                    # E2E тесты (в разработке)
+├── selenoid/                   # Selenoid (Docker Compose)
+│   ├── docker-compose.yml
+│   └── config/browsers.json
+├── e2e-tests/                  # API E2E тесты (RestAssured)
+│   └── src/test/java/com/warehouse/e2e/
+│       ├── base/BaseE2ETest.java
+│       ├── helpers/
+│       ├── data/
+│       └── tests/
+├── ui-tests/                   # UI тесты (Selenide + Allure)
+│   ├── pom.xml
+│   └── src/test/java/com/warehouse/ui/
+│       ├── config/
+│       ├── pages/
+│       └── tests/
 ├── .gitlab-ci.yml              # Главный пайплайн
 └── README.md
 ```
@@ -287,6 +322,12 @@ warehouse-master/
 │  │  │ StatefulSet  │  │ Deployment (1)   │  │ Deployment (1)     │    │   │
 │  │  │ :5432        │  │ :8080 → :30080   │  │ :80 → :30081       │    │   │
 │  │  └──────────────┘  └──────────────────┘  └────────────────────┘    │   │
+│  │                                                                     │   │
+│  │  ┌──────────────┐  ┌──────────────────┐                            │   │
+│  │  │ redis        │  │ kafka (KRaft)    │                            │   │
+│  │  │ Deployment   │  │ Deployment       │                            │   │
+│  │  │ :6379        │  │ :9092            │                            │   │
+│  │  └──────────────┘  └──────────────────┘                            │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  namespace: loadtest                                                        │
@@ -311,8 +352,8 @@ warehouse-master/
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────┐  │   │
 │  │  │ prometheus   │  │ grafana        │  │ alertmanager           │  │   │
-│  │  │ StatefulSet  │  │ Deployment     │  │ StatefulSet            │  │   │
-│  │  │ :9090        │  │ :80 → :30030   │  │ :9093                  │  │   │
+│  │  │ Deployment   │  │ Deployment     │  │ StatefulSet            │  │   │
+│  │  │ :9090→:30090 │  │ :3000 → :30300 │  │ :9093                  │  │   │
 │  │  └──────────────┘  └────────────────┘  └────────────────────────┘  │   │
 │  │  ┌──────────────────┐  ┌─────────────────────────┐                 │   │
 │  │  │ kube-state-metrics│  │ prometheus-node-exporter│                 │   │
@@ -353,6 +394,12 @@ warehouse-master/
 │  │ URL: http://192.168.1.74:8000                                         │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │ selenoid + selenoid-ui                                                │  │
+│  │ Ports: 4444 (Selenium Hub), 8090 (UI)                                │  │
+│  │ URL: http://192.168.1.74:4444/wd/hub                                  │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -362,10 +409,23 @@ warehouse-master/
 |---------|----------|----------|-----|
 | warehouse-api | 30080 | 8080 | http://192.168.1.74:30080 |
 | warehouse-frontend | 30081 | 80 | http://192.168.1.74:30081 |
-| postgres-external | 30432 | 5432 | jdbc:postgresql://192.168.1.74:30432 |
 | locust-master | 30089 | 8089 | http://192.168.1.74:30089 |
 | telegram-bot-webhook | 30088 | 8000 | http://192.168.1.74:30088 |
-| grafana | 30030 | 80 | http://192.168.1.74:30030 |
+| prometheus | 30090 | 9090 | http://192.168.1.74:30090 |
+| grafana | 30300 | 3000 | http://192.168.1.74:30300 |
+
+### Docker Compose сервисы (на хосте)
+
+| Service | Port | URL |
+|---------|------|-----|
+| GitLab | 8080 | http://192.168.1.74:8080 |
+| YouTrack | 8088 | http://192.168.1.74:8088 |
+| Allure Server | 5050 | http://192.168.1.74:5050 |
+| Allure UI | 5252 | http://192.168.1.74:5252 |
+| Orchestrator UI | 8000 | http://192.168.1.74:8000 |
+| Claude Proxy | 8765 | http://192.168.1.74:8765 |
+| Selenoid | 4444 | http://192.168.1.74:4444/wd/hub |
+| Selenoid UI | 8090 | http://192.168.1.74:8090 |
 
 ---
 
@@ -480,17 +540,27 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ## Мониторинг и тестирование
 
-### Prometheus Stack (kube-prometheus-stack)
-- **Prometheus:** Сбор метрик
-- **Grafana:** Визуализация (http://192.168.1.74:30030)
-- **Alertmanager:** Алертинг
-- **Node Exporter:** Метрики хоста
-- **Kube State Metrics:** Метрики K8s
+### Prometheus + Grafana
+- **Prometheus:** http://192.168.1.74:30090 - сбор метрик
+- **Grafana:** http://192.168.1.74:30300 - визуализация
+  - **Дашборд "Warehouse API"** - метрики приложения:
+    - Request Rate (req/sec)
+    - Response Time (avg/max latency)
+    - Error Rate (4xx/5xx)
+    - JVM Memory (heap used/max)
+    - Database Connections (HikariCP)
+    - Business Metrics (products created/deleted)
+    - Service Health (UP/DOWN)
+- **Alertmanager:** алертинг
+- **Node Exporter:** метрики хоста
+- **Kube State Metrics:** метрики K8s
 
 ### Allure Report Server
 - **API:** http://192.168.1.74:5050
 - **UI:** http://192.168.1.74:5252
-- **Project:** warehouse-api
+- **Projects:**
+  - `warehouse-api` - API тесты
+  - `warehouse-ui` - UI тесты
 
 ### Locust Load Testing
 - **UI:** http://192.168.1.74:30089
@@ -499,6 +569,71 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 - **Сценарии:**
   - EmployeeUser (weight 7): создание/удаление товаров
   - ManagerUser (weight 3): просмотр товаров
+
+---
+
+## UI и E2E тестирование
+
+### Selenoid (Docker на хосте)
+- **Selenium Hub:** http://192.168.1.74:4444/wd/hub
+- **Selenoid UI:** http://192.168.1.74:8090
+- **VNC:** Включен для отладки
+- **Браузеры:** Chrome 131.0, 130.0, Firefox 132.0
+
+**Запуск Selenoid:**
+```bash
+cd selenoid && docker-compose up -d
+```
+
+### ui-tests/ (Selenide + Allure)
+**Технологии:** Java 17, Selenide 7.0.4, JUnit 5, Allure 2.25.0
+
+```
+ui-tests/
+├── src/test/java/com/warehouse/ui/
+│   ├── config/
+│   │   ├── TestConfig.java      # Owner конфиг
+│   │   └── BaseTest.java        # Базовый класс (скриншоты включены!)
+│   ├── pages/
+│   │   ├── LoginPage.java       # Page Object
+│   │   └── ProductsPage.java
+│   └── tests/
+│       ├── LoginTest.java
+│       ├── ProductsTest.java
+│       └── RoleAccessTest.java
+├── pom.xml
+└── mvnw
+```
+
+**Запуск UI тестов:**
+```bash
+cd ui-tests
+mvn test -Dbase.url=http://192.168.1.74:30081 -Dselenoid.url=http://192.168.1.74:4444/wd/hub
+```
+
+**Allure отчёт со скриншотами:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest
+
+### e2e-tests/ (RestAssured API тесты)
+**Технологии:** Spring Boot Test, RestAssured, Allure, JUnit 5
+
+```
+e2e-tests/
+├── src/test/java/com/warehouse/e2e/
+│   ├── base/BaseE2ETest.java    # Базовый класс
+│   ├── helpers/                  # Хелперы (Auth, Product)
+│   ├── data/TestData.java       # Тестовые данные
+│   └── tests/
+│       ├── AuthControllerE2ETest.java
+│       └── ProductControllerE2ETest.java
+```
+
+### CI Pipeline для тестов
+```yaml
+deploy-selenoid:        # Запуск Selenoid (Docker Compose)
+run-ui-tests:           # Selenide UI тесты → Allure со скриншотами
+run-e2e-tests:          # RestAssured API тесты
+run-load-tests:         # Locust НТ
+```
 
 ---
 
@@ -531,16 +666,23 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
             │   ┌────────────────────────────────────┐    │
             │   │        192.168.1.74 (STAGING)       │    │
             │   │                                     │    │
+            │   │  K8s NodePorts:                    │    │
             │   │  :30080  → API                     │    │
             │   │  :30081  → Frontend                │    │
             │   │  :30089  → Locust                  │    │
-            │   │  :30030  → Grafana                 │    │
+            │   │  :30090  → Prometheus              │    │
+            │   │  :30300  → Grafana                 │    │
             │   │  :30088  → Telegram Bot Webhook    │    │
+            │   │                                     │    │
+            │   │  Docker (host):                    │    │
             │   │  :8080   → GitLab                  │    │
             │   │  :8088   → YouTrack                │    │
             │   │  :5050   → Allure API              │    │
             │   │  :5252   → Allure UI               │    │
             │   │  :8000   → Orchestrator UI         │    │
+            │   │  :8765   → Claude Proxy            │    │
+            │   │  :4444   → Selenoid Hub            │    │
+            │   │  :8090   → Selenoid UI             │    │
             │   │                                     │    │
             │   └────────────────────────────────────┘    │
             │                                              │
@@ -566,4 +708,4 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ---
 
-*Последнее обновление: 2025-11-29*
+*Последнее обновление: 2025-11-29 (полный аудит)*

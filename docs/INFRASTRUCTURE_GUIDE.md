@@ -1,6 +1,6 @@
 # Warehouse Project - Infrastructure Guide
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока!
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-11-29
 
 ---
 
@@ -40,16 +40,17 @@
 │  192.168.1.74                                                           │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  K8s Namespaces                                                   │   │
-│  │  ├── warehouse:      API + Frontend + PostgreSQL                 │   │
+│  │  ├── warehouse:      API + Frontend + PostgreSQL + Redis + Kafka │   │
+│  │  │                   + Selenoid (UI тесты)                       │   │
 │  │  ├── loadtest:       Locust Master + Workers                     │   │
 │  │  ├── notifications:  Telegram Bot                                │   │
-│  │  └── monitoring:     Prometheus                                  │   │
+│  │  └── monitoring:     Prometheus + Grafana                        │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  Docker Compose (не в K8s)                                        │   │
 │  │  ├── GitLab CE                                                   │   │
 │  │  ├── YouTrack                                                    │   │
-│  │  ├── Allure Server                                               │   │
+│  │  ├── Allure Server + UI                                          │   │
 │  │  ├── Claude Proxy                                                │   │
 │  │  └── Orchestrator UI                                             │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
@@ -83,15 +84,16 @@
 warehouse-master/
 ├── .claude/           # Claude Code настройки
 ├── docs/              # Документация
-├── e2e-tests/         # E2E тесты
+├── e2e-tests/         # API E2E тесты (RestAssured)
+├── ui-tests/          # UI тесты (Selenide + Allure)
+├── selenoid/          # Selenoid Docker Compose
 ├── k8s/               # Kubernetes манифесты
-│   ├── warehouse/     # API + Frontend
+│   ├── warehouse/     # API + Frontend + Redis + Kafka
 │   ├── loadtest/      # Locust
 │   ├── notifications/ # Telegram Bot
-│   └── monitoring/    # Prometheus
+│   └── monitoring/    # Prometheus + Grafana
 ├── loadtest/          # Locust скрипты
 ├── orchestrator-ui/   # 8-bit консоль управления
-├── pipelines/         # Переиспользуемые CI templates
 ├── scripts/           # Bash скрипты деплоя
 └── telegram-bot/      # Уведомления в Telegram
 ```
@@ -109,6 +111,8 @@ warehouse-master/
 | **warehouse-api** | `warehouse-api-service.warehouse.svc.cluster.local:8080` | `30080` | Spring Boot API |
 | **warehouse-frontend** | `warehouse-frontend-service.warehouse.svc.cluster.local:80` | `30081` | Vue.js Frontend |
 | **PostgreSQL** | `postgres-service.warehouse.svc.cluster.local:5432` | - | Database |
+| **Redis** | `redis-service.warehouse.svc.cluster.local:6379` | - | Кэширование |
+| **Kafka** | `kafka-service.warehouse.svc.cluster.local:9092` | - | Messaging (KRaft) |
 
 ### K8s Services (namespace: loadtest)
 
@@ -127,6 +131,7 @@ warehouse-master/
 | Сервис | Внутренний URL | NodePort | Описание |
 |--------|----------------|----------|----------|
 | **Prometheus** | `prometheus-service.monitoring.svc.cluster.local:9090` | `30090` | Metrics |
+| **Grafana** | `grafana.monitoring.svc.cluster.local:3000` | `30300` | Визуализация |
 
 ### Docker Compose сервисы (на хосте)
 
@@ -138,6 +143,8 @@ warehouse-master/
 | **Allure UI** | http://192.168.1.74:5252 | 5252 | Test reports UI |
 | **Claude Proxy** | http://192.168.1.74:8765 | 8765 | Anthropic API proxy |
 | **Orchestrator UI** | http://192.168.1.74:8000 | 8000 | 8-bit консоль |
+| **Selenoid** | http://192.168.1.74:4444 | 4444 | Selenium Hub |
+| **Selenoid UI** | http://192.168.1.74:8090 | 8090 | Просмотр сессий |
 
 ---
 
@@ -250,6 +257,14 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 | **Deploy Password** | `Misha2021@1@` |
 | **Load Test Password** | `Misha2021@1@` |
 | **Guest Password** | `Guest` |
+
+### Grafana
+
+| Параметр | Значение |
+|----------|----------|
+| **URL** | http://192.168.1.74:30300 |
+| **User** | `admin` |
+| **Password** | `warehouse2025` |
 
 ### Yandex Cloud Registry Auth
 
@@ -391,8 +406,11 @@ sudo docker image prune -f
 | **Allure Reports** | http://192.168.1.74:5252 |
 | **Locust** | http://192.168.1.74:30089 |
 | **Prometheus** | http://192.168.1.74:30090 |
+| **Grafana** | http://192.168.1.74:30300 |
+| **Selenoid** | http://192.168.1.74:4444/wd/hub |
+| **Selenoid UI** | http://192.168.1.74:8090 |
 | **Orchestrator UI** | http://192.168.1.74:8000 |
 
 ---
 
-*Последнее обновление: 2025-11-29*
+*Последнее обновление: 2025-11-29 (полный аудит)*
