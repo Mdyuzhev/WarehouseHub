@@ -1,6 +1,6 @@
 {
   "chrome": {
-    "default": "128.0",
+    "default": "127.0",
     "versions": {
       "128.0": {
         "image": "selenoid/chrome:128.0",

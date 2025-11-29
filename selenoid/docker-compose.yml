@@ -34,6 +34,8 @@ services:
       - "/opt/selenoid/video"
       - "-log-output-dir"
       - "/opt/selenoid/logs"
+      - "-container-network"
+      - "selenoid_default"
     restart: unless-stopped
 
   selenoid-ui:
