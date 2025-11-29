@@ -1,0 +1,21 @@
+# =============================================================================
+# Kafka Service для warehouse
+# Внутренний сервис для API и других консумеров
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: warehouse
+  labels:
+    app: kafka
+    component: messaging
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9092
+      targetPort: 9092
+      name: kafka
+  selector:
+    app: kafka

@@ -1,0 +1,42 @@
+# =============================================================================
+# Selenoid Browsers ConfigMap
+# Конфигурация доступных браузеров для UI-тестов
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: selenoid-browsers
+  namespace: warehouse
+  labels:
+    app: selenoid
+    component: testing
+data:
+  browsers.json: |
+    {
+      "chrome": {
+        "default": "119.0",
+        "versions": {
+          "119.0": {
+            "image": "selenoid/vnc_chrome:119.0",
+            "port": "4444",
+            "path": "/"
+          },
+          "118.0": {
+            "image": "selenoid/vnc_chrome:118.0",
+            "port": "4444",
+            "path": "/"
+          }
+        }
+      },
+      "firefox": {
+        "default": "119.0",
+        "versions": {
+          "119.0": {
+            "image": "selenoid/vnc_firefox:119.0",
+            "port": "4444",
+            "path": "/wd/hub"
+          }
+        }
+      }
+    }

@@ -62,3 +62,22 @@ data:
         relabel_configs:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
+
+      # Production API (external)
+      - job_name: 'warehouse-api-production'
+        static_configs:
+          - targets: ['api.wh-lab.ru:443']
+            labels:
+              environment: 'production'
+        scheme: https
+        metrics_path: /actuator/prometheus
+        scrape_interval: 30s
+
+      # Frontend Nginx (staging)
+      - job_name: 'warehouse-frontend-staging'
+        static_configs:
+          - targets: ['warehouse-frontend.warehouse.svc.cluster.local:80']
+            labels:
+              environment: 'staging'
+        metrics_path: /stub_status
+        scrape_interval: 15s

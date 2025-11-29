@@ -131,7 +131,14 @@ async def answer_callback_query(callback_id: str, text: str = None) -> bool:
 
 
 async def get_updates(offset: int = 0, timeout: int = 30) -> list:
-    """Получает обновления от Telegram (long polling)."""
+    """
+    Получает обновления от Telegram (long polling).
+
+    Обработка 409 Conflict:
+    - Возникает когда несколько инстансов бота используют getUpdates
+    - Решение: убедиться что запущен только 1 реплика (K8s replicas: 1)
+    - При 409 возвращаем пустой список и ждём (backoff в вызывающем коде)
+    """
     if not TELEGRAM_BOT_TOKEN:
         return []
 
@@ -145,17 +152,33 @@ async def get_updates(offset: int = 0, timeout: int = 30) -> list:
     try:
         async with httpx.AsyncClient(timeout=timeout + 5) as client:
             response = await client.get(url, params=params)
+
             if response.status_code == 200:
                 data = response.json()
                 return data.get("result", [])
+
             elif response.status_code == 409:
-                # Конфликт - другой бот использует getUpdates
-                logger.warning("Telegram 409 Conflict - waiting...")
+                # 409 Conflict - другой инстанс бота использует getUpdates
+                # Это может произойти при:
+                # 1. Нескольких репликах в K8s
+                # 2. Rolling update (старый pod ещё не завершился)
+                # 3. Локальный запуск параллельно с K8s
+                error_msg = response.json().get("description", "Unknown conflict")
+                logger.warning(f"Telegram 409 Conflict: {error_msg}")
+                logger.warning("Check: only ONE bot instance should be running!")
                 return []
+
+            else:
+                logger.error(f"Telegram API error: {response.status_code} - {response.text}")
+                return []
+
+    except httpx.TimeoutException:
+        # Таймаут при long polling - это нормально
+        logger.debug("Long polling timeout (expected behavior)")
+        return []
     except Exception as e:
         logger.error(f"Failed to get updates: {e}")
-
-    return []
+        raise  # Пробрасываем исключение для обработки в polling loop
 
 
 async def edit_message_text(

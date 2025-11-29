@@ -13,6 +13,7 @@ Warehouse Telegram Bot v5.0
 """
 
 import asyncio
+import signal
 import logging
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -21,7 +22,10 @@ from pydantic import BaseModel
 from typing import Optional
 
 # Наши модули
-from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITLAB_WEBHOOK_SECRET, GITLAB_JOBS
+from config import (
+    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITLAB_WEBHOOK_SECRET, GITLAB_JOBS,
+    LOG_FORMAT, LOG_LEVEL
+)
 from bot.telegram import get_updates, send_message_with_reply_keyboard, answer_callback_query
 from bot.keyboards import get_reply_keyboard, get_main_menu_keyboard
 from bot.handlers import (
@@ -42,30 +46,105 @@ from bot.handlers import (
     handle_gitlab_webhook,
 )
 
+# =============================================================================
 # Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# =============================================================================
+def setup_logging():
+    """Настройка логирования с поддержкой JSON формата для K8s."""
+    import json
+    import sys
+
+    class JsonFormatter(logging.Formatter):
+        """JSON formatter для структурированного логирования."""
+        def format(self, record):
+            log_obj = {
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "level": record.levelname,
+                "logger": record.name,
+                "message": record.getMessage(),
+                "service": "telegram-bot",
+                "version": "5.0.0"
+            }
+            if record.exc_info:
+                log_obj["exception"] = self.formatException(record.exc_info)
+            if hasattr(record, "chat_id"):
+                log_obj["chat_id"] = record.chat_id
+            if hasattr(record, "command"):
+                log_obj["command"] = record.command
+            if hasattr(record, "user_id"):
+                log_obj["user_id"] = record.user_id
+            return json.dumps(log_obj, ensure_ascii=False)
+
+    # Уровень логирования
+    level = getattr(logging, LOG_LEVEL.upper(), logging.INFO)
+
+    # Формат: JSON для K8s, текстовый для локальной разработки
+    if LOG_FORMAT.lower() == "json":
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(JsonFormatter())
+        logging.root.handlers = [handler]
+        logging.root.setLevel(level)
+    else:
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+
+    # Уменьшаем шум от httpx и других библиотек
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Последний обработанный update_id
 last_update_id = 0
+
+# Флаг для graceful shutdown
+shutdown_event = asyncio.Event()
+polling_task = None
 
 
 # =============================================================================
 # FastAPI App
 # =============================================================================
 
+def handle_shutdown(signum, frame):
+    """Обработчик сигналов SIGTERM/SIGINT для graceful shutdown."""
+    logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+    shutdown_event.set()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle manager."""
+    """Lifecycle manager с graceful shutdown."""
+    global polling_task
+
+    # Регистрируем обработчики сигналов
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    signal.signal(signal.SIGINT, handle_shutdown)
+
     logger.info("Bot started with polling")
     # Запускаем polling в фоне
-    asyncio.create_task(telegram_polling())
+    polling_task = asyncio.create_task(telegram_polling())
     logger.info("Starting Telegram polling... 🤖")
+
     yield
-    logger.info("Bot stopped")
+
+    # Graceful shutdown
+    logger.info("Initiating graceful shutdown...")
+    shutdown_event.set()
+
+    # Ждём завершения polling task
+    if polling_task:
+        try:
+            await asyncio.wait_for(polling_task, timeout=5.0)
+        except asyncio.TimeoutError:
+            logger.warning("Polling task did not stop in time, cancelling...")
+            polling_task.cancel()
+
+    logger.info("Bot stopped gracefully")
 
 
 app = FastAPI(
@@ -81,14 +160,23 @@ app = FastAPI(
 # =============================================================================
 
 async def telegram_polling():
-    """Основной цикл polling."""
+    """Основной цикл polling с graceful shutdown и retry backoff."""
     global last_update_id
+    consecutive_errors = 0
+    max_backoff = 60  # Максимальная задержка при ошибках
 
-    while True:
+    while not shutdown_event.is_set():
         try:
             updates = await get_updates(offset=last_update_id + 1)
 
+            # Сброс счётчика ошибок при успехе
+            if updates is not None:
+                consecutive_errors = 0
+
             for update in updates:
+                if shutdown_event.is_set():
+                    break
+
                 last_update_id = update.get("update_id", last_update_id)
 
                 # Callback query (inline кнопки)
@@ -104,13 +192,31 @@ async def telegram_polling():
                     if chat_id and text:
                         await process_command(chat_id, text)
 
+        except asyncio.CancelledError:
+            logger.info("Polling cancelled, exiting...")
+            break
         except Exception as e:
-            logger.error(f"Polling error: {e}")
-            await asyncio.sleep(5)
+            consecutive_errors += 1
+            # Экспоненциальный backoff: 5, 10, 20, 40, 60 секунд
+            backoff = min(5 * (2 ** (consecutive_errors - 1)), max_backoff)
+            logger.error(f"Polling error (attempt {consecutive_errors}): {e}")
+            logger.info(f"Retrying in {backoff} seconds...")
+
+            # Ждём с возможностью прерывания при shutdown
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=backoff)
+                break  # shutdown_event установлен
+            except asyncio.TimeoutError:
+                pass  # Таймаут истёк, продолжаем polling
+
+    logger.info("Polling loop stopped")
 
 
 async def process_command(chat_id: int, text: str):
     """Главный роутер команд."""
+    # Логируем входящую команду (без паролей!)
+    log_text = "[HIDDEN]" if is_pending_password(chat_id) or is_pending_deploy_password(chat_id) else text
+    logger.info(f"Command received: chat_id={chat_id}, text='{log_text}'")
 
     # Проверяем ожидание ввода
     if is_pending_deploy_password(chat_id):

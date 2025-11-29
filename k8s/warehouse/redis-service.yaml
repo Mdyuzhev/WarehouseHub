@@ -1,0 +1,21 @@
+# =============================================================================
+# Redis Service для warehouse
+# Внутренний сервис, доступен только из namespace warehouse
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: warehouse
+  labels:
+    app: redis
+    component: cache
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: redis

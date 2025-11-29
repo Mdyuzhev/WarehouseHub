@@ -1,0 +1,66 @@
+# =============================================================================
+# Redis Deployment для warehouse
+# Используется для: кэширование, rate limiting, JWT blacklist
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: warehouse
+  labels:
+    app: redis
+    component: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        component: cache
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+          command:
+            - redis-server
+            - /usr/local/etc/redis/redis.conf
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: redis-config

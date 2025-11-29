@@ -6,7 +6,11 @@ metadata:
   labels:
     app: gitlab-telegram-bot
 spec:
+  # ВАЖНО: только 1 реплика для polling бота (409 Conflict)
   replicas: 1
+  # Recreate strategy для избежания 409 при обновлениях
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: gitlab-telegram-bot
@@ -15,6 +19,8 @@ spec:
       labels:
         app: gitlab-telegram-bot
     spec:
+      # Время на graceful shutdown (SIGTERM → SIGKILL)
+      terminationGracePeriodSeconds: 15
       containers:
         - name: bot
           image: gitlab-telegram-bot:latest
@@ -27,6 +33,10 @@ spec:
           env:
             - name: CLAUDE_PROXY_URL
               value: "http://192.168.1.74:8765"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: LOG_LEVEL
+              value: "INFO"
           resources:
             requests:
               memory: "64Mi"
