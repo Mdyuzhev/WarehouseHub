@@ -7,6 +7,9 @@ import com.warehouse.model.Role;
 import com.warehouse.model.User;
 import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
+import com.warehouse.service.RateLimitingService;
+import com.warehouse.service.TokenBlacklistService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,20 +29,40 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RateLimitingService rateLimitingService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public AuthController(
             @Lazy AuthenticationManager authenticationManager,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            RateLimitingService rateLimitingService,
+            TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.rateLimitingService = rateLimitingService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        String rateLimitKey = request.getUsername() + ":" + clientIp;
+
+        // Check rate limit
+        if (!rateLimitingService.isLoginAllowed(rateLimitKey)) {
+            long retryAfter = rateLimitingService.getTimeUntilReset(rateLimitKey);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter))
+                    .body(Map.of(
+                            "error", "Too many login attempts. Please try again later.",
+                            "retryAfterSeconds", retryAfter
+                    ));
+        }
+
         try {
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -47,6 +70,9 @@ public class AuthController {
 
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+            // Reset rate limit on successful login
+            rateLimitingService.resetLoginAttempts(rateLimitKey);
 
             String token = jwtService.generateToken(user);
 
@@ -58,9 +84,21 @@ public class AuthController {
                     .build());
 
         } catch (BadCredentialsException e) {
+            int remaining = rateLimitingService.getRemainingAttempts(rateLimitKey);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid username or password"));
+                    .body(Map.of(
+                            "error", "Invalid username or password",
+                            "remainingAttempts", remaining
+                    ));
         }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/register")
@@ -114,6 +152,25 @@ public class AuthController {
                     .build());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid token"));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ") || authHeader.length() < 8) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "No token provided"));
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            java.util.Date expiration = jwtService.extractExpiration(token);
+            tokenBlacklistService.blacklistToken(token, expiration);
+
+            return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Invalid token"));
         }
     }

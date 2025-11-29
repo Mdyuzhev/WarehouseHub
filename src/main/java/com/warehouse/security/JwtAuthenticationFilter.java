@@ -1,5 +1,6 @@
 package com.warehouse.security;
 
+import com.warehouse.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -29,7 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
@@ -40,7 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        
+
+        // Check if token is blacklisted (user logged out)
+        if (tokenBlacklistService.isBlacklisted(jwt)) {
+            logger.debug("Token is blacklisted, rejecting request");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             username = jwtService.extractUsername(jwt);
 
