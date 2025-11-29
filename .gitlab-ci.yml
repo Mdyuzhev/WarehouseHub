@@ -187,23 +187,33 @@ deploy-all-prod:
 
 run-e2e-tests:
   stage: test
+  variables:
+    PROJECT_ID: "warehouse-api"
   script:
     - echo "🧪 Running API E2E tests..."
     - cd /home/flomaster/warehouse-api
     - rm -rf target/ || true
-    - LD_PRELOAD= bash ./mvnw test --batch-mode -Dspring.profiles.active=test
-    - echo "📊 Uploading to Allure..."
-    - curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-api"}' || true
-    - curl -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-api" || true
-    - find target/allure-results -type f -exec curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-api" -F "files[]=@{}" \; || true
-    - curl -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-api" || true
-    - echo "✅ Tests completed"
-    - echo "📊 Report - $ALLURE_SERVER_URL/allure-docker-service/projects/warehouse-api/reports/latest"
-  artifacts:
-    when: always
-    paths:
-      - /home/flomaster/warehouse-api/target/allure-results/
-    expire_in: 1 week
+    - LD_PRELOAD= bash ./mvnw test --batch-mode -Dspring.profiles.active=test || true
+    # Очистка предыдущих результатов
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    # Загрузка результатов архивом (быстрее)
+    - |
+      if [ -d "target/allure-results" ]; then
+        cd target
+        tar -czf /tmp/allure-results.tar.gz allure-results/
+        curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@/tmp/allure-results.tar.gz"
+        rm -f /tmp/allure-results.tar.gz
+      fi
+    - sleep 3
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 E2E ALLURE REPORT:"
+    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - echo "═══════════════════════════════════════════════════════════"
+    # Исправление прав для локального запуска
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-api/target/ || true
   tags:
     - shell
   when: manual
@@ -254,6 +264,8 @@ run-ui-tests-staging:
     - echo "📊 STAGING ALLURE REPORT:"
     - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
+    # Исправление прав для локального запуска
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
   tags:
     - shell
   when: manual
@@ -307,6 +319,8 @@ run-ui-tests-prod:
     - echo "📊 PRODUCTION ALLURE REPORT:"
     - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
+    # Исправление прав для локального запуска
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
   tags:
     - shell
   when: manual

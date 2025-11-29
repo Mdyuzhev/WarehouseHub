@@ -3,6 +3,7 @@ report-widget.zip
 
 # Maven build artifacts
 ui-tests/target/
+ui-tests/target.bak.*/
 ui-tests/.mvn/
 ui-tests/mvnw
 ui-tests/mvnw.cmd
