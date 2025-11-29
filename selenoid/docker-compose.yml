@@ -6,7 +6,7 @@
 # Использование:
 #   cd selenoid && docker-compose up -d
 #
-# UI: http://192.168.1.74:8080 (Selenoid UI)
+# UI: http://192.168.1.74:8090 (Selenoid UI)
 # API: http://192.168.1.74:4444/wd/hub
 # =============================================================================
 
@@ -16,7 +16,6 @@ services:
   selenoid:
     image: aerokube/selenoid:1.11.2
     container_name: selenoid
-    network_mode: bridge
     ports:
       - "4444:4444"
     volumes:
@@ -35,8 +34,6 @@ services:
       - "/opt/selenoid/video"
       - "-log-output-dir"
       - "/opt/selenoid/logs"
-      - "-container-network"
-      - "bridge"
     restart: unless-stopped
 
   selenoid-ui:
@@ -50,8 +47,3 @@ services:
     depends_on:
       - selenoid
     restart: unless-stopped
-
-networks:
-  default:
-    name: bridge
-    external: true
