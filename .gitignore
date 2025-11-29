@@ -14,3 +14,4 @@ e2e-tests/screenshots/
 # Python virtual environments
 .venv/
 venv/
+labor_cost_report.json
