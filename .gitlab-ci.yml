@@ -208,15 +208,17 @@ run-e2e-tests:
     - shell
   when: manual
 
-run-ui-tests:
+# UI Tests for Staging environment
+run-ui-tests-staging:
   stage: test
   variables:
     BASE_URL: "http://192.168.1.74:30081"
     SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
+    PROJECT_ID: "warehouse-ui-staging"
   script:
-    - echo "🎭 Running UI Tests with Selenide..."
+    - echo "🎭 Running UI Tests on STAGING..."
+    - echo "🌐 Target: $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
-    - echo "📦 Ensuring Selenoid is running..."
     - |
       if ! curl -s "http://192.168.1.74:4444/status" | grep -q "total"; then
         echo "🚀 Starting Selenoid..."
@@ -224,8 +226,9 @@ run-ui-tests:
         sleep 10
       fi
     - echo "✅ Selenoid is ready!"
+    # Очистка предыдущих результатов
+    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
     # Запуск тестов
-    - echo "📂 Running tests from /home/flomaster/warehouse-master/ui-tests"
     - cd /home/flomaster/warehouse-master/ui-tests
     - rm -rf target/ || true
     - |
@@ -235,25 +238,77 @@ run-ui-tests:
         -Dbrowser=chrome \
         -Dbrowser.size=1920x1080 \
         --batch-mode || true
-    - echo "📊 Uploading UI test results to Allure..."
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-ui"}' || true
+    # Загрузка результатов в Allure
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - |
       if [ -d "/home/flomaster/warehouse-master/ui-tests/target/allure-results" ]; then
         for file in /home/flomaster/warehouse-master/ui-tests/target/allure-results/*; do
-          [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-ui" -F "files[]=@$file"
+          [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$file"
         done
-      else
-        echo "⚠️ No allure-results found"
       fi
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-ui" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID" || true
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 ALLURE REPORT (со скриншотами):"
-    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest"
+    - echo "📊 STAGING ALLURE REPORT:"
+    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
   tags:
     - shell
   when: manual
+  environment:
+    name: test-staging
+    url: http://192.168.1.74:30081
+
+# UI Tests for Production environment
+run-ui-tests-prod:
+  stage: test
+  variables:
+    BASE_URL: "https://wh-lab.ru"
+    SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
+    PROJECT_ID: "warehouse-ui-prod"
+  script:
+    - echo "🎭 Running UI Tests on PRODUCTION..."
+    - echo "🌐 Target: $BASE_URL"
+    # Автоматически поднимаем Selenoid если не запущен
+    - |
+      if ! curl -s "http://192.168.1.74:4444/status" | grep -q "total"; then
+        echo "🚀 Starting Selenoid..."
+        cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d
+        sleep 10
+      fi
+    - echo "✅ Selenoid is ready!"
+    # Очистка предыдущих результатов
+    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    # Запуск тестов
+    - cd /home/flomaster/warehouse-master/ui-tests
+    - rm -rf target/ || true
+    - |
+      /home/flomaster/warehouse-master/ui-tests/mvnw test \
+        -Dbase.url=$BASE_URL \
+        -Dselenoid.url=$SELENOID_URL \
+        -Dbrowser=chrome \
+        -Dbrowser.size=1920x1080 \
+        --batch-mode || true
+    # Загрузка результатов в Allure
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - |
+      if [ -d "/home/flomaster/warehouse-master/ui-tests/target/allure-results" ]; then
+        for file in /home/flomaster/warehouse-master/ui-tests/target/allure-results/*; do
+          [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$file"
+        done
+      fi
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID" || true
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 PRODUCTION ALLURE REPORT:"
+    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "═══════════════════════════════════════════════════════════"
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: test-production
+    url: https://wh-lab.ru
 
 run-load-tests:
   stage: test

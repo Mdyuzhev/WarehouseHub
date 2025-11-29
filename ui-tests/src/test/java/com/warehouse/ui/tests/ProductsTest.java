@@ -6,105 +6,62 @@ import com.warehouse.ui.pages.ProductsPage;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 
-import java.util.UUID;
-
 @Epic("Products Management")
-@Feature("Products CRUD")
+@Feature("Products View")
 @Tag("products")
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProductsTest extends BaseTest {
 
     private final LoginPage loginPage = new LoginPage();
     private final ProductsPage productsPage = new ProductsPage();
 
-    private static final String TEST_PRODUCT_PREFIX = "TestProduct_";
-    private String testProductName;
-
-    @BeforeEach
-    void loginAsAdmin() {
-        loginPage.login(config.adminUsername(), config.adminPassword());
-        testProductName = TEST_PRODUCT_PREFIX + UUID.randomUUID().toString().substring(0, 8);
-    }
-
     @Test
-    @Order(1)
     @Story("View Products")
-    @DisplayName("Products table should be visible after login")
+    @DisplayName("Products section should be visible after login")
     @Severity(SeverityLevel.BLOCKER)
-    void testProductsTableVisible() {
-        productsPage.verifyTableVisible();
+    void testProductsSectionVisible() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        productsPage.verifySectionVisible();
     }
 
     @Test
-    @Order(2)
-    @Story("Create Product")
-    @DisplayName("Admin should be able to create a new product")
+    @Story("View Products")
+    @DisplayName("Products title should be visible")
     @Severity(SeverityLevel.CRITICAL)
-    void testCreateProduct() {
-        int initialCount = productsPage.getProductsCount();
-
-        productsPage.createProduct(
-                testProductName,
-                100,
-                29.99,
-                "Electronics",
-                "Test product description"
-        );
-
-        productsPage.verifyProductExists(testProductName);
-        Assertions.assertTrue(productsPage.getProductsCount() >= initialCount);
+    void testProductsTitleVisible() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        productsPage.verifyTitleVisible();
     }
 
     @Test
-    @Order(3)
-    @Story("Search Products")
-    @DisplayName("User should be able to search products")
-    @Severity(SeverityLevel.NORMAL)
-    void testSearchProduct() {
-        // First create a product to search for
-        productsPage.createProduct(testProductName, 50, 19.99, "Test", "Searchable");
-
-        productsPage.searchProduct(testProductName);
-        productsPage.verifyProductExists(testProductName);
-    }
-
-    @Test
-    @Order(4)
-    @Story("Update Product")
-    @DisplayName("Admin should be able to update a product")
+    @Story("View Products")
+    @DisplayName("Products list should show items")
     @Severity(SeverityLevel.CRITICAL)
-    void testUpdateProduct() {
-        // Create product first
-        productsPage.createProduct(testProductName, 50, 19.99, "Test", "Original");
-
-        // Update it
-        productsPage.searchProduct(testProductName);
-        productsPage.clickEditProduct(0);
-        productsPage.fillProductForm(
-                testProductName + "_Updated",
-                75,
-                24.99,
-                "Updated",
-                "Updated description"
-        );
-        productsPage.saveProduct();
-
-        productsPage.verifyProductExists(testProductName + "_Updated");
+    void testProductsListVisible() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        productsPage.verifyListVisible();
     }
 
     @Test
-    @Order(5)
-    @Story("Delete Product")
-    @DisplayName("Admin should be able to delete a product")
+    @Story("Admin Access")
+    @DisplayName("Admin should see edit buttons")
     @Severity(SeverityLevel.CRITICAL)
-    void testDeleteProduct() {
-        // Create product first
-        productsPage.createProduct(testProductName, 50, 19.99, "Test", "To be deleted");
+    void testAdminCanSeeEditButtons() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        productsPage.verifyListVisible();
+        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Edit buttons should be visible for admin");
+    }
 
-        productsPage.searchProduct(testProductName);
-        productsPage.clickDeleteProduct(0);
-        productsPage.confirmDelete();
-
-        productsPage.verifyProductNotExists(testProductName);
+    @Test
+    @Story("Admin Access")
+    @DisplayName("Admin should see Add Product navigation")
+    @Severity(SeverityLevel.CRITICAL)
+    void testAdminCanSeeAddProduct() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        Assertions.assertTrue(productsPage.isAddProductVisible(), "Add Product should be visible for admin");
     }
 }

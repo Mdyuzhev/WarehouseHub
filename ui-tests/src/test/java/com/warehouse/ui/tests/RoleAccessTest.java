@@ -4,6 +4,7 @@ import com.warehouse.ui.config.BaseTest;
 import com.warehouse.ui.pages.LoginPage;
 import com.warehouse.ui.pages.ProductsPage;
 import io.qameta.allure.*;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -21,39 +22,41 @@ public class RoleAccessTest extends BaseTest {
 
     @Test
     @Story("Admin Access")
-    @DisplayName("Admin should see all management options")
+    @DisplayName("Admin should have full access to products")
     @Severity(SeverityLevel.CRITICAL)
     void testAdminFullAccess() {
         loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
 
-        // Admin should see products table
-        productsPage.verifyTableVisible();
+        // Admin should see products section
+        productsPage.verifySectionVisible();
 
-        // Admin should see Add button
-        $(".add-product-button, button:contains('Add'), [class*='add']").shouldBe(visible);
+        // Admin should see Add Product link
+        Assertions.assertTrue(productsPage.isAddProductVisible(), "Admin should see Add Product");
 
         // Admin should see Edit buttons
-        $(".edit-button, button:contains('Edit'), [class*='edit']").shouldBe(visible);
+        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Admin should see Edit buttons");
 
         // Admin should see Delete buttons
-        $(".delete-button, button:contains('Delete'), [class*='delete']").shouldBe(visible);
+        Assertions.assertTrue(productsPage.isDeleteButtonVisible(), "Admin should see Delete buttons");
     }
 
     @Test
     @Story("Manager Access")
-    @DisplayName("Manager should be able to add and edit products")
+    @DisplayName("Manager should be able to view and edit products")
     @Severity(SeverityLevel.CRITICAL)
     void testManagerAccess() {
         loginPage.login(config.managerUsername(), config.managerPassword());
+        loginPage.verifyLoginSuccess();
 
-        // Manager should see products table
-        productsPage.verifyTableVisible();
+        // Manager should see products section
+        productsPage.verifySectionVisible();
 
-        // Manager should see Add button
-        $(".add-product-button, button:contains('Add'), [class*='add']").shouldBe(visible);
+        // Manager should see Add Product link
+        Assertions.assertTrue(productsPage.isAddProductVisible(), "Manager should see Add Product");
 
         // Manager should see Edit buttons
-        $(".edit-button, button:contains('Edit'), [class*='edit']").shouldBe(visible);
+        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Manager should see Edit buttons");
     }
 
     @Test
@@ -62,24 +65,30 @@ public class RoleAccessTest extends BaseTest {
     @Severity(SeverityLevel.CRITICAL)
     void testEmployeeReadOnly() {
         loginPage.login(config.employeeUsername(), config.employeePassword());
+        loginPage.verifyLoginSuccess();
 
-        // Employee should see products table
-        productsPage.verifyTableVisible();
+        // Employee should see products section
+        productsPage.verifySectionVisible();
 
-        // Employee should NOT see Add button (or it should be disabled)
-        $(".add-product-button, button:contains('Add Product')").shouldNotBe(visible);
+        // Employee should NOT see Add Product link
+        Assertions.assertFalse(productsPage.isAddProductVisible(), "Employee should NOT see Add Product");
+
+        // Employee should NOT see Edit buttons
+        Assertions.assertFalse(productsPage.isEditButtonVisible(), "Employee should NOT see Edit buttons");
 
         // Employee should NOT see Delete buttons
-        $(".delete-button, button:contains('Delete')").shouldNotBe(visible);
+        Assertions.assertFalse(productsPage.isDeleteButtonVisible(), "Employee should NOT see Delete buttons");
     }
 
     @Test
     @Story("Unauthorized Access")
-    @DisplayName("Unauthenticated user should be redirected to login")
+    @DisplayName("Login page should be shown for unauthenticated users")
     @Severity(SeverityLevel.BLOCKER)
     void testUnauthenticatedRedirect() {
-        // Without login, trying to access protected pages
-        // Should show login form or redirect
-        loginPage.verifyErrorDisplayed();
+        // When opening the app without authentication
+        // Login form should be visible (since app redirects to login)
+        $("[data-testid='username-input']").shouldBe(visible);
+        $("[data-testid='password-input']").shouldBe(visible);
+        $("[data-testid='login-button']").shouldBe(visible);
     }
 }

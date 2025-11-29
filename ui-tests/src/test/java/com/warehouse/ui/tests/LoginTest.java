@@ -60,11 +60,14 @@ public class LoginTest extends BaseTest {
     }
 
     @Test
-    @Story("Invalid Login")
-    @DisplayName("Login should fail with empty credentials")
-    @Severity(SeverityLevel.NORMAL)
-    void testEmptyCredentials() {
-        loginPage.clickLogin();
-        // Form validation should prevent submission or show error
+    @Story("Logout")
+    @DisplayName("User should be able to logout")
+    @Severity(SeverityLevel.CRITICAL)
+    void testLogout() {
+        loginPage.login(config.adminUsername(), config.adminPassword());
+        loginPage.verifyLoginSuccess();
+        loginPage.logout();
+        // After logout, login form should be visible again
+        loginPage.enterUsername(""); // Just verify login form is accessible
     }
 }
