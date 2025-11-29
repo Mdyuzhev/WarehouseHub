@@ -192,18 +192,13 @@ run-e2e-tests:
     - cd /home/flomaster/warehouse-api
     - chmod +x ./mvnw
     - LD_PRELOAD= ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
-    - |
-      echo "📊 Uploading to Allure..."
-      curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" \
-        -H "Content-Type: application/json" \
-        -d '{"id": "warehouse-api"}' || true
-      curl -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-api" || true
-      for file in target/allure-results/*; do
-        [ -f "$file" ] && curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-api" -F "files[]=@$file"
-      done
-      curl -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-api"
+    - echo "📊 Uploading to Allure..."
+    - curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-api"}' || true
+    - curl -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=warehouse-api" || true
+    - find target/allure-results -type f -exec curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=warehouse-api" -F "files[]=@{}" \;
+    - curl -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=warehouse-api"
     - echo "✅ E2E tests completed"
-    - echo "📊 Report: $ALLURE_SERVER_URL/allure-docker-service/projects/warehouse-api/reports/latest"
+    - echo "📊 Report - $ALLURE_SERVER_URL/allure-docker-service/projects/warehouse-api/reports/latest"
   artifacts:
     when: always
     paths:
