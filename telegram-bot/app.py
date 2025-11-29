@@ -37,6 +37,8 @@ from bot.handlers import (
     is_pending_password, is_pending_wizard,
     # Claude
     handle_claude_menu, handle_claude_input, is_pending_claude,
+    # GitLab Webhooks
+    handle_gitlab_webhook,
 )
 
 # Настройка логирования
@@ -299,21 +301,36 @@ class GitLabWebhook(BaseModel):
 
 @app.post("/webhook/gitlab")
 async def gitlab_webhook(request: Request):
-    """Обработка GitLab webhooks."""
-    # Проверяем токен
+    """
+    Обработка GitLab webhooks для автоматических уведомлений.
+
+    GitLab отправляет события:
+    - Pipeline Hook: object_kind = "pipeline"
+    - Job Hook: object_kind = "build"
+
+    Настройка webhook в GitLab:
+    1. Project → Settings → Webhooks
+    2. URL: http://<bot-host>/webhook/gitlab
+    3. Secret Token: (опционально, если задан GITLAB_WEBHOOK_SECRET)
+    4. Triggers: Pipeline events, Job events
+    """
+    # Проверяем токен (если задан)
     token = request.headers.get("X-Gitlab-Token", "")
     if GITLAB_WEBHOOK_SECRET and token != GITLAB_WEBHOOK_SECRET:
+        logger.warning(f"Webhook rejected: invalid token")
         raise HTTPException(status_code=403, detail="Invalid token")
 
     try:
         data = await request.json()
-        event = data.get("object_kind", "unknown")
+        event_type = data.get("object_kind", "unknown")
 
-        # Тут можно добавить обработку webhooks для автоматических уведомлений
-        logger.info(f"Received GitLab webhook: {event}")
+        logger.info(f"Received GitLab webhook: {event_type}")
 
-        return {"status": "ok", "event": event}
+        # Делегируем обработку handler'у
+        result = await handle_gitlab_webhook(event_type, data)
+
+        return result
 
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"Webhook processing error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

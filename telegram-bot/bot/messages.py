@@ -286,3 +286,184 @@ WEBHOOK_EMOJIS = {
     "running": "🔄",
     "pending": "⏳",
 }
+
+
+# =============================================================================
+# GitLab Webhook Formatters
+# =============================================================================
+
+def get_status_emoji(status: str) -> str:
+    """Возвращает emoji для статуса."""
+    status_map = {
+        "success": "✅",
+        "failed": "❌",
+        "canceled": "🚫",
+        "running": "🔄",
+        "pending": "⏳",
+        "created": "🆕",
+        "skipped": "⏭",
+        "manual": "👆",
+    }
+    return status_map.get(status.lower(), "❓")
+
+
+def get_humor_for_status(status: str, event_type: str) -> str:
+    """Возвращает юморную фразу в зависимости от статуса."""
+    if status == "success":
+        jokes = [
+            "Ура! Всё взлетело! 🎉",
+            "Зелёненькое! Чудеса случаются! ✨",
+            "Работает! Даже странно... 🤔",
+            "Успех! Иди налей себе кофе, заслужил! ☕",
+        ]
+    elif status == "failed":
+        jokes = [
+            "Упс... Кто-то накосячил! 🙈",
+            "ПРОВАЛ! Время смотреть логи... 📜",
+            "Красненькое! Классика пятничного деплоя! 🔥",
+            "Failed! Но мы не сдаёмся, правда? 💪",
+        ]
+    elif status == "running":
+        jokes = [
+            "Поехали! Держитесь! 🚀",
+            "Крутим, мутим... ⚙️",
+            "В процессе... Пойду кофе попью. ☕",
+            "Работаем-работаем! 🔧",
+        ]
+    elif status == "pending":
+        jokes = [
+            "Ждём своей очереди... ⏳",
+            "В очереди, как в поликлинике. 😴",
+            "Pending... Жизнь проходит мимо. ⌛",
+        ]
+    else:
+        jokes = ["Что-то происходит... 🤷"]
+
+    return random.choice(jokes)
+
+
+def format_pipeline_message(data: dict) -> str:
+    """
+    Форматирует сообщение о pipeline событии.
+
+    Args:
+        data: Webhook payload от GitLab
+    """
+    status = data.get("object_attributes", {}).get("status", "unknown")
+    emoji = get_status_emoji(status)
+    humor = get_humor_for_status(status, "pipeline")
+
+    pipeline = data.get("object_attributes", {})
+    project = data.get("project", {})
+    user = data.get("user", {})
+
+    project_name = project.get("name", "Unknown")
+    ref = pipeline.get("ref", "unknown")
+    pipeline_id = pipeline.get("id", "?")
+    pipeline_url = pipeline.get("url", "")
+    username = user.get("name", "Ghost")
+
+    # Длительность
+    duration = pipeline.get("duration")
+    duration_str = ""
+    if duration:
+        minutes = int(duration) // 60
+        seconds = int(duration) % 60
+        duration_str = f"\n⏱ Время: {minutes}м {seconds}с"
+
+    msg = f"""
+{emoji} <b>Pipeline {status.upper()}</b>
+
+📦 <b>Проект:</b> {project_name}
+🌿 <b>Ветка:</b> {ref}
+🆔 <b>Pipeline:</b> #{pipeline_id}
+👤 <b>Автор:</b> {username}{duration_str}
+
+{humor}
+
+<a href="{pipeline_url}">🔗 Открыть в GitLab</a>
+"""
+    return msg.strip()
+
+
+def format_job_message(data: dict) -> str:
+    """
+    Форматирует сообщение о job событии.
+
+    Args:
+        data: Webhook payload от GitLab
+    """
+    status = data.get("build_status", "unknown")
+    emoji = get_status_emoji(status)
+
+    build = data
+    project = data.get("project_name", "Unknown")
+    ref = data.get("ref", "unknown")
+    job_name = data.get("build_name", "unknown-job")
+    job_id = data.get("build_id", "?")
+    stage = data.get("build_stage", "?")
+    username = data.get("user", {}).get("name", "Ghost") if isinstance(data.get("user"), dict) else "Ghost"
+
+    # Длительность
+    duration = data.get("build_duration")
+    duration_str = ""
+    if duration:
+        minutes = int(duration) // 60
+        seconds = int(duration) % 60
+        duration_str = f"\n⏱ Время: {minutes}м {seconds}с"
+
+    # Для running показываем другой текст
+    if status == "running":
+        humor = get_humor_for_status(status, "job")
+        msg = f"""
+{emoji} <b>Job Started: {job_name}</b>
+
+📦 <b>Проект:</b> {project}
+🌿 <b>Ветка:</b> {ref}
+🏗 <b>Stage:</b> {stage}
+🆔 <b>Job ID:</b> #{job_id}
+👤 <b>Автор:</b> {username}
+
+{humor}
+"""
+        return msg.strip()
+
+    # Для завершённых jobs
+    humor = get_humor_for_status(status, "job")
+
+    msg = f"""
+{emoji} <b>Job {status.upper()}: {job_name}</b>
+
+📦 <b>Проект:</b> {project}
+🌿 <b>Ветка:</b> {ref}
+🏗 <b>Stage:</b> {stage}
+🆔 <b>Job ID:</b> #{job_id}
+👤 <b>Автор:</b> {username}{duration_str}
+
+{humor}
+"""
+
+    return msg.strip()
+
+
+def format_job_failed_with_log(data: dict, log: str) -> str:
+    """
+    Форматирует сообщение о падении job с логом.
+
+    Args:
+        data: Webhook payload от GitLab
+        log: Последние строки лога
+    """
+    basic_msg = format_job_message(data)
+
+    # Добавляем лог
+    log_preview = log[:800] if len(log) > 800 else log  # Ограничиваем размер
+    msg = f"""
+{basic_msg}
+
+<b>📜 Лог (последние строки):</b>
+<code>{log_preview}</code>
+
+<i>Время дебажить! 🔍</i>
+"""
+    return msg.strip()

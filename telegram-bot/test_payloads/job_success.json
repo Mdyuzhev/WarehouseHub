@@ -1,0 +1,46 @@
+{
+  "object_kind": "build",
+  "ref": "main",
+  "tag": false,
+  "before_sha": "abc123def456",
+  "sha": "def456abc789",
+  "build_id": 456,
+  "build_name": "deploy-api-staging",
+  "build_stage": "deploy",
+  "build_status": "success",
+  "build_started_at": "2025-11-29 01:10:00 UTC",
+  "build_finished_at": "2025-11-29 01:11:12 UTC",
+  "build_duration": 72,
+  "build_allow_failure": false,
+  "build_failure_reason": null,
+  "pipeline_id": 125,
+  "runner": {
+    "id": 1,
+    "description": "gitlab-runner",
+    "active": true,
+    "is_shared": false
+  },
+  "project_id": 4,
+  "project_name": "warehouse-master",
+  "user": {
+    "id": 1,
+    "name": "Миша",
+    "username": "flomaster",
+    "email": "micha@example.com"
+  },
+  "commit": {
+    "id": "def456abc789",
+    "sha": "def456abc789",
+    "message": "Deploy: update staging configuration",
+    "author_name": "Миша",
+    "author_email": "micha@example.com",
+    "status": "success",
+    "duration": 72
+  },
+  "repository": {
+    "name": "warehouse-master",
+    "url": "git@192.168.1.74:root/warehouse-master.git",
+    "description": "Warehouse Master - Orchestration",
+    "homepage": "http://192.168.1.74:8080/root/warehouse-master"
+  }
+}

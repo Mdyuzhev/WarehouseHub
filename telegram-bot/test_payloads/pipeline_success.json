@@ -1,0 +1,36 @@
+{
+  "object_kind": "pipeline",
+  "object_attributes": {
+    "id": 123,
+    "ref": "main",
+    "status": "success",
+    "duration": 154,
+    "url": "http://192.168.1.74:8080/root/warehouse-api/-/pipelines/123",
+    "created_at": "2025-11-29 01:00:00 UTC",
+    "finished_at": "2025-11-29 01:02:34 UTC"
+  },
+  "project": {
+    "id": 1,
+    "name": "warehouse-api",
+    "description": "Warehouse API - Spring Boot REST",
+    "web_url": "http://192.168.1.74:8080/root/warehouse-api",
+    "namespace": "root",
+    "path_with_namespace": "root/warehouse-api"
+  },
+  "user": {
+    "id": 1,
+    "name": "Миша",
+    "username": "flomaster",
+    "email": "micha@example.com"
+  },
+  "commit": {
+    "id": "abc123def456",
+    "message": "Fix: resolve database connection issue",
+    "timestamp": "2025-11-29T00:59:30+00:00",
+    "url": "http://192.168.1.74:8080/root/warehouse-api/-/commit/abc123def456",
+    "author": {
+      "name": "Миша",
+      "email": "micha@example.com"
+    }
+  }
+}

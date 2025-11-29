@@ -165,3 +165,41 @@ async def get_job_status(project_name: str, job_id: int) -> dict:
             return {"success": False, "error": f"HTTP {resp.status_code}"}
     except Exception as e:
         return {"success": False, "error": str(e)[:100]}
+
+
+async def get_job_trace(project_id: int, job_id: int, lines: int = 20) -> dict:
+    """
+    Получает последние N строк лога job.
+
+    Args:
+        project_id: ID проекта в GitLab
+        job_id: ID job
+        lines: Сколько последних строк вернуть (по умолчанию 20)
+
+    Returns:
+        dict с полями: success, log, error
+    """
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            url = f"{GITLAB_URL}/api/v4/projects/{project_id}/jobs/{job_id}/trace"
+            resp = await client.get(
+                url,
+                headers={"PRIVATE-TOKEN": GITLAB_TOKEN}
+            )
+
+            if resp.status_code == 200:
+                full_log = resp.text
+                # Берём последние N строк
+                log_lines = full_log.strip().split('\n')
+                last_lines = log_lines[-lines:] if len(log_lines) > lines else log_lines
+
+                return {
+                    "success": True,
+                    "log": '\n'.join(last_lines)
+                }
+
+            return {"success": False, "error": f"HTTP {resp.status_code}"}
+
+    except Exception as e:
+        logger.error(f"Failed to get job trace: {e}")
+        return {"success": False, "error": str(e)[:100]}

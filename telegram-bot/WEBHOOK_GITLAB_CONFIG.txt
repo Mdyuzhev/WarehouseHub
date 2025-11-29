@@ -1,0 +1,173 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                  GitLab Webhook Configuration                            ║
+║                  Настройки для каждого проекта                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+ПРОЕКТЫ:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. warehouse-master (http://192.168.1.74:8080/root/warehouse-master)
+2. warehouse-api     (http://192.168.1.74:8080/root/warehouse-api)
+3. warehouse-frontend (http://192.168.1.74:8080/root/warehouse-frontend)
+
+
+ШАГ 1: Открой проект → Settings → Webhooks
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ШАГ 2: Заполни форму
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ URL                                                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ http://warehouse-telegram-bot.notifications.svc.cluster.local:8000/webhook/gitlab
+│                                                                     │
+│ 💡 Это внутренний K8s DNS. Если бот вне кластера - используй      │
+│    внешний IP или NodePort.                                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Secret token (Optional)                                            │
+├─────────────────────────────────────────────────────────────────────┤
+│ [  Оставь пустым  ]                                                │
+│                                                                     │
+│ 💡 Можно добавить позже через env GITLAB_WEBHOOK_SECRET            │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Trigger                                                             │
+├─────────────────────────────────────────────────────────────────────┤
+│ ☐ Push events                                                       │
+│ ☐ Tag push events                                                   │
+│ ☐ Comments                                                          │
+│ ☐ Confidential comments                                             │
+│ ☐ Issues events                                                     │
+│ ☐ Confidential issues events                                        │
+│ ☐ Merge request events                                              │
+│ ☐ Deployment events                                                 │
+│ ☐ Releases events                                                   │
+│                                                                     │
+│ ☑ Job events           ← ВКЛЮЧИ ЭТО! 🎯                            │
+│ ☑ Pipeline events      ← ВКЛЮЧИ ЭТО! 🎯                            │
+│                                                                     │
+│ ☐ Wiki page events                                                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ SSL verification                                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│ ☐ Enable SSL verification                                           │
+│                                                                     │
+│ 💡 Отключено, т.к. внутри K8s используется HTTP                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+
+ШАГ 3: Сохрани webhook
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Нажми кнопку: [Add webhook]
+
+
+ШАГ 4: Протестируй
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+После создания webhook появится в списке:
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ http://warehouse-telegram-bot.notifications.svc.cluster.local...   │
+│                                                                     │
+│ [Test ▼] [Edit] [Delete]                                           │
+└─────────────────────────────────────────────────────────────────────┘
+
+1. Нажми [Test ▼]
+2. Выбери "Pipeline events"
+3. Проверь Telegram - должно прийти сообщение! 🎉
+
+Если тест прошёл успешно - увидишь:
+  ✅ HTTP 200
+
+Если ошибка - смотри Recent Deliveries для деталей.
+
+
+ШАГ 5: Recent Deliveries (отладка)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Нажми [Edit] на webhook → внизу страницы "Recent Deliveries"
+
+Здесь видно:
+- Время отправки
+- HTTP код ответа
+- Request headers/body
+- Response headers/body
+
+Если статус НЕ 200 - читай response body для ошибки.
+
+
+ЧАСТЫЕ ПРОБЛЕМЫ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ Connection refused
+   → Проверь что бот запущен: kubectl get pods -n notifications
+   → Проверь service: kubectl get svc -n notifications
+
+❌ 403 Forbidden
+   → Проверь GITLAB_WEBHOOK_SECRET (должен совпадать или быть пустым)
+
+❌ 500 Internal Server Error
+   → Смотри логи бота: kubectl logs -n notifications deployment/warehouse-telegram-bot
+
+✅ 200 OK но уведомления не приходят
+   → Проверь TELEGRAM_CHAT_ID и TELEGRAM_BOT_TOKEN
+   → Смотри логи бота
+
+
+CURL ТЕСТ (альтернатива)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Можно протестировать webhook вручную из pod в K8s:
+
+kubectl run -it --rm test --image=curlimages/curl --restart=Never -- \
+  curl -X POST \
+  http://warehouse-telegram-bot.notifications.svc.cluster.local:8000/webhook/gitlab \
+  -H "Content-Type: application/json" \
+  -d '{
+    "object_kind": "pipeline",
+    "object_attributes": {
+      "id": 999,
+      "status": "success",
+      "ref": "main",
+      "duration": 120,
+      "url": "http://gitlab/pipelines/999"
+    },
+    "project": {"name": "test-project"},
+    "user": {"name": "Test User"}
+  }'
+
+Должно вернуть: {"status":"ok","event":"pipeline"}
+И в Telegram придёт сообщение!
+
+
+ПОЛЕЗНЫЕ КОМАНДЫ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Проверить что бот работает
+kubectl get pods -n notifications
+
+# Посмотреть логи бота
+kubectl logs -n notifications deployment/warehouse-telegram-bot --tail=100 -f
+
+# Проверить service
+kubectl get svc -n notifications warehouse-telegram-bot
+
+# Проверить endpoints
+kubectl get endpoints -n notifications warehouse-telegram-bot
+
+
+ГОТОВО! 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Теперь повтори для всех трёх проектов:
+  □ warehouse-master
+  □ warehouse-api
+  □ warehouse-frontend
+
+И наслаждайся уведомлениями с юмором! 🚀

@@ -1,0 +1,46 @@
+{
+  "object_kind": "build",
+  "ref": "main",
+  "tag": false,
+  "before_sha": "abc123def456",
+  "sha": "ghi789jkl012",
+  "build_id": 457,
+  "build_name": "deploy-frontend-prod",
+  "build_stage": "deploy",
+  "build_status": "failed",
+  "build_started_at": "2025-11-29 01:15:00 UTC",
+  "build_finished_at": "2025-11-29 01:15:45 UTC",
+  "build_duration": 45,
+  "build_allow_failure": false,
+  "build_failure_reason": "script_failure",
+  "pipeline_id": 126,
+  "runner": {
+    "id": 1,
+    "description": "gitlab-runner",
+    "active": true,
+    "is_shared": false
+  },
+  "project_id": 4,
+  "project_name": "warehouse-master",
+  "user": {
+    "id": 1,
+    "name": "Миша",
+    "username": "flomaster",
+    "email": "micha@example.com"
+  },
+  "commit": {
+    "id": "ghi789jkl012",
+    "sha": "ghi789jkl012",
+    "message": "Deploy: push to production (YOLO!)",
+    "author_name": "Миша",
+    "author_email": "micha@example.com",
+    "status": "failed",
+    "duration": 45
+  },
+  "repository": {
+    "name": "warehouse-master",
+    "url": "git@192.168.1.74:root/warehouse-master.git",
+    "description": "Warehouse Master - Orchestration",
+    "homepage": "http://192.168.1.74:8080/root/warehouse-master"
+  }
+}

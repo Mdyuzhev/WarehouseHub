@@ -41,6 +41,10 @@ from .claude import (
     is_pending_claude,
 )
 
+from .gitlab_webhook import (
+    handle_gitlab_webhook,
+)
+
 __all__ = [
     # Commands
     "handle_start",
@@ -71,4 +75,6 @@ __all__ = [
     "handle_claude_menu",
     "handle_claude_input",
     "is_pending_claude",
+    # GitLab Webhooks
+    "handle_gitlab_webhook",
 ]
