@@ -43,16 +43,21 @@ spec:
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres-service.warehouse.svc.cluster.local:5432/warehouse"
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
                   key: APP_DB_USER
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
                   key: APP_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: warehouse-api-secrets
+                  key: JWT_SECRET
 
           # Ресурсы контейнера
           resources:

@@ -9,10 +9,118 @@
 
 let terminalWs = null;
 let agentWs = null;
+let notificationsWs = null;
 let startTime = Date.now();
 
 // Звуки (8-bit beeps) - можно включить если надо
 const SOUNDS_ENABLED = false;
+
+// ═══════════════════════════════════════════════════════════
+// GITLAB JOBS
+// ═══════════════════════════════════════════════════════════
+
+async function runJob(jobName, isDanger = false) {
+    if (isDanger) {
+        showModal(
+            '⚠️ PRODUCTION DEPLOY',
+            `Уверен что хочешь задеплоить ${jobName} на ПРОД?\nЭто не шутки, чувак!`,
+            () => executeJob(jobName)
+        );
+    } else {
+        executeJob(jobName);
+    }
+}
+
+async function executeJob(jobName) {
+    playSound('select');
+    log(`🚀 Запускаю ${jobName}...`, 'warning');
+
+    // Помечаем кнопку как loading
+    const btn = document.querySelector(`[data-job="${jobName}"]`);
+    if (btn) {
+        btn.classList.add('loading');
+        btn.disabled = true;
+    }
+
+    try {
+        const response = await fetch(`/api/gitlab/jobs/${jobName}/run`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            log(data.message, 'success');
+            playSound('success');
+            addNotification(data.message, 'running');
+        } else {
+            log(data.message, 'error');
+            playSound('error');
+            addNotification(data.message, 'failed');
+        }
+    } catch (error) {
+        log(`❌ Ошибка: ${error.message}`, 'error');
+        playSound('error');
+    }
+
+    if (btn) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+    }
+
+    // Обновляем статусы через 2 секунды
+    setTimeout(refreshJobs, 2000);
+}
+
+async function refreshJobs() {
+    log('🔄 Обновляю статусы джоб...', 'info');
+
+    try {
+        const response = await fetch('/api/gitlab/jobs/status');
+        const data = await response.json();
+
+        // Обновляем статусы кнопок
+        for (const [jobName, status] of Object.entries(data.status)) {
+            const btn = document.querySelector(`[data-job="${jobName}"]`);
+            if (btn) {
+                // Убираем старые классы
+                btn.classList.remove('running');
+
+                // Находим или создаём элемент статуса
+                let statusEl = btn.querySelector('.job-status');
+                if (!statusEl) {
+                    statusEl = document.createElement('span');
+                    statusEl.className = 'job-status';
+                    btn.appendChild(statusEl);
+                }
+
+                // Обновляем статус
+                statusEl.className = `job-status ${status.status}`;
+                const icons = {
+                    success: '✓',
+                    failed: '✗',
+                    running: '↻',
+                    pending: '…',
+                    created: '○',
+                    manual: '▶'
+                };
+                statusEl.textContent = icons[status.status] || '';
+
+                if (status.status === 'running') {
+                    btn.classList.add('running');
+                }
+            }
+        }
+
+        log('✅ Статусы обновлены!', 'success');
+    } catch (error) {
+        log(`❌ Ошибка обновления: ${error.message}`, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICATIONS (moved to separate page /notifications)
+// ═══════════════════════════════════════════════════════════
+// Press 'N' to open fullscreen notifications page
 
 // ═══════════════════════════════════════════════════════════
 // TERMINAL
@@ -370,22 +478,21 @@ document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
 
     switch(e.key.toLowerCase()) {
+        case 'n':
+            // Open notifications page
+            window.location.href = '/notifications';
+            break;
         case 'd':
             if (e.ctrlKey) {
                 e.preventDefault();
-                runAction('deploy', 'all');
-            }
-            break;
-        case 't':
-            if (e.ctrlKey) {
-                e.preventDefault();
-                runAction('tests', 'e2e');
+                runJob('deploy-all-staging');
             }
             break;
         case 'r':
             if (e.ctrlKey) {
                 e.preventDefault();
                 refreshStatus();
+                refreshJobs();
             }
             break;
         case 'escape':
@@ -400,9 +507,17 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     log('Welcome to Warehouse Orchestrator! 🎮');
-    log('Keyboard shortcuts: Ctrl+D (deploy), Ctrl+T (tests), Ctrl+R (refresh)');
+    log('GitLab jobs are ready - click any button to run!');
+    log('Press N to open live notifications, Ctrl+R to refresh');
     log('Try the Konami code for a surprise... ↑↑↓↓←→←→BA');
 
+    // Обновляем статусы джоб при загрузке
+    refreshJobs();
+
     // Фокус на поле ввода агента
-    document.getElementById('agent-input-field').focus();
+    const agentInput = document.getElementById('agent-input-field');
+    if (agentInput) agentInput.focus();
+
+    // Автообновление статусов каждые 30 секунд
+    setInterval(refreshJobs, 30000);
 });

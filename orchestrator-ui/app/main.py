@@ -25,6 +25,8 @@ from .services import (
     get_random_message
 )
 from .agent import agent_service
+from .gitlab import gitlab_service
+from .config import GITLAB_JOBS
 
 # Пути
 BASE_DIR = Path(__file__).parent.parent
@@ -74,12 +76,25 @@ async def index(request: Request):
     services = await get_all_services_status()
     operations = await get_recent_operations(5)
     sessions = await get_all_sessions(5)
+    jobs = gitlab_service.get_available_jobs(4)
+    jobs_status = await gitlab_service.get_all_jobs_status(4)
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "services": services,
         "operations": operations,
         "sessions": sessions,
+        "jobs": jobs,
+        "jobs_status": {j["name"]: j for j in jobs_status},
+        "current_time": datetime.now().strftime("%H:%M:%S")
+    })
+
+
+@app.get("/notifications", response_class=HTMLResponse)
+async def notifications_page(request: Request):
+    """Страница уведомлений - fullscreen live view"""
+    return templates.TemplateResponse("notifications.html", {
+        "request": request,
         "current_time": datetime.now().strftime("%H:%M:%S")
     })
 
@@ -123,6 +138,57 @@ async def api_restart(service: str):
 async def api_operations(limit: int = 10):
     """История операций"""
     return await get_recent_operations(limit)
+
+
+# ═══════════════════════════════════════════════════════════
+# GITLAB API - Запуск джоб
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/gitlab/jobs")
+async def api_gitlab_jobs(project_id: int = 4):
+    """Получить список доступных джоб"""
+    jobs = gitlab_service.get_available_jobs(project_id)
+    status = await gitlab_service.get_all_jobs_status(project_id)
+    return {"jobs": jobs, "status": {j["name"]: j for j in status}}
+
+
+@app.get("/api/gitlab/jobs/status")
+async def api_gitlab_jobs_status(project_id: int = 4):
+    """Получить статус всех джоб"""
+    status = await gitlab_service.get_all_jobs_status(project_id)
+    return {"status": {j["name"]: j for j in status}}
+
+
+@app.post("/api/gitlab/jobs/{job_name}/run")
+async def api_gitlab_run_job(job_name: str, project_id: int = 4):
+    """Запустить джобу по имени"""
+    result = await gitlab_service.run_job_by_name(project_id, job_name)
+
+    # Уведомляем всех подключённых клиентов
+    if result.get("success"):
+        await notifications_manager.broadcast({
+            "type": "job_started",
+            "job_name": job_name,
+            "job_id": result.get("job_id"),
+            "message": result.get("message"),
+            "timestamp": datetime.now().isoformat()
+        })
+
+    return result
+
+
+@app.get("/api/gitlab/jobs/{job_id}/log")
+async def api_gitlab_job_log(job_id: int, project_id: int = 4, tail: int = 50):
+    """Получить логи джобы"""
+    log = await gitlab_service.get_job_log(project_id, job_id, tail)
+    return {"log": log}
+
+
+@app.get("/api/gitlab/jobs/{job_id}/status")
+async def api_gitlab_job_status(job_id: int, project_id: int = 4):
+    """Получить статус конкретной джобы"""
+    status = await gitlab_service.get_job_status(project_id, job_id)
+    return status
 
 
 # ═══════════════════════════════════════════════════════════
@@ -202,14 +268,22 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message):
+        """Отправить сообщение всем подключённым"""
+        if isinstance(message, dict):
+            message = json.dumps(message)
         for connection in self.active_connections:
-            await connection.send_text(message)
+            try:
+                await connection.send_text(message)
+            except Exception:
+                pass
 
 
 manager = ConnectionManager()
+notifications_manager = ConnectionManager()  # Отдельный для уведомлений
 
 
 @app.websocket("/ws/terminal")
@@ -271,6 +345,104 @@ async def websocket_agent(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
+
+
+# ═══════════════════════════════════════════════════════════
+# WEBSOCKET - Для уведомлений о джобах
+# ═══════════════════════════════════════════════════════════
+
+@app.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket):
+    """WebSocket для получения уведомлений о статусе джоб"""
+    await notifications_manager.connect(websocket)
+    try:
+        # Отправляем приветствие
+        await websocket.send_json({
+            "type": "connected",
+            "message": "🎮 Подключено к уведомлениям!",
+            "timestamp": datetime.now().isoformat()
+        })
+
+        while True:
+            # Просто держим соединение открытым
+            data = await websocket.receive_text()
+            # Можно обрабатывать команды от клиента если нужно
+
+    except WebSocketDisconnect:
+        notifications_manager.disconnect(websocket)
+
+
+# ═══════════════════════════════════════════════════════════
+# WEBHOOK - Получение событий от GitLab
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/webhook/gitlab")
+async def gitlab_webhook(request: Request):
+    """
+    Webhook для получения событий от GitLab.
+    Принимает Pipeline и Job события и рассылает их через WebSocket.
+    """
+    try:
+        data = await request.json()
+        event_type = data.get("object_kind", "unknown")
+
+        notification = None
+
+        if event_type == "pipeline":
+            status = data.get("object_attributes", {}).get("status")
+            pipeline_id = data.get("object_attributes", {}).get("id")
+            project_name = data.get("project", {}).get("name", "unknown")
+
+            emoji = {"success": "✅", "failed": "❌", "running": "🔄", "pending": "⏳"}.get(status, "❓")
+
+            notification = {
+                "type": "pipeline",
+                "status": status,
+                "pipeline_id": pipeline_id,
+                "project": project_name,
+                "message": f"{emoji} Pipeline #{pipeline_id} ({project_name}): {status}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        elif event_type == "build":  # Job события
+            status = data.get("build_status")
+            job_name = data.get("build_name")
+            job_id = data.get("build_id")
+            project_name = data.get("project_name", "unknown")
+            duration = data.get("build_duration")
+
+            emoji = {"success": "✅", "failed": "❌", "running": "🔄", "pending": "⏳", "created": "📝"}.get(status, "❓")
+
+            message = f"{emoji} Job '{job_name}' ({project_name}): {status}"
+            if duration:
+                message += f" ({int(duration)}s)"
+
+            notification = {
+                "type": "job",
+                "status": status,
+                "job_name": job_name,
+                "job_id": job_id,
+                "project": project_name,
+                "duration": duration,
+                "message": message,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Если джоба упала - добавляем логи
+            if status == "failed":
+                try:
+                    log = await gitlab_service.get_job_log(4, job_id, tail=20)
+                    notification["log"] = log
+                except Exception:
+                    pass
+
+        if notification:
+            await notifications_manager.broadcast(notification)
+
+        return {"status": "ok", "event": event_type}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ═══════════════════════════════════════════════════════════

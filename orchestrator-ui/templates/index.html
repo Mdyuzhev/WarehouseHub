@@ -66,29 +66,42 @@
             {% endfor %}
         </section>
 
-        <!-- ═══════════════ QUICK ACTIONS ═══════════════ -->
+        <!-- ═══════════════ GITLAB JOBS ═══════════════ -->
         <section class="actions-panel">
-            <div class="title">══════════ SELECT ACTION ══════════</div>
-            <div class="button-grid">
-                <button class="btn-8bit deploy" onclick="runAction('deploy', 'all')">
-                    🚀 DEPLOY ALL
+            <div class="title">══════════ GITLAB JOBS ══════════</div>
+            <div class="jobs-grid" id="jobs-grid">
+                {% for job in jobs %}
+                <button class="btn-8bit {% if job.get('danger') %}danger{% elif 'deploy' in job.name %}deploy{% endif %} {% if jobs_status.get(job.name, {}).get('status') == 'running' %}running{% endif %}"
+                        data-job="{{ job.name }}"
+                        onclick="runJob('{{ job.name }}'{% if job.get('danger') %}, true{% endif %})">
+                    {{ job.display }}
+                    {% if jobs_status.get(job.name) %}
+                    <span class="job-status {{ jobs_status.get(job.name, {}).get('status', '') }}">
+                        {% set status = jobs_status.get(job.name, {}).get('status', '') %}
+                        {% if status == 'success' %}✓{% elif status == 'failed' %}✗{% elif status == 'running' %}↻{% elif status == 'pending' %}…{% endif %}
+                    </span>
+                    {% endif %}
                 </button>
-                <button class="btn-8bit deploy" onclick="runAction('deploy', 'api')">
-                    🔧 DEPLOY API
-                </button>
-                <button class="btn-8bit deploy" onclick="runAction('deploy', 'frontend')">
-                    🎨 DEPLOY FRONT
-                </button>
-                <button class="btn-8bit" onclick="runAction('tests', 'e2e')">
-                    🧪 E2E TESTS
-                </button>
-                <button class="btn-8bit" onclick="runAction('tests', 'load')">
-                    📊 LOAD TESTS
-                </button>
-                <button class="btn-8bit special" onclick="refreshStatus()">
+                {% endfor %}
+            </div>
+            <div class="quick-actions" style="margin-top: 10px;">
+                <button class="btn-8bit special" onclick="refreshJobs()">
                     🔄 REFRESH
                 </button>
+                <button class="btn-8bit" onclick="window.open('http://192.168.1.74:8080/root/warehouse-master/-/pipelines', '_blank')">
+                    🦊 GITLAB
+                </button>
             </div>
+        </section>
+
+        <!-- ═══════════════ NOTIFICATIONS LINK ═══════════════ -->
+        <section class="actions-panel" style="text-align: center;">
+            <a href="/notifications" class="btn-8bit special" style="text-decoration: none; display: inline-block;">
+                📡 OPEN LIVE NOTIFICATIONS [N]
+            </a>
+            <span style="margin-left: 15px; color: var(--gray); font-size: 12px;">
+                Press <kbd style="background: var(--green-dim); padding: 2px 6px;">N</kbd> to open fullscreen notifications
+            </span>
         </section>
 
         <!-- ═══════════════ TERMINAL OUTPUT ═══════════════ -->

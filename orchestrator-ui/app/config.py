@@ -21,6 +21,33 @@ SQLITE_DB = DATA_DIR / "agent_history.db"
 CLAUDE_PROXY_URL = os.getenv("CLAUDE_PROXY_URL", "http://192.168.1.74:8765")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# GitLab API
+GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3")
+
+# GitLab проекты и джобы
+GITLAB_PROJECTS = {
+    "warehouse-master": {"id": 4, "name": "warehouse-master"},
+    "warehouse-api": {"id": 1, "name": "warehouse-api"},
+    "warehouse-frontend": {"id": 2, "name": "warehouse-frontend"},
+}
+
+# Джобы которые можно запускать (project_id -> jobs)
+GITLAB_JOBS = {
+    4: [  # warehouse-master
+        {"name": "deploy-api-staging", "display": "🔧 API → Staging", "stage": "deploy-staging"},
+        {"name": "deploy-frontend-staging", "display": "🎨 Frontend → Staging", "stage": "deploy-staging"},
+        {"name": "deploy-all-staging", "display": "🚀 ALL → Staging", "stage": "deploy-staging"},
+        {"name": "deploy-api-prod", "display": "🔧 API → Prod", "stage": "deploy-prod", "danger": True},
+        {"name": "deploy-frontend-prod", "display": "🎨 Frontend → Prod", "stage": "deploy-prod", "danger": True},
+        {"name": "deploy-all-prod", "display": "🚀 ALL → Prod", "stage": "deploy-prod", "danger": True},
+        {"name": "run-e2e-tests", "display": "🧪 E2E Tests", "stage": "test"},
+        {"name": "run-load-tests", "display": "📊 Load Tests", "stage": "test"},
+        {"name": "deploy-telegram-bot", "display": "🤖 Bot", "stage": "deploy-staging"},
+        {"name": "deploy-orchestrator-ui", "display": "🎮 UI", "stage": "deploy-staging"},
+    ]
+}
+
 # Kubernetes
 KUBECONFIG = os.getenv("KUBECONFIG", os.path.expanduser("~/.kube/config"))
 

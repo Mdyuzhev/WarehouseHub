@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Notifications - Warehouse Orchestrator</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/8bit.css">
+    <style>
+        /* Fullscreen notifications */
+        .notifications-fullscreen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notifications-fullscreen .notifications-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            border: none;
+        }
+
+        .notifications-fullscreen .notifications-body {
+            flex: 1;
+            height: auto;
+            max-height: none;
+        }
+
+        .notification-item {
+            font-size: 16px;
+            padding: 12px 15px;
+        }
+
+        .notification-item .time {
+            font-size: 14px;
+        }
+
+        .notification-item .log-preview {
+            font-size: 13px;
+            max-height: 200px;
+        }
+
+        .back-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 10px 15px;
+            background: var(--bg-terminal);
+            border-bottom: 2px solid var(--amber);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-item.success { color: var(--green-bright); }
+        .stat-item.failed { color: var(--red-alert); }
+        .stat-item.running { color: var(--amber); }
+    </style>
+</head>
+<body>
+    <div class="notifications-fullscreen">
+        <!-- Header -->
+        <header class="header" style="margin: 0; border-bottom: none;">
+            <h1 class="glow">📡 LIVE NOTIFICATIONS</h1>
+            <p class="subtitle">[ REAL-TIME GITLAB EVENTS ]</p>
+            <div class="system-status">
+                <span id="ws-status" class="connection-status">⚫ CONNECTING...</span>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item success">
+                <span>✅ SUCCESS:</span>
+                <span id="stat-success">0</span>
+            </div>
+            <div class="stat-item failed">
+                <span>❌ FAILED:</span>
+                <span id="stat-failed">0</span>
+            </div>
+            <div class="stat-item running">
+                <span>🔄 RUNNING:</span>
+                <span id="stat-running">0</span>
+            </div>
+            <div class="stat-item">
+                <span>📊 TOTAL:</span>
+                <span id="stat-total">0</span>
+            </div>
+        </div>
+
+        <!-- Notifications Panel -->
+        <section class="notifications-panel">
+            <div class="notifications-header">
+                <span>▶ EVENT LOG</span>
+                <div>
+                    <button onclick="toggleSound()" id="sound-btn" style="background: none; border: none; color: inherit; cursor: pointer; font-family: inherit; margin-right: 15px;">
+                        [🔇 SOUND OFF]
+                    </button>
+                    <button onclick="clearNotifications()" style="background: none; border: none; color: inherit; cursor: pointer; font-family: inherit;">
+                        [CLEAR]
+                    </button>
+                </div>
+            </div>
+            <div class="notifications-body" id="notifications-list">
+                <div class="notification-item info">
+                    <span class="time">[{{ current_time }}]</span>
+                    <span>🎮 Ожидание событий от GitLab...</span>
+                </div>
+                <div class="notification-item info">
+                    <span class="time">[{{ current_time }}]</span>
+                    <span>💡 Запусти джобу на главной странице или в GitLab</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Back Link -->
+        <a href="/" class="btn-8bit back-link">
+            ◄ BACK TO MAIN
+        </a>
+    </div>
+
+    <script>
+        let notificationsWs = null;
+        let soundEnabled = false;
+        let stats = { success: 0, failed: 0, running: 0, total: 0 };
+
+        // Audio context for sounds
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeep(type) {
+            if (!soundEnabled) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            const sounds = {
+                success: { freq: 800, duration: 0.15 },
+                failed: { freq: 200, duration: 0.3 },
+                running: { freq: 500, duration: 0.1 }
+            };
+
+            const sound = sounds[type] || sounds.running;
+            oscillator.frequency.value = sound.freq;
+            oscillator.type = 'square';
+            gainNode.gain.value = 0.1;
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + sound.duration);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-btn');
+            btn.textContent = soundEnabled ? '[🔊 SOUND ON]' : '[🔇 SOUND OFF]';
+            if (soundEnabled) {
+                playBeep('running');
+            }
+        }
+
+        function connectNotifications() {
+            const wsUrl = `ws://${window.location.host}/ws/notifications`;
+            notificationsWs = new WebSocket(wsUrl);
+
+            notificationsWs.onopen = () => {
+                updateWsStatus(true);
+                addNotification('🔌 Подключено к серверу уведомлений!', 'info');
+            };
+
+            notificationsWs.onclose = () => {
+                updateWsStatus(false);
+                addNotification('⚡ Соединение потеряно, переподключаюсь...', 'warning');
+                setTimeout(connectNotifications, 5000);
+            };
+
+            notificationsWs.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            notificationsWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleNotification(data);
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
+        }
+
+        function updateWsStatus(online) {
+            const status = document.getElementById('ws-status');
+            if (online) {
+                status.textContent = '🟢 CONNECTED';
+                status.className = 'connection-status online';
+            } else {
+                status.textContent = '⚫ DISCONNECTED';
+                status.className = 'connection-status';
+            }
+        }
+
+        function handleNotification(data) {
+            // Update stats
+            if (data.status === 'success') {
+                stats.success++;
+                playBeep('success');
+            } else if (data.status === 'failed') {
+                stats.failed++;
+                playBeep('failed');
+            } else if (data.status === 'running') {
+                stats.running++;
+                playBeep('running');
+            }
+            stats.total++;
+            updateStats();
+
+            // Add to list
+            addNotification(data.message, data.status, data.log);
+        }
+
+        function updateStats() {
+            document.getElementById('stat-success').textContent = stats.success;
+            document.getElementById('stat-failed').textContent = stats.failed;
+            document.getElementById('stat-running').textContent = stats.running;
+            document.getElementById('stat-total').textContent = stats.total;
+        }
+
+        function addNotification(message, status, logContent = null) {
+            const list = document.getElementById('notifications-list');
+            const time = new Date().toLocaleTimeString('ru-RU');
+
+            const item = document.createElement('div');
+            item.className = `notification-item ${status || 'info'}`;
+
+            let html = `<span class="time">[${time}]</span><span>${escapeHtml(message)}</span>`;
+
+            if (logContent) {
+                html += `<div class="log-preview">${escapeHtml(logContent)}</div>`;
+            }
+
+            item.innerHTML = html;
+
+            // Add at top
+            list.insertBefore(item, list.firstChild);
+
+            // Limit items
+            while (list.children.length > 100) {
+                list.removeChild(list.lastChild);
+            }
+        }
+
+        function clearNotifications() {
+            const list = document.getElementById('notifications-list');
+            list.innerHTML = `
+                <div class="notification-item info">
+                    <span class="time">[${new Date().toLocaleTimeString('ru-RU')}]</span>
+                    <span>🧹 Лог очищен</span>
+                </div>
+            `;
+            stats = { success: 0, failed: 0, running: 0, total: 0 };
+            updateStats();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Keyboard shortcut - Escape to go back
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                window.location.href = '/';
+            }
+        });
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            connectNotifications();
+        });
+    </script>
+</body>
+</html>
