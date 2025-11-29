@@ -7,8 +7,7 @@ services:
   orchestrator-ui:
     build: .
     container_name: warehouse-orchestrator-ui
-    ports:
-      - "8000:8000"
+    network_mode: host  # Чтобы kubectl мог достучаться до K8s API
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - CLAUDE_PROXY_URL=http://192.168.1.74:8765
@@ -20,8 +19,6 @@ services:
       # Персистентность данных
       - orchestrator-data:/app/data
     restart: unless-stopped
-    networks:
-      - warehouse-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -30,7 +27,3 @@ services:
 
 volumes:
   orchestrator-data:
-
-networks:
-  warehouse-net:
-    driver: bridge
