@@ -238,19 +238,21 @@ run-ui-tests-staging:
         -Dbrowser=chrome \
         -Dbrowser.size=1920x1080 \
         --batch-mode || true
-    # Загрузка результатов в Allure
+    # Загрузка результатов в Allure (архивом - быстрее)
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - |
       if [ -d "/home/flomaster/warehouse-master/ui-tests/target/allure-results" ]; then
-        for file in /home/flomaster/warehouse-master/ui-tests/target/allure-results/*; do
-          [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$file"
-        done
+        cd /home/flomaster/warehouse-master/ui-tests/target
+        tar -czf /tmp/allure-results.tar.gz allure-results/
+        curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@/tmp/allure-results.tar.gz"
+        rm -f /tmp/allure-results.tar.gz
       fi
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID" || true
+    - sleep 5  # Дождаться обработки архива
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 STAGING ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
   tags:
     - shell
@@ -289,19 +291,21 @@ run-ui-tests-prod:
         -Dbrowser=chrome \
         -Dbrowser.size=1920x1080 \
         --batch-mode || true
-    # Загрузка результатов в Allure
+    # Загрузка результатов в Allure (архивом - быстрее)
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - |
       if [ -d "/home/flomaster/warehouse-master/ui-tests/target/allure-results" ]; then
-        for file in /home/flomaster/warehouse-master/ui-tests/target/allure-results/*; do
-          [ -f "$file" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$file"
-        done
+        cd /home/flomaster/warehouse-master/ui-tests/target
+        tar -czf /tmp/allure-results.tar.gz allure-results/
+        curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@/tmp/allure-results.tar.gz"
+        rm -f /tmp/allure-results.tar.gz
       fi
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID" || true
+    - sleep 5  # Дождаться обработки архива
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 PRODUCTION ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5252/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
   tags:
     - shell
