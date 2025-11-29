@@ -4,6 +4,7 @@ import com.warehouse.model.Product;
 import com.warehouse.repository.ProductRepository;
 import io.micrometer.core.instrument.Counter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,14 +21,14 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final Counter productsCreatedCounter;
     private final Counter productsDeletedCounter;
-    private final AuditService auditService;
-    private final StockNotificationService stockNotificationService;
+    private final AuditService auditService;  // nullable если Kafka недоступна
+    private final StockNotificationService stockNotificationService;  // nullable если Kafka недоступна
 
     public ProductService(ProductRepository productRepository,
                           @Qualifier("productsCreatedCounter") Counter productsCreatedCounter,
                           @Qualifier("productsDeletedCounter") Counter productsDeletedCounter,
-                          AuditService auditService,
-                          StockNotificationService stockNotificationService) {
+                          @Autowired(required = false) AuditService auditService,
+                          @Autowired(required = false) StockNotificationService stockNotificationService) {
         this.productRepository = productRepository;
         this.productsCreatedCounter = productsCreatedCounter;
         this.productsDeletedCounter = productsDeletedCounter;
@@ -46,10 +47,14 @@ public class ProductService {
         productsCreatedCounter.increment();
         log.info("Product created, cache evicted: {}", saved.getName());
 
-        // Kafka: audit log
-        auditService.logProductCreate(saved.getId(), saved.getName(), getCurrentUsername());
-        // Kafka: check stock notification
-        stockNotificationService.checkAndNotify(saved);
+        // Kafka: audit log (only if Kafka available)
+        if (auditService != null) {
+            auditService.logProductCreate(saved.getId(), saved.getName(), getCurrentUsername());
+        }
+        // Kafka: check stock notification (only if Kafka available)
+        if (stockNotificationService != null) {
+            stockNotificationService.checkAndNotify(saved);
+        }
 
         return saved;
     }
@@ -84,10 +89,14 @@ public class ProductService {
         Product updated = productRepository.save(existing);
         log.info("Product updated, cache evicted: {}", updated.getName());
 
-        // Kafka: audit log
-        auditService.logProductUpdate(updated.getId(), updated.getName(), getCurrentUsername());
-        // Kafka: check stock notification
-        stockNotificationService.checkAndNotify(updated);
+        // Kafka: audit log (only if Kafka available)
+        if (auditService != null) {
+            auditService.logProductUpdate(updated.getId(), updated.getName(), getCurrentUsername());
+        }
+        // Kafka: check stock notification (only if Kafka available)
+        if (stockNotificationService != null) {
+            stockNotificationService.checkAndNotify(updated);
+        }
 
         return updated;
     }
@@ -98,7 +107,9 @@ public class ProductService {
         productsDeletedCounter.increment();
         log.info("Product deleted, cache evicted: id={}", id);
 
-        // Kafka: audit log
-        auditService.logProductDelete(id, getCurrentUsername());
+        // Kafka: audit log (only if Kafka available)
+        if (auditService != null) {
+            auditService.logProductDelete(id, getCurrentUsername());
+        }
     }
 }

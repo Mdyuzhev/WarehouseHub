@@ -3,9 +3,10 @@ package com.warehouse.service;
 import com.warehouse.config.KafkaConfig;
 import com.warehouse.dto.StockNotification;
 import com.warehouse.model.Product;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -15,13 +16,20 @@ import java.util.UUID;
 
 /**
  * Stock Notification Service - sends low stock alerts to Kafka.
+ * Опциональный - работает только если Kafka доступна.
  */
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(KafkaTemplate.class)
 @Slf4j
 public class StockNotificationService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Autowired
+    public StockNotificationService(KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+        log.info("StockNotificationService initialized with Kafka");
+    }
 
     @Value("${stock.low-threshold:10}")
     private int lowStockThreshold;

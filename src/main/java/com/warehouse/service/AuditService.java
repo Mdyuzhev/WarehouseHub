@@ -2,8 +2,9 @@ package com.warehouse.service;
 
 import com.warehouse.config.KafkaConfig;
 import com.warehouse.dto.AuditEvent;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -13,13 +14,20 @@ import java.util.UUID;
 
 /**
  * Audit Service - sends all CRUD operations to Kafka audit topic.
+ * Опциональный - работает только если Kafka доступна.
  */
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(KafkaTemplate.class)
 @Slf4j
 public class AuditService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Autowired
+    public AuditService(KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+        log.info("AuditService initialized with Kafka");
+    }
 
     @Async
     public void logProductCreate(Long productId, String productName, String username) {
