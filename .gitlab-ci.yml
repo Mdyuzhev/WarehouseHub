@@ -198,8 +198,8 @@ run-e2e-tests:
     # Очистка предыдущих результатов
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    # Загрузка всех результатов (json, png, html, txt)
-    - cd /home/flomaster/warehouse-api/target/allure-results 2>/dev/null && find . -maxdepth 1 -type f -exec curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@{}" \; || true
+    # Загрузка результатов в Allure
+    - bash -c 'cd /home/flomaster/warehouse-api/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
     - sleep 2
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
@@ -243,10 +243,10 @@ run-ui-tests-staging:
         -Dbrowser=chrome \
         -Dbrowser.size=1920x1080 \
         --batch-mode || true
-    # Загрузка всех результатов в Allure (json, png, html, txt)
+    # Загрузка результатов в Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && find . -maxdepth 1 -type f -exec curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@{}" \; || true
+    - bash -c 'cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
     - sleep 2
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
@@ -293,10 +293,10 @@ run-ui-tests-prod:
         -Dbrowser=chrome \
         -Dbrowser.size=1920x1080 \
         --batch-mode || true
-    # Загрузка всех результатов в Allure (json, png, html, txt)
+    # Загрузка результатов в Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && find . -maxdepth 1 -type f -exec curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@{}" \; || true
+    - bash -c 'cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
     - sleep 2
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
