@@ -28,7 +28,8 @@ variables:
   # Yandex Cloud Registry
   YC_REGISTRY: "cr.yandex/crpf5fukf1ili7kudopb"
 
-  # K8s
+  # K8s - используем kubeconfig flomaster'а
+  KUBECONFIG: "/home/flomaster/.kube/config"
   K8S_NAMESPACE_APP: "warehouse"
   K8S_NAMESPACE_LOADTEST: "loadtest"
   K8S_NAMESPACE_NOTIFICATIONS: "notifications"
@@ -190,6 +191,7 @@ run-e2e-tests:
   script:
     - echo "🧪 Running E2E tests..."
     - cd /home/flomaster/warehouse-api
+    - rm -rf target/ || true
     - LD_PRELOAD= bash ./mvnw test --batch-mode -Dtest="*E2ETest" -Dspring.profiles.active=test
     - echo "📊 Uploading to Allure..."
     - curl -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d '{"id":"warehouse-api"}' || true
