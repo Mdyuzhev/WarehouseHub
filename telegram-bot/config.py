@@ -79,8 +79,9 @@ ALLURE_SERVER_URL = os.getenv("ALLURE_SERVER_URL", "http://192.168.1.74:5050")
 CLAUDE_PROXY_URL = os.getenv("CLAUDE_PROXY_URL", "http://192.168.1.74:8765")
 
 # =============================================================================
-# Passwords (для авторизации НТ и Claude)
+# Passwords (для авторизации деплоя, НТ и Claude)
 # =============================================================================
+DEPLOY_PASSWORD = os.getenv("DEPLOY_PASSWORD", "Misha2021@1@")
 LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD", "Misha2021@1@")
 LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")
 

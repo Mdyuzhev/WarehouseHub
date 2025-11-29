@@ -17,6 +17,9 @@ from .commands import (
 from .deploy import (
     handle_deploy_menu,
     handle_deploy_command,
+    request_deploy_password,
+    handle_deploy_password_input,
+    is_pending_deploy_password,
 )
 
 from .testing import (
@@ -57,6 +60,9 @@ __all__ = [
     # Deploy
     "handle_deploy_menu",
     "handle_deploy_command",
+    "request_deploy_password",
+    "handle_deploy_password_input",
+    "is_pending_deploy_password",
     # Testing
     "handle_e2e_menu",
     "handle_e2e_run",

@@ -29,7 +29,8 @@ from bot.handlers import (
     handle_start, handle_help, handle_menu, handle_health, handle_joke,
     handle_metrics, handle_pods,
     # Deploy
-    handle_deploy_menu, handle_deploy_command,
+    handle_deploy_menu, request_deploy_password, handle_deploy_password_input,
+    is_pending_deploy_password,
     # Testing
     handle_e2e_run, handle_e2e_report, handle_load_menu, handle_load_target,
     handle_load_users, handle_load_duration, request_password,
@@ -112,6 +113,10 @@ async def process_command(chat_id: int, text: str):
     """Главный роутер команд."""
 
     # Проверяем ожидание ввода
+    if is_pending_deploy_password(chat_id):
+        await handle_deploy_password_input(chat_id, text)
+        return
+
     if is_pending_password(chat_id):
         await handle_password_input(chat_id, text)
         return
@@ -154,21 +159,21 @@ async def process_command(chat_id: int, text: str):
     elif text == "/joke":
         await handle_joke(chat_id)
 
-    # Deploy команды
+    # Deploy команды (требуют пароль)
     elif text == "/deploy":
         await handle_deploy_menu(chat_id)
     elif text == "/deploy_api_staging":
-        await handle_deploy_command(chat_id, "deploy_api_staging", "API", "staging")
+        await request_deploy_password(chat_id, "deploy_api_staging", "API", "staging")
     elif text == "/deploy_frontend_staging":
-        await handle_deploy_command(chat_id, "deploy_frontend_staging", "Frontend", "staging")
+        await request_deploy_password(chat_id, "deploy_frontend_staging", "Frontend", "staging")
     elif text == "/deploy_all_staging":
-        await handle_deploy_command(chat_id, "deploy_all_staging", "API + Frontend", "staging")
+        await request_deploy_password(chat_id, "deploy_all_staging", "API + Frontend", "staging")
     elif text == "/deploy_api_prod":
-        await handle_deploy_command(chat_id, "deploy_api_prod", "API", "production")
+        await request_deploy_password(chat_id, "deploy_api_prod", "API", "prod")
     elif text == "/deploy_frontend_prod":
-        await handle_deploy_command(chat_id, "deploy_frontend_prod", "Frontend", "production")
+        await request_deploy_password(chat_id, "deploy_frontend_prod", "Frontend", "prod")
     elif text == "/deploy_all_prod":
-        await handle_deploy_command(chat_id, "deploy_all_prod", "API + Frontend", "production")
+        await request_deploy_password(chat_id, "deploy_all_prod", "API + Frontend", "prod")
 
     # Test команды
     elif text == "/e2e":
@@ -203,21 +208,21 @@ async def process_callback(callback_query: dict):
     elif data == "joke":
         await handle_joke(chat_id)
 
-    # Deploy
+    # Deploy (требуют пароль)
     elif data == "deploy_menu":
         await handle_deploy_menu(chat_id)
     elif data == "deploy_api_staging":
-        await handle_deploy_command(chat_id, "deploy_api_staging", "API", "staging")
+        await request_deploy_password(chat_id, "deploy_api_staging", "API", "staging")
     elif data == "deploy_frontend_staging":
-        await handle_deploy_command(chat_id, "deploy_frontend_staging", "Frontend", "staging")
+        await request_deploy_password(chat_id, "deploy_frontend_staging", "Frontend", "staging")
     elif data == "deploy_all_staging":
-        await handle_deploy_command(chat_id, "deploy_all_staging", "API + Frontend", "staging")
+        await request_deploy_password(chat_id, "deploy_all_staging", "API + Frontend", "staging")
     elif data == "deploy_api_prod":
-        await handle_deploy_command(chat_id, "deploy_api_prod", "API", "production")
+        await request_deploy_password(chat_id, "deploy_api_prod", "API", "prod")
     elif data == "deploy_frontend_prod":
-        await handle_deploy_command(chat_id, "deploy_frontend_prod", "Frontend", "production")
+        await request_deploy_password(chat_id, "deploy_frontend_prod", "Frontend", "prod")
     elif data == "deploy_all_prod":
-        await handle_deploy_command(chat_id, "deploy_all_prod", "API + Frontend", "production")
+        await request_deploy_password(chat_id, "deploy_all_prod", "API + Frontend", "prod")
 
     # E2E
     elif data == "e2e_run":

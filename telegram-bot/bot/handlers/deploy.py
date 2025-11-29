@@ -4,11 +4,16 @@
 """
 
 import asyncio
-from bot.telegram import send_message_with_reply_keyboard, send_message_with_inline_keyboard
+from bot.telegram import send_message_with_reply_keyboard, send_message_with_inline_keyboard, send_message
 from bot.keyboards import get_reply_keyboard, get_deploy_menu_keyboard
 from bot.messages import get_random_joke
 from services import trigger_gitlab_job, get_job_status
-from config import GITLAB_JOBS
+from config import GITLAB_JOBS, DEPLOY_PASSWORD
+
+# =============================================================================
+# State - ожидание пароля для деплоя
+# =============================================================================
+pending_deploy_auth = {}
 
 
 async def handle_deploy_menu(chat_id: int):
@@ -21,8 +26,86 @@ async def handle_deploy_menu(chat_id: int):
     await send_message_with_inline_keyboard(msg.strip(), get_deploy_menu_keyboard(), chat_id=chat_id)
 
 
+async def request_deploy_password(chat_id: int, job_key: str, component: str, env: str):
+    """Запрашивает пароль для деплоя."""
+    global pending_deploy_auth
+
+    pending_deploy_auth[chat_id] = {
+        "job_key": job_key,
+        "component": component,
+        "env": env
+    }
+
+    env_emoji = "🧪" if env == "staging" else "🚀"
+    env_warning = "\n⚠️ <b>ВНИМАНИЕ!</b> Это боевой сервер!" if env == "prod" else ""
+
+    msg = f"""
+<b>🔐 Требуется авторизация</b>
+
+<b>Деплой:</b> {component}
+<b>Окружение:</b> {env_emoji} {env.upper()}{env_warning}
+
+<b>Введи пароль для деплоя:</b>
+
+<i>⏱ У тебя 60 секунд...</i>
+    """
+    await send_message(msg.strip(), chat_id=chat_id)
+
+    # Автоматически очищаем ожидание через 60 секунд
+    asyncio.create_task(clear_pending_deploy_auth(chat_id, 60))
+
+
+async def clear_pending_deploy_auth(chat_id: int, seconds: int):
+    """Очищает ожидание пароля деплоя."""
+    await asyncio.sleep(seconds)
+    if chat_id in pending_deploy_auth:
+        del pending_deploy_auth[chat_id]
+        await send_message_with_reply_keyboard(
+            "⏱ <b>Время вышло!</b>\n\nЗапрос на деплой отменён.",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+
+
+async def handle_deploy_password_input(chat_id: int, password: str):
+    """Обрабатывает ввод пароля для деплоя."""
+    global pending_deploy_auth
+
+    if chat_id not in pending_deploy_auth:
+        return False
+
+    auth_data = pending_deploy_auth[chat_id]
+
+    if password == DEPLOY_PASSWORD:
+        del pending_deploy_auth[chat_id]
+        await send_message(
+            "✅ <b>Пароль принят!</b>\n\n<i>Запускаю деплой...</i>",
+            chat_id=chat_id
+        )
+        await handle_deploy_command(
+            chat_id,
+            auth_data["job_key"],
+            auth_data["component"],
+            auth_data["env"]
+        )
+        return True
+    else:
+        del pending_deploy_auth[chat_id]
+        await send_message_with_reply_keyboard(
+            "❌ <b>Неверный пароль!</b>\n\n<i>Деплой отменён.</i>\n\n🔒 Если забыл пароль - спроси у админа 😏",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+        return True
+
+
+def is_pending_deploy_password(chat_id: int) -> bool:
+    """Проверяет, ожидается ли пароль деплоя от пользователя."""
+    return chat_id in pending_deploy_auth
+
+
 async def handle_deploy_command(chat_id: int, job_key: str, component: str, env: str):
-    """Запускает деплой через GitLab CI."""
+    """Запускает деплой через GitLab CI (после авторизации)."""
     job_config = GITLAB_JOBS.get(job_key)
     if not job_config:
         await send_message_with_reply_keyboard(
