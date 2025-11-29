@@ -1,0 +1,13 @@
+{% for op in operations %}
+<div class="log-line {% if op.status == 'success' %}success{% elif op.status == 'error' %}error{% elif op.status == 'running' %}warning{% endif %}">
+    <span class="time">[{{ op.started_at }}]</span>
+    {{ op.operation }}:
+    {% if op.status == 'success' %}✅ Done!
+    {% elif op.status == 'error' %}❌ Failed
+    {% elif op.status == 'running' %}⏳ Running...
+    {% else %}{{ op.status }}{% endif %}
+</div>
+{% endfor %}
+<div class="log-line">
+    <span class="cursor"></span>
+</div>

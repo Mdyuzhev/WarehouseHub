@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Warehouse Orchestrator</title>
+    <link rel="stylesheet" href="/static/css/8bit.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <div class="crt-screen">
+        <!-- ═══════════════ HEADER ═══════════════ -->
+        <header class="header">
+            <h1 class="glow">░░░ WAREHOUSE ORCHESTRATOR ░░░</h1>
+            <p class="subtitle">[ 8-BIT CONTROL PANEL v1.0 ]</p>
+            <div class="system-status">
+                <span id="system-indicator" class="status-ok">♥♥♥ SYSTEM OK ♥♥♥</span>
+            </div>
+        </header>
+
+        <!-- ═══════════════ SERVICE CARDS ═══════════════ -->
+        <section class="services-grid" id="services-grid"
+                 hx-get="/partials/services"
+                 hx-trigger="every 30s"
+                 hx-swap="innerHTML">
+            {% for key, service in services.items() %}
+            <div class="service-card" data-service="{{ key }}">
+                <span class="icon">{{ service.icon }}</span>
+                <span class="name">{{ service.name | upper }}</span>
+                <span class="status-badge {{ service.status }}">
+                    {% if service.status == 'live' %}[LIVE]
+                    {% elif service.status == 'down' %}[DOWN]
+                    {% elif service.status == 'loading' %}[...]
+                    {% else %}[???]{% endif %}
+                </span>
+                <div class="health-bar">
+                    <div class="fill {% if service.status == 'down' %}critical{% elif service.status != 'live' %}warning{% endif %}"
+                         style="width: {% if service.status == 'live' %}100{% elif service.status == 'down' %}0{% else %}50{% endif %}%"></div>
+                </div>
+                <button class="btn-8bit"
+                        style="margin-top: 10px; font-size: 8px; padding: 8px 12px;"
+                        onclick="restartService('{{ key }}')">
+                    RESTART
+                </button>
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- ═══════════════ QUICK ACTIONS ═══════════════ -->
+        <section class="actions-panel">
+            <div class="title">══════════ SELECT ACTION ══════════</div>
+            <div class="button-grid">
+                <button class="btn-8bit deploy" onclick="runAction('deploy', 'all')">
+                    🚀 DEPLOY ALL
+                </button>
+                <button class="btn-8bit deploy" onclick="runAction('deploy', 'api')">
+                    🔧 DEPLOY API
+                </button>
+                <button class="btn-8bit deploy" onclick="runAction('deploy', 'frontend')">
+                    🎨 DEPLOY FRONT
+                </button>
+                <button class="btn-8bit" onclick="runAction('tests', 'e2e')">
+                    🧪 E2E TESTS
+                </button>
+                <button class="btn-8bit" onclick="runAction('tests', 'load')">
+                    📊 LOAD TESTS
+                </button>
+                <button class="btn-8bit special" onclick="refreshStatus()">
+                    🔄 REFRESH
+                </button>
+            </div>
+        </section>
+
+        <!-- ═══════════════ TERMINAL OUTPUT ═══════════════ -->
+        <section class="terminal-panel">
+            <div class="terminal-header">
+                <span>▶ TERMINAL OUTPUT</span>
+                <button onclick="clearTerminal()" style="background: none; border: none; color: inherit; cursor: pointer; font-family: inherit;">
+                    [CLEAR]
+                </button>
+            </div>
+            <div class="terminal-body" id="terminal-output">
+                <div class="log-line info">
+                    <span class="time">[{{ current_time }}]</span>
+                    System initialized. Ready for commands!
+                </div>
+                <div class="log-line">
+                    <span class="time">[{{ current_time }}]</span>
+                    Press any button to start... 🎮
+                </div>
+                <div class="log-line">
+                    <span class="cursor"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════ AGENT CHAT ═══════════════ -->
+        <section class="agent-panel">
+            <div class="agent-header">
+                <span>🤖 AGENT TERMINAL - Talk to Claude</span>
+            </div>
+            <div class="agent-chat" id="agent-chat">
+                <div class="chat-message agent">
+                    <div class="author">🤖 AGENT</div>
+                    <div class="text">
+                        Привет! Я твой помощник по управлению Warehouse.<br>
+                        Спроси меня что угодно - разберём логи, найдём баги, обсудим архитектуру!<br>
+                        <br>
+                        💡 Попробуй: "проанализируй логи api" или "почему может падать redis?"
+                    </div>
+                </div>
+            </div>
+            <div class="agent-input">
+                <input type="text"
+                       id="agent-input-field"
+                       placeholder="Введи команду для агента..."
+                       onkeypress="if(event.key === 'Enter') sendAgentMessage()">
+                <button onclick="sendAgentMessage()">SEND</button>
+            </div>
+        </section>
+
+        <!-- ═══════════════ FOOTER ═══════════════ -->
+        <footer class="footer">
+            <span class="uptime" id="uptime">UPTIME: 00:00:00</span>
+            <span class="version">v1.0.0 | Made with 💚 and pixels</span>
+        </footer>
+    </div>
+
+    <!-- ═══════════════ MODAL ═══════════════ -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <div class="title" id="modal-title">CONFIRM ACTION</div>
+            <div class="content" id="modal-content">
+                Are you sure?
+            </div>
+            <div class="buttons">
+                <button class="btn-8bit" onclick="closeModal()">CANCEL</button>
+                <button class="btn-8bit deploy" id="modal-confirm">CONFIRM</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

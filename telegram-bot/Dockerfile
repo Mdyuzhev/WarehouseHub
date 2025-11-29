@@ -7,7 +7,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем приложение
+COPY config.py .
 COPY app.py .
+COPY bot/ ./bot/
+COPY services/ ./services/
 
 # Порт
 EXPOSE 8000

@@ -1,0 +1,14 @@
+# 🎮 Warehouse Orchestrator UI - 8-bit edition!
+# Зависимости для самой эпичной консоли управления складом
+
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+jinja2==3.1.3
+python-multipart==0.0.6
+websockets==12.0
+aiosqlite==0.19.0
+httpx==0.26.0
+anthropic==0.43.0
+
+# Потому что мы профессионалы (ну почти)
+python-dotenv==1.0.0

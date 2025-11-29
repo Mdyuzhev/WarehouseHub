@@ -1,0 +1,21 @@
+{% for key, service in services.items() %}
+<div class="service-card" data-service="{{ key }}">
+    <span class="icon">{{ service.icon }}</span>
+    <span class="name">{{ service.name | upper }}</span>
+    <span class="status-badge {{ service.status }}">
+        {% if service.status == 'live' %}[LIVE]
+        {% elif service.status == 'down' %}[DOWN]
+        {% elif service.status == 'loading' %}[...]
+        {% else %}[???]{% endif %}
+    </span>
+    <div class="health-bar">
+        <div class="fill {% if service.status == 'down' %}critical{% elif service.status != 'live' %}warning{% endif %}"
+             style="width: {% if service.status == 'live' %}100{% elif service.status == 'down' %}0{% else %}50{% endif %}%"></div>
+    </div>
+    <button class="btn-8bit"
+            style="margin-top: 10px; font-size: 8px; padding: 8px 12px;"
+            onclick="restartService('{{ key }}')">
+        RESTART
+    </button>
+</div>
+{% endfor %}

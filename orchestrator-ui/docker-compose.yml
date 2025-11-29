@@ -1,0 +1,36 @@
+# 🎮 Docker Compose для Warehouse Orchestrator UI
+# Запуск: docker-compose up -d
+
+version: '3.8'
+
+services:
+  orchestrator-ui:
+    build: .
+    container_name: warehouse-orchestrator-ui
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLAUDE_PROXY_URL=http://192.168.1.74:8765
+    volumes:
+      # Для доступа к скриптам
+      - ../scripts:/app/scripts:ro
+      # Для kubectl
+      - ~/.kube:/root/.kube:ro
+      # Персистентность данных
+      - orchestrator-data:/app/data
+    restart: unless-stopped
+    networks:
+      - warehouse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  orchestrator-data:
+
+networks:
+  warehouse-net:
+    driver: bridge

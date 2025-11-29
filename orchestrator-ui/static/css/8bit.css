@@ -1,0 +1,588 @@
+/*
+ * 🎮 WAREHOUSE ORCHESTRATOR - 8-BIT EDITION
+ * Стиль: Ретро-терминал, будто ты в 80-х управляешь складом
+ * (только склад в Kubernetes, а не с бумажками)
+ */
+
+/* Подключаем пиксельный шрифт */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+:root {
+    /* Палитра в стиле старого монитора */
+    --bg-dark: #0a0a0a;
+    --bg-terminal: #0d1117;
+    --green-bright: #00ff41;
+    --green-dim: #00aa2a;
+    --green-dark: #004d1a;
+    --amber: #ffb000;
+    --red-alert: #ff0040;
+    --cyan: #00ffff;
+    --magenta: #ff00ff;
+    --white: #ffffff;
+    --gray: #666666;
+
+    /* CRT эффект */
+    --scanline-color: rgba(0, 255, 65, 0.03);
+    --glow-color: rgba(0, 255, 65, 0.5);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    background-color: var(--bg-dark);
+    color: var(--green-bright);
+    min-height: 100vh;
+    overflow-x: hidden;
+
+    /* CRT scanlines эффект */
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            var(--scanline-color),
+            var(--scanline-color) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+}
+
+/* Основной контейнер - "экран монитора" */
+.crt-screen {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+}
+
+/* Эффект свечения текста */
+.glow {
+    text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER - Заголовок в ASCII стиле
+   ═══════════════════════════════════════════════════════════ */
+.header {
+    border: 3px double var(--green-bright);
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+}
+
+.header h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    letter-spacing: 2px;
+    animation: flicker 3s infinite;
+}
+
+.header .subtitle {
+    font-size: 14px;
+    color: var(--green-dim);
+    margin-top: 10px;
+}
+
+.system-status {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+}
+
+.status-ok { color: var(--green-bright); }
+.status-warn { color: var(--amber); }
+.status-error { color: var(--red-alert); animation: blink 0.5s infinite; }
+
+/* ═══════════════════════════════════════════════════════════
+   SERVICE CARDS - Карточки сервисов (как в игре)
+   ═══════════════════════════════════════════════════════════ */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.service-card {
+    border: 2px solid var(--green-dim);
+    padding: 15px;
+    text-align: center;
+    background: var(--bg-terminal);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card:hover {
+    border-color: var(--green-bright);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+
+.service-card .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.service-card .name {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    margin-bottom: 8px;
+}
+
+.service-card .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 12px;
+    border: 1px solid;
+}
+
+.status-badge.live {
+    color: var(--green-bright);
+    border-color: var(--green-bright);
+    animation: pulse 2s infinite;
+}
+
+.status-badge.down {
+    color: var(--red-alert);
+    border-color: var(--red-alert);
+    animation: blink 0.5s infinite;
+}
+
+.status-badge.loading {
+    color: var(--amber);
+    border-color: var(--amber);
+}
+
+/* Пиксельный health bar */
+.health-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-dark);
+    margin-top: 10px;
+    border: 1px solid var(--green-dim);
+}
+
+.health-bar .fill {
+    height: 100%;
+    background: var(--green-bright);
+    transition: width 0.3s;
+}
+
+.health-bar .fill.warning { background: var(--amber); }
+.health-bar .fill.critical { background: var(--red-alert); }
+
+/* ═══════════════════════════════════════════════════════════
+   ACTION BUTTONS - Кнопки как в NES играх
+   ═══════════════════════════════════════════════════════════ */
+.actions-panel {
+    border: 2px solid var(--green-dim);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.actions-panel .title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    margin-bottom: 15px;
+    text-align: center;
+    color: var(--cyan);
+}
+
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-8bit {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    padding: 12px 20px;
+    background: var(--bg-dark);
+    color: var(--green-bright);
+    border: 3px solid var(--green-bright);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.1s;
+    text-transform: uppercase;
+}
+
+.btn-8bit:hover {
+    background: var(--green-dark);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+
+.btn-8bit:active {
+    transform: scale(0.95);
+}
+
+/* Эффект нажатия - как в игре */
+.btn-8bit::before {
+    content: '►';
+    margin-right: 8px;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.btn-8bit:hover::before {
+    opacity: 1;
+}
+
+.btn-8bit.loading {
+    color: var(--amber);
+    border-color: var(--amber);
+    pointer-events: none;
+}
+
+.btn-8bit.loading::after {
+    content: '...';
+    animation: dots 1s infinite;
+}
+
+/* Разные цвета кнопок */
+.btn-8bit.deploy { border-color: var(--cyan); color: var(--cyan); }
+.btn-8bit.deploy:hover { background: rgba(0, 255, 255, 0.1); }
+
+.btn-8bit.danger { border-color: var(--red-alert); color: var(--red-alert); }
+.btn-8bit.danger:hover { background: rgba(255, 0, 64, 0.1); }
+
+.btn-8bit.special { border-color: var(--magenta); color: var(--magenta); }
+.btn-8bit.special:hover { background: rgba(255, 0, 255, 0.1); }
+
+/* ═══════════════════════════════════════════════════════════
+   TERMINAL OUTPUT - Окно вывода как в DOS
+   ═══════════════════════════════════════════════════════════ */
+.terminal-panel {
+    border: 2px solid var(--green-dim);
+    margin-bottom: 20px;
+}
+
+.terminal-header {
+    background: var(--green-dim);
+    color: var(--bg-dark);
+    padding: 5px 15px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terminal-body {
+    background: var(--bg-terminal);
+    padding: 15px;
+    height: 200px;
+    overflow-y: auto;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.terminal-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+    background: var(--green-dim);
+    border: 2px solid var(--bg-dark);
+}
+
+.log-line {
+    margin-bottom: 5px;
+}
+
+.log-line .time {
+    color: var(--gray);
+}
+
+.log-line.success { color: var(--green-bright); }
+.log-line.error { color: var(--red-alert); }
+.log-line.warning { color: var(--amber); }
+.log-line.info { color: var(--cyan); }
+
+/* Мигающий курсор */
+.cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: var(--green-bright);
+    animation: blink 1s infinite;
+    vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AGENT CHAT - Чат с агентом в стиле RPG диалога
+   ═══════════════════════════════════════════════════════════ */
+.agent-panel {
+    border: 2px solid var(--magenta);
+}
+
+.agent-header {
+    background: var(--magenta);
+    color: var(--bg-dark);
+    padding: 5px 15px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+}
+
+.agent-chat {
+    background: var(--bg-terminal);
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-left: 3px solid;
+}
+
+.chat-message.user {
+    border-color: var(--cyan);
+}
+
+.chat-message.user .author {
+    color: var(--cyan);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.chat-message.agent {
+    border-color: var(--magenta);
+}
+
+.chat-message.agent .author {
+    color: var(--magenta);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    margin-bottom: 5px;
+}
+
+.chat-message .text {
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Поле ввода */
+.agent-input {
+    display: flex;
+    border-top: 2px solid var(--magenta);
+}
+
+.agent-input input {
+    flex: 1;
+    background: var(--bg-dark);
+    border: none;
+    padding: 15px;
+    color: var(--green-bright);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    outline: none;
+}
+
+.agent-input input::placeholder {
+    color: var(--gray);
+}
+
+.agent-input button {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    padding: 15px 25px;
+    background: var(--magenta);
+    color: var(--bg-dark);
+    border: none;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.agent-input button:hover {
+    background: var(--white);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESS BAR - Прогресс бар из блоков
+   ═══════════════════════════════════════════════════════════ */
+.progress-8bit {
+    display: flex;
+    gap: 3px;
+    margin: 10px 0;
+}
+
+.progress-8bit .block {
+    width: 20px;
+    height: 20px;
+    background: var(--bg-dark);
+    border: 1px solid var(--green-dim);
+}
+
+.progress-8bit .block.filled {
+    background: var(--green-bright);
+    box-shadow: 0 0 5px var(--glow-color);
+}
+
+.progress-8bit .block.active {
+    animation: pulse 0.5s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTER - Статус бар внизу
+   ═══════════════════════════════════════════════════════════ */
+.footer {
+    border: 2px solid var(--green-dim);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+.footer .uptime {
+    color: var(--green-dim);
+}
+
+.footer .version {
+    color: var(--gray);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATIONS - Всякие эффекты
+   ═══════════════════════════════════════════════════════════ */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes flicker {
+    0%, 97%, 100% { opacity: 1; }
+    98% { opacity: 0.8; }
+    99% { opacity: 0.9; }
+}
+
+@keyframes dots {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+/* Глитч эффект для ошибок */
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+.glitch {
+    animation: glitch 0.3s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE - Для мобилок (хотя кто смотрит 8-bit на телефоне?)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 12px;
+    }
+
+    .system-status {
+        display: none;
+    }
+
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .btn-8bit {
+        font-size: 8px;
+        padding: 10px 15px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL - Модальные окна в стиле диалога из RPG
+   ═══════════════════════════════════════════════════════════ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    display: none;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-box {
+    background: var(--bg-terminal);
+    border: 4px double var(--green-bright);
+    padding: 20px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+}
+
+.modal-box .title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    margin-bottom: 15px;
+    color: var(--cyan);
+    text-align: center;
+}
+
+.modal-box .content {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.modal-box .buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EASTER EGG - Konami code активирует что-то особенное 🎮
+   ═══════════════════════════════════════════════════════════ */
+.rainbow-mode {
+    animation: rainbow 2s linear infinite;
+}
+
+@keyframes rainbow {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
