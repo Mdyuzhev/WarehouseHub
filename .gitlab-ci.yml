@@ -222,7 +222,7 @@ run-ui-tests-staging:
     PROJECT_ID: "warehouse-ui-staging"
   script:
     - echo "🎭 Running UI Tests on STAGING..."
-    - echo "🌐 Target: $BASE_URL"
+    - echo "Target URL - $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
     - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
@@ -261,7 +261,7 @@ run-ui-tests-prod:
     PROJECT_ID: "warehouse-ui-prod"
   script:
     - echo "🎭 Running UI Tests on PRODUCTION..."
-    - echo "🌐 Target: $BASE_URL"
+    - echo "Target URL - $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
     - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
