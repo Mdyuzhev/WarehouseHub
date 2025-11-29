@@ -50,9 +50,12 @@
       "project_id": "0-1",
       "project_short": "WH",
       "auth": {
+        "method": "Basic Auth (-u user:password)",
         "user": "admin",
-        "password": "Misha2021@1@"
-      }
+        "password": "Misha2021@1@",
+        "example": "curl -s -u 'admin:Misha2021@1@' http://192.168.1.74:8088/api/issues/WH-112"
+      },
+      "api_notes": "НЕ использовать /api/users/login или OAuth - они не работают. Только Basic Auth!"
     },
     "session_start": {
       "actions": [
