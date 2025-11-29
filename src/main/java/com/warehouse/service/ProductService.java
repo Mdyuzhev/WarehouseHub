@@ -33,6 +33,27 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    public List<Product> getProductsByCategory(String category) {
+        return productRepository.findByCategory(category);
+    }
+
+    public Product getProductById(Long id) {
+        return productRepository.findById(id).orElse(null);
+    }
+
+    public Product updateProduct(Long id, Product product) {
+        Product existing = productRepository.findById(id).orElse(null);
+        if (existing == null) {
+            return null;
+        }
+        existing.setName(product.getName());
+        existing.setQuantity(product.getQuantity());
+        existing.setPrice(product.getPrice());
+        existing.setDescription(product.getDescription());
+        existing.setCategory(product.getCategory());
+        return productRepository.save(existing);
+    }
+
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
         productsDeletedCounter.increment();
