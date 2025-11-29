@@ -222,7 +222,7 @@ run-load-tests:
     DURATION: "300"
   script:
     - echo "🔥 Starting Load Test..."
-    - echo "Target: $TARGET_HOST, Users: $USERS, Duration: ${DURATION}s"
+    - echo "Target $TARGET_HOST, Users $USERS, Duration $DURATION sec"
     - |
       # Запуск теста
       curl -X POST "$LOCUST_MASTER_URL/swarm" \
