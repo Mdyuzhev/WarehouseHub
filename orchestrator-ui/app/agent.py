@@ -52,15 +52,19 @@ class AgentService:
                 role = "user" if msg["role"] == "user" else "assistant"
                 messages.append({"role": role, "content": msg["content"]})
 
-            # Вызываем Claude через прокси напрямую
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            # Формируем задачу для прокси (он использует Claude CLI)
+            # Берём только последнее сообщение пользователя
+            last_user_msg = messages[-1]["content"] if messages else user_message
+
+            # Вызываем Claude через наш прокси /execute
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
-                    f"{self.proxy_url}/v1/messages",
+                    f"{self.proxy_url}/execute",
                     json={
-                        "model": "claude-sonnet-4-20250514",
-                        "max_tokens": 1024,
-                        "system": SYSTEM_PROMPT,
-                        "messages": messages
+                        "task": f"{SYSTEM_PROMPT}\n\nВопрос: {last_user_msg}",
+                        "cwd": "/home/flomaster/warehouse-master",
+                        "timeout": 120,
+                        "use_context": True
                     },
                     headers={"Content-Type": "application/json"}
                 )
@@ -70,11 +74,13 @@ class AgentService:
 
                 data = response.json()
 
-                # Извлекаем ответ
-                if "content" in data and len(data["content"]) > 0:
-                    assistant_message = data["content"][0].get("text", "")
+                # Извлекаем ответ из stdout
+                if data.get("success"):
+                    assistant_message = data.get("stdout", "").strip()
+                    if not assistant_message:
+                        assistant_message = "🤔 Агент подумал, но ничего не сказал..."
                 else:
-                    assistant_message = str(data)
+                    assistant_message = f"❌ Ошибка: {data.get('stderr', 'Unknown error')}"
 
             # Сохраняем ответ
             await add_message(session_id, "agent", assistant_message)
