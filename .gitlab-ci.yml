@@ -192,7 +192,8 @@ run-e2e-tests:
   script:
     - echo "🧪 Running API E2E tests..."
     - cd /home/flomaster/warehouse-api
-    - rm -rf target/ || true
+    # Удаляем target с sudo чтобы избежать Permission denied
+    - sudo rm -rf target/ || true
     - LD_PRELOAD= bash ./mvnw test --batch-mode -Dspring.profiles.active=test || true
     # Очистка предыдущих результатов
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
@@ -240,7 +241,7 @@ run-ui-tests-staging:
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
     # Запуск тестов
     - cd /home/flomaster/warehouse-master/ui-tests
-    - rm -rf target/ || true
+    - sudo rm -rf target/ || true
     - |
       /home/flomaster/warehouse-master/ui-tests/mvnw test \
         -Dbase.url=$BASE_URL \
@@ -295,7 +296,7 @@ run-ui-tests-prod:
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
     # Запуск тестов
     - cd /home/flomaster/warehouse-master/ui-tests
-    - rm -rf target/ || true
+    - sudo rm -rf target/ || true
     - |
       /home/flomaster/warehouse-master/ui-tests/mvnw test \
         -Dbase.url=$BASE_URL \
