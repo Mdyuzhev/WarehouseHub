@@ -250,3 +250,31 @@ deploy-telegram-bot:
   tags:
     - shell
   when: manual
+
+# =============================================================================
+# ORCHESTRATOR UI (8-bit console)
+# =============================================================================
+
+deploy-orchestrator-ui:
+  stage: deploy-staging
+  script:
+    - echo "🎮 Deploying Orchestrator UI..."
+    - cd orchestrator-ui
+    - docker-compose down || true
+    - docker-compose up -d --build
+    - sleep 5
+    - |
+      if curl -s http://localhost:8000/health | grep -q "ok"; then
+        echo "✅ Orchestrator UI deployed! 🕹️"
+        echo "🌐 URL: http://192.168.1.74:8000"
+      else
+        echo "❌ Health check failed!"
+        docker-compose logs
+        exit 1
+      fi
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: staging-ui
+    url: http://192.168.1.74:8000
