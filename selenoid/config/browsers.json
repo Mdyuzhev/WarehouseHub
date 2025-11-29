@@ -1,9 +1,9 @@
 {
   "chrome": {
-    "default": "131.0",
+    "default": "128.0",
     "versions": {
-      "131.0": {
-        "image": "selenoid/chrome:131.0",
+      "128.0": {
+        "image": "selenoid/chrome:128.0",
         "port": "4444",
         "path": "/",
         "tmpfs": {
@@ -11,8 +11,8 @@
         },
         "shmSize": 536870912
       },
-      "130.0": {
-        "image": "selenoid/chrome:130.0",
+      "127.0": {
+        "image": "selenoid/chrome:127.0",
         "port": "4444",
         "path": "/",
         "tmpfs": {
@@ -23,10 +23,10 @@
     }
   },
   "firefox": {
-    "default": "132.0",
+    "default": "125.0",
     "versions": {
-      "132.0": {
-        "image": "selenoid/firefox:132.0",
+      "125.0": {
+        "image": "selenoid/firefox:125.0",
         "port": "4444",
         "path": "/wd/hub",
         "tmpfs": {
