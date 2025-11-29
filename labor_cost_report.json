@@ -1,0 +1,3092 @@
+{
+  "meta": {
+    "project": "Warehouse (WH)",
+    "report_date": "2025-11-29 20:55",
+    "report_type": "Ревизия трудозатрат с экстраполяцией",
+    "period": {
+      "start": "2025-11-25",
+      "end": "2025-11-29",
+      "calendar_days": 5,
+      "work_days": 5
+    },
+    "executor": {
+      "type": "Human + AI Agent",
+      "human_count": 1,
+      "ai_model": "Claude (Anthropic)",
+      "work_mode": "Pair programming with AI"
+    }
+  },
+  "executive_summary": {
+    "total_issues": 101,
+    "completed_issues": 42,
+    "open_issues": 59,
+    "total_spent_hours_with_ai": 85.5,
+    "estimated_hours_without_ai": 394.0,
+    "average_coefficient": 4.61,
+    "time_saved_hours": 308.5,
+    "efficiency_multiplier": 4.6
+  },
+  "work_types_analysis": {
+    "CI/CD": {
+      "hours_with_ai": 14.0,
+      "hours_without_ai": 56.0,
+      "coefficient": 4.0,
+      "complexity": "medium",
+      "task_count": 9,
+      "tasks": [
+        {
+          "id": "WH-117",
+          "summary": "Разделение pipeline на staging и production",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-74",
+          "summary": "Selenide: Интеграция UI-тестов в .gitlab-ci.yml",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-50",
+          "summary": "Deploy Этап 1: Frontend (UI cleanup) → Prod",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-37",
+          "summary": "Миграция инфраструктуры в warehouse-master",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-30",
+          "summary": "CI/CD и автоматизация сборки",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-29",
+          "summary": "Добавить этап нагрузочного тестирования в CI/CD pipeline",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-20",
+          "summary": "Настроить CI/CD pipeline с автоматическим деплоем в K3s",
+          "hours": 4.0
+        },
+        {
+          "id": "WH-19",
+          "summary": "Создать K8s манифесты и выполнить деплой warehouse-api",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-17",
+          "summary": "Создать Dockerfile для warehouse-api",
+          "hours": 1.0
+        }
+      ],
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+    },
+    "Testing": {
+      "hours_with_ai": 18.0,
+      "hours_without_ai": 90.0,
+      "coefficient": 5.0,
+      "complexity": "medium-high",
+      "task_count": 7,
+      "tasks": [
+        {
+          "id": "WH-112",
+          "summary": "Настройка и стабилизация E2E и UI тестирования",
+          "hours": 3.0
+        },
+        {
+          "id": "WH-116",
+          "summary": "UI тесты с data-testid атрибутами",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-114",
+          "summary": "Настройка Selenoid для UI тестирования",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-102",
+          "summary": "Настройка UI тестирования: Selenoid + Selenide + Allure",
+          "hours": 4.0
+        },
+        {
+          "id": "WH-73",
+          "summary": "Selenide: Модуль ui-tests с Page Objects (Login, Products, RoleAccess)",
+          "hours": 3.0
+        },
+        {
+          "id": "WH-28",
+          "summary": "Настроить нагрузочное тестирование с Locust в K3s",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-27",
+          "summary": "Настроить E2E тесты с RestAssured и Allure отчётами",
+          "hours": 3.0
+        }
+      ],
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+    },
+    "DevOps": {
+      "hours_with_ai": 4.0,
+      "hours_without_ai": 16.0,
+      "coefficient": 4.0,
+      "complexity": "medium",
+      "task_count": 3,
+      "tasks": [
+        {
+          "id": "WH-115",
+          "summary": "Настройка Allure Report Server",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-26",
+          "summary": "Исправление отображения метрик продуктов в Grafana",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-25",
+          "summary": "Настроить Grafana дашборд для метрик Warehouse API",
+          "hours": 2.0
+        }
+      ],
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "reasoning": "Grafana дашборды, Prometheus, конфигурация"
+    },
+    "Infrastructure": {
+      "hours_with_ai": 15.0,
+      "hours_without_ai": 90.0,
+      "coefficient": 6.0,
+      "complexity": "high",
+      "task_count": 5,
+      "tasks": [
+        {
+          "id": "WH-72",
+          "summary": "Selenoid: K8s манифесты в warehouse namespace",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-68",
+          "summary": "Kafka KRaft: K8s манифесты (без Zookeeper)",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-66",
+          "summary": "Redis: K8s манифесты (deployment, service, configmap)",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-65",
+          "summary": "Инфраструктурные улучшения Warehouse: Redis, Kafka, Selenide, Monitoring",
+          "hours": 8.0
+        },
+        {
+          "id": "WH-12",
+          "summary": "Развернуть PostgreSQL в K3s для warehouse-api",
+          "hours": 3.0
+        }
+      ],
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+    },
+    "Backend": {
+      "hours_with_ai": 7.0,
+      "hours_without_ai": 35.0,
+      "coefficient": 5.0,
+      "complexity": "medium-high",
+      "task_count": 3,
+      "tasks": [
+        {
+          "id": "WH-71",
+          "summary": "Kafka: Интеграция в warehouse-api (audit-log, notifications)",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-67",
+          "summary": "Redis: Интеграция в warehouse-api (@Cacheable, Rate Limiting, JWT blacklist)",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-22",
+          "summary": "Добавить систему аутентификации и страницу логина",
+          "hours": 3.0
+        }
+      ],
+      "required_specialists": [
+        "Java/Spring Developer",
+        "Senior Backend Developer"
+      ],
+      "reasoning": "Интеграции с Redis/Kafka, Spring Security, отладка"
+    },
+    "Bugfix": {
+      "hours_with_ai": 2.0,
+      "hours_without_ai": 5.0,
+      "coefficient": 2.5,
+      "complexity": "low",
+      "task_count": 4,
+      "tasks": [
+        {
+          "id": "WH-64",
+          "summary": "[BugFix] Новый функционал не появился в проде",
+          "hours": 0.5
+        },
+        {
+          "id": "WH-63",
+          "summary": "[BugFix] Удалить тестовые данные с прода",
+          "hours": 0.5
+        },
+        {
+          "id": "WH-62",
+          "summary": "[BugFix] Медленные переходы между экранами",
+          "hours": 0.5
+        },
+        {
+          "id": "WH-61",
+          "summary": "[BugFix] Дублирующиеся элементы в header",
+          "hours": 0.5
+        }
+      ],
+      "required_specialists": [
+        "Full-stack Developer"
+      ],
+      "reasoning": "Простые исправления, минимум исследований"
+    },
+    "Frontend": {
+      "hours_with_ai": 12.5,
+      "hours_without_ai": 50.0,
+      "coefficient": 4.0,
+      "complexity": "medium",
+      "task_count": 5,
+      "tasks": [
+        {
+          "id": "WH-42",
+          "summary": "Улучшение UX приложения Warehouse",
+          "hours": 4.0
+        },
+        {
+          "id": "WH-49",
+          "summary": "Убрать служебную информацию с экранов",
+          "hours": 0.5
+        },
+        {
+          "id": "WH-48",
+          "summary": "Адаптировать экраны под браузер",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-46",
+          "summary": "Разделить экраны добавления товара и статистики",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-21",
+          "summary": "Создать Vue.js фронтенд и настроить Ingress",
+          "hours": 6.0
+        }
+      ],
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "reasoning": "Vue.js компоненты, верстка, состояние"
+    },
+    "Development": {
+      "hours_with_ai": 13.0,
+      "hours_without_ai": 52.0,
+      "coefficient": 4.0,
+      "complexity": "medium",
+      "task_count": 6,
+      "tasks": [
+        {
+          "id": "WH-36",
+          "summary": "Настройка GitLab Telegram бота с Claude интеграцией",
+          "hours": 3.0
+        },
+        {
+          "id": "WH-31",
+          "summary": "Интеграции с внешними системами",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-35",
+          "summary": "Telegram Bot - Reply keyboard, защита паролем, realtime статистика",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-34",
+          "summary": "Telegram Bot v3.0 - Menu, Load Testing, Humor",
+          "hours": 2.0
+        },
+        {
+          "id": "WH-33",
+          "summary": "Добавить команду /health в Telegram бот для мониторинга серверов",
+          "hours": 1.0
+        },
+        {
+          "id": "WH-32",
+          "summary": "Разработать Telegram-бот для уведомлений о CI/CD",
+          "hours": 4.0
+        }
+      ],
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "reasoning": "Python, Telegram Bot, интеграции API"
+    }
+  },
+  "extrapolation_methodology": {
+    "description": "Коэффициенты экстраполяции основаны на экспертной оценке с учётом: времени на изучение документации, отладку и troubleshooting, код-ревью и рефакторинг, перерывы и переключение контекста, митинги и коммуникация в команде",
+    "coefficients": {
+      "Infrastructure": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "reason": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "Backend": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "reason": "Интеграции с Redis/Kafka, Spring Security, отладка"
+      },
+      "CI/CD": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "reason": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "Frontend": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "reason": "Vue.js компоненты, верстка, состояние"
+      },
+      "Testing": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "reason": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "DevOps": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "reason": "Grafana дашборды, Prometheus, конфигурация"
+      },
+      "Bugfix": {
+        "coefficient": 2.5,
+        "complexity": "low",
+        "reason": "Простые исправления, минимум исследований"
+      },
+      "Development": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "reason": "Python, Telegram Bot, интеграции API"
+      }
+    }
+  },
+  "team_composition_without_ai": {
+    "description": "Минимальный состав команды для выполнения аналогичного объёма работ без ИИ-агента",
+    "specialists": {
+      "DevOps Engineer": {
+        "total_hours": 162.0,
+        "work_days": 20.2,
+        "work_weeks": 4.05,
+        "work_types": [
+          "CI/CD",
+          "DevOps",
+          "Infrastructure"
+        ],
+        "task_ids": [
+          "WH-74",
+          "WH-68",
+          "WH-19",
+          "WH-117",
+          "WH-65",
+          "WH-72",
+          "WH-30",
+          "WH-29",
+          "WH-17",
+          "WH-25",
+          "WH-66",
+          "WH-12",
+          "WH-26",
+          "WH-115",
+          "WH-50",
+          "WH-20",
+          "WH-37"
+        ]
+      },
+      "Release Engineer": {
+        "total_hours": 56.0,
+        "work_days": 7.0,
+        "work_weeks": 1.4,
+        "work_types": [
+          "CI/CD"
+        ],
+        "task_ids": [
+          "WH-74",
+          "WH-19",
+          "WH-117",
+          "WH-30",
+          "WH-29",
+          "WH-17",
+          "WH-50",
+          "WH-20",
+          "WH-37"
+        ]
+      },
+      "QA Automation Engineer": {
+        "total_hours": 90.0,
+        "work_days": 11.2,
+        "work_weeks": 2.25,
+        "work_types": [
+          "Testing"
+        ],
+        "task_ids": [
+          "WH-114",
+          "WH-102",
+          "WH-73",
+          "WH-116",
+          "WH-112",
+          "WH-27",
+          "WH-28"
+        ]
+      },
+      "SDET": {
+        "total_hours": 90.0,
+        "work_days": 11.2,
+        "work_weeks": 2.25,
+        "work_types": [
+          "Testing"
+        ],
+        "task_ids": [
+          "WH-114",
+          "WH-102",
+          "WH-73",
+          "WH-116",
+          "WH-112",
+          "WH-27",
+          "WH-28"
+        ]
+      },
+      "SRE": {
+        "total_hours": 106.0,
+        "work_days": 13.2,
+        "work_weeks": 2.65,
+        "work_types": [
+          "DevOps",
+          "Infrastructure"
+        ],
+        "task_ids": [
+          "WH-68",
+          "WH-65",
+          "WH-72",
+          "WH-66",
+          "WH-25",
+          "WH-12",
+          "WH-26",
+          "WH-115"
+        ]
+      },
+      "Java/Spring Developer": {
+        "total_hours": 35.0,
+        "work_days": 4.4,
+        "work_weeks": 0.88,
+        "work_types": [
+          "Backend"
+        ],
+        "task_ids": [
+          "WH-71",
+          "WH-67",
+          "WH-22"
+        ]
+      },
+      "Senior Backend Developer": {
+        "total_hours": 35.0,
+        "work_days": 4.4,
+        "work_weeks": 0.88,
+        "work_types": [
+          "Backend"
+        ],
+        "task_ids": [
+          "WH-71",
+          "WH-67",
+          "WH-22"
+        ]
+      },
+      "Full-stack Developer": {
+        "total_hours": 5.0,
+        "work_days": 0.6,
+        "work_weeks": 0.12,
+        "work_types": [
+          "Bugfix"
+        ],
+        "task_ids": [
+          "WH-62",
+          "WH-63",
+          "WH-61",
+          "WH-64"
+        ]
+      },
+      "Vue.js Frontend Developer": {
+        "total_hours": 50.0,
+        "work_days": 6.2,
+        "work_weeks": 1.25,
+        "work_types": [
+          "Frontend"
+        ],
+        "task_ids": [
+          "WH-49",
+          "WH-48",
+          "WH-21",
+          "WH-42",
+          "WH-46"
+        ]
+      },
+      "Python Developer": {
+        "total_hours": 52.0,
+        "work_days": 6.5,
+        "work_weeks": 1.3,
+        "work_types": [
+          "Development"
+        ],
+        "task_ids": [
+          "WH-33",
+          "WH-32",
+          "WH-35",
+          "WH-31",
+          "WH-36",
+          "WH-34"
+        ]
+      },
+      "Backend Developer": {
+        "total_hours": 52.0,
+        "work_days": 6.5,
+        "work_weeks": 1.3,
+        "work_types": [
+          "Development"
+        ],
+        "task_ids": [
+          "WH-33",
+          "WH-32",
+          "WH-35",
+          "WH-31",
+          "WH-36",
+          "WH-34"
+        ]
+      }
+    }
+  },
+  "tasks_detail": [
+    {
+      "id": "WH-12",
+      "summary": "Развернуть PostgreSQL в K3s для warehouse-api",
+      "description": "Развернуть PostgreSQL в Kubernetes для использования как основной базы данных приложения warehouse-api. База должна иметь persistent storage для сохранения данных между перезапусками подов.\n\n**Подзадачи:**\n\n1. Создать PersistentVolumeClaim для хранения данных PostgreSQL\n2. Создать Secret с credentials для базы данных\n3. Развернуть PostgreSQL через Helm chart или манифесты\n4. Создать базу данных `warehouse` и пользователя\n5. Проверить подключение из тестового пода\n\n**Критерии приёмки:**\n\n* PostgreSQL запущен в namespace `warehouse`\n* Данные сохраняются после перезапуска пода\n* Credentials хранятся в Kubernetes Secret\n* Приложение может подключиться к базе по внутреннему DNS имени",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Infrastructure",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "estimated_minutes_without_ai": 1080.0,
+        "estimated_hours_without_ai": 18.0,
+        "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-25",
+      "created": "2025-11-25",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-13",
+      "summary": "Настроить Workflow Automation в YouTrack",
+      "description": "Создать автоматические правила в YouTrack для управления жизненным циклом задач на основе событий из GitLab. При создании ветки с номером задачи — переводить задачу в статус \"In Progress\". При мерже в main — переводить в статус \"Done\".\n\n**Подзадачи:**\n\n1. Создать кастомные статусы в YouTrack если нужно (Open → In Progress → In Review → Done)\n2. Настроить Workflow rule: при обнаружении ветки `WH-*` переводить задачу в \"In Progress\"\n3. Настроить Workflow rule: при мерже коммита с `#WH-*` в ветку main переводить задачу в \"Done\"\n4. Протестировать автоматизацию на тестовой задаче\n\n**Критерии приёмки:**\n\n* При создании ветки `WH-5-feature-name` задача WH-5 автоматически переходит в \"In Progress\"\n* При мерже PR в main задача автоматически переходит в \"Done\"\n* История изменений статусов видна в Activity задачи",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-25",
+      "resolved": null
+    },
+    {
+      "id": "WH-15",
+      "summary": "Добавить Code Quality проверки в Pipeline",
+      "description": "Расширить pipeline проверками качества кода: статический анализ, проверка стиля кода, поиск уязвимостей в зависимостях. Результаты должны отображаться в GitLab Merge Request.\n\n**Подзадачи:**\n\n1. Добавить SpotBugs или PMD плагин в pom.xml для статического анализа\n2. Добавить Checkstyle для проверки code style\n3. Добавить OWASP Dependency Check для поиска уязвимостей в зависимостях\n4. Создать стадию `code-quality` в pipeline\n5. Настроить fail pipeline при критических нарушениях\n\n**Критерии приёмки:**\n\n* Pipeline включает стадию code-quality между build и test\n* Отчёты анализаторов сохраняются как артефакты\n* При критических багах или уязвимостях pipeline падает\n* В Merge Request видны результаты проверок",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-25",
+      "resolved": null
+    },
+    {
+      "id": "WH-16",
+      "summary": "Ревью инфраструктуры",
+      "description": "Провести аудит инфрраструктуры и избавиться от ненужных элементов",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-26",
+      "resolved": null
+    },
+    {
+      "id": "WH-17",
+      "summary": "Создать Dockerfile для warehouse-api",
+      "description": "## Цель\n\nСоздать оптимизированный Dockerfile для сборки и запуска Spring Boot приложения warehouse-api в контейнере.\n\n## План работ\n\n1. Создать multi-stage Dockerfile (builder + runtime)\n2. Создать .dockerignore для исключения лишних файлов\n3. Протестировать локальную сборку образа\n4. Задокументировать в wiki/docker-setup.md\n5. Закоммитить изменения\n\n## Технические требования\n\n- Base image: eclipse-temurin:17 (JDK для сборки, JRE для runtime)\n- Multi-stage build для минимизации размера образа\n- Non-root user для безопасности\n- Health check для Kubernetes\n- Поддержка Spring profiles через переменные окружения\n\n## Критерии приёмки\n\n- [ ] Dockerfile создан и работает\n- [ ] .dockerignore настроен\n- [ ] Образ собирается командой docker build\n- [ ] Контейнер запускается и отвечает на /actuator/health\n- [ ] Документация в wiki",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-26",
+      "created": "2025-11-26",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-18",
+      "summary": "Документация: автоматизированный workflow разработки с YouTrack API",
+      "description": "## Цель\n\nЗадокументировать новый процесс разработки с автоматическим созданием задач через YouTrack API и интеграцией с Claude Code агентом.\n\n## План\n\n1. Описать архитектуру интеграции\n2. Описать процесс работы\n3. Привести пример выполнения задачи\n4. Создать статью в wiki",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-26",
+      "resolved": null
+    },
+    {
+      "id": "WH-19",
+      "summary": "Создать K8s манифесты и выполнить деплой warehouse-api",
+      "description": "## Цель\n\nРазвернуть warehouse-api в Kubernetes (K3s) с подключением к PostgreSQL.\n\n## План работ\n\n1. Создать директорию k8s/ с манифестами\n2. Создать ConfigMap для конфигурации приложения\n3. Создать Deployment для warehouse-api\n4. Создать Service (ClusterIP + NodePort)\n5. Создать скрипт ручного деплоя\n6. Выполнить деплой и проверить работоспособность\n7. Задокументировать в wiki\n\n## Технические требования\n\n- Namespace: warehouse (существующий)\n- Образ: warehouse-api:latest (локальный, imagePullPolicy: Never)\n- Подключение к PostgreSQL через ClusterIP\n- Health probes через /actuator/health\n- NodePort для внешнего доступа\n\n## Критерии приёмки\n\n- [ ] Манифесты созданы в k8s/\n- [ ] Скрипт деплоя работает\n- [ ] Pod в статусе Running\n- [ ] /actuator/health возвращает UP\n- [ ] Swagger UI доступен\n- [ ] Документация в wiki",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 480.0,
+        "estimated_hours_without_ai": 8.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-26",
+      "created": "2025-11-26",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-20",
+      "summary": "Настроить CI/CD pipeline с автоматическим деплоем в K3s",
+      "description": "## Цель\n\nРасширить CI/CD pipeline для автоматической сборки Docker образа и деплоя в K3s при пуше в main.\n\n## План работ\n\n1. Обновить .gitlab-ci.yml — добавить стадии image и deploy\n2. Создать скрипт scripts/ci-deploy.sh для использования в pipeline\n3. Протестировать pipeline коммитом в main\n4. Задокументировать в wiki\n\n## Технические требования\n\n- Стадии: validate → build → test → image → deploy\n- image: сборка Docker и импорт в K3s containerd\n- deploy: kubectl apply + rollout restart\n- Деплой только для ветки main\n- Использование Shell executor\n\n## Критерии приёмки\n\n- [ ] Pipeline проходит все 5 стадий\n- [ ] При пуше в main приложение автоматически деплоится\n- [ ] Pod обновляется и переходит в Running\n- [ ] Документация в wiki",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 240,
+      "spent_hours_with_ai": 4.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 960.0,
+        "estimated_hours_without_ai": 16.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-26",
+      "created": "2025-11-26",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-21",
+      "summary": "Создать Vue.js фронтенд и настроить Ingress",
+      "description": "## Цель\n\nСоздать Vue.js фронтенд с формой продуктов и настроить Ingress для warehouse.local.\n\n## Выполнено\n\n1. Создан Vue проект warehouse-frontend\n2. Создана страница с формой POST на /api/products\n3. Dockerfile для фронтенда (Nginx)\n4. K8s манифесты для фронтенда\n5. Настроен CORS в бэкенде\n6. Настроен Ingress (Traefik)\n7. Обновлён /etc/hosts на клиенте\n\n## Результат\n\nФронтенд доступен на http://192.168.1.74:30081",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Frontend",
+      "spent_minutes_with_ai": 360,
+      "spent_hours_with_ai": 6.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 1440.0,
+        "estimated_hours_without_ai": 24.0,
+        "reasoning": "Vue.js компоненты, верстка, состояние"
+      },
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "work_date": "2025-11-26",
+      "created": "2025-11-26",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-22",
+      "summary": "Добавить систему аутентификации и страницу логина",
+      "description": "## Цель\n\nДобавить систему аутентификации в warehouse-frontend.\n\n## Выполнено\n\n- Страница логина с формой\n- Auth сервис с JWT токенами\n- Route guards для защищённых страниц\n- Навигация с профилем пользователя и logout\n\n## Тестовые аккаунты\n\n| Логин | Пароль | Роль |\n|-------|--------|------|\n| superuser | super123 | SUPER_USER |\n| admin | admin123 | ADMIN |\n| manager | manager123 | MANAGER |\n| employee | employee123 | EMPLOYEE |\n\n## Результат\n\nАвторизация работает через JWT, защита роутов настроена.",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Backend",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 900.0,
+        "estimated_hours_without_ai": 15.0,
+        "reasoning": "Интеграции с Redis/Kafka, Spring Security, отладка"
+      },
+      "required_specialists": [
+        "Java/Spring Developer",
+        "Senior Backend Developer"
+      ],
+      "work_date": "2025-11-26",
+      "created": "2025-11-26",
+      "resolved": "2025-11-26"
+    },
+    {
+      "id": "WH-24",
+      "summary": "Тест shouldReturnBadRequestWhenNameIsEmpty возвращает 403 вместо 400",
+      "description": "## Проблема\n\nТест `ProductControllerTest.shouldReturnBadRequestWhenNameIsEmpty` падает с 403 Forbidden вместо ожидаемого 400 Bad Request.\n\n## Детали\n\n- JWT токен валидный, тот же токен работает в других тестах\n- В логах сервера видно что MethodArgumentNotValidException выбрасывается (валидация работает)\n- Но тест получает 403 вместо 400\n- Возможно связано с порядком фильтров Spring Security или обработкой исключений\n\n## Воспроизведение\n\n```bash\nmvn test -Dtest=ProductControllerTest\n```\n\n## Workaround\n\nТест временно отключён аннотацией @Disabled\n\n## Связано с\n\nWH-22 - Spring Security JWT implementation",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-26",
+      "resolved": null
+    },
+    {
+      "id": "WH-25",
+      "summary": "Настроить Grafana дашборд для метрик Warehouse API",
+      "description": "## Цель\n\nНастроить Grafana дашборд для мониторинга warehouse-api.\n\n## Выполнено\n\n- Добавлены Prometheus метрики в Spring Boot\n- Настроен Prometheus scraping через ServiceMonitor\n- Создан Grafana дашборд с ключевыми метриками\n\n## Метрики\n\n- HTTP request rate и latency\n- JVM heap memory usage\n- Database connection pool\n- Application uptime\n- Кастомные метрики продуктов (created/deleted)\n\n## Ссылки\n\n- Grafana: http://192.168.1.74:3000\n- Prometheus: http://192.168.1.74:30080/actuator/prometheus\n\n## Результат\n\nМониторинг работает, дашборд показывает все метрики в реальном времени.",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "DevOps",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 480.0,
+        "estimated_hours_without_ai": 8.0,
+        "reasoning": "Grafana дашборды, Prometheus, конфигурация"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-26",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-26",
+      "summary": "Исправление отображения метрик продуктов в Grafana",
+      "description": "## Проблема\n\nВ Grafana перестали отображаться данные о количестве созданных и удалённых продуктов. Счётчики метрик показывали нулевые значения даже после создания продуктов.\n\n## Причина\n\nВ `ProductService.java` счётчики метрик создавались напрямую через `Counter.builder()`, дублируя конфигурацию из `MetricsConfig.java`.\n\nЭто приводило к:\n1. Двойной регистрации метрик с разными наборами тегов\n2. Использованию счётчиков без тега `operation`\n3. Рассинхронизации данных между Prometheus и приложением\n\n## Решение\n\n`ProductService` теперь инжектит готовые бины `Counter` из `MetricsConfig` через `@Qualifier`.\n\n## Результат\n\n- Метрики корректно регистрируются с тегом `operation` (create/delete)\n- Prometheus успешно собирает данные через ServiceMonitor\n- В Grafana доступны метрики для построения дашбордов\n\n## Затронутые файлы\n\n- `src/main/java/com/warehouse/service/ProductService.java`\n\n## Коммит\n\n`bbd6cd4`",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "DevOps",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Grafana дашборды, Prometheus, конфигурация"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-27",
+      "summary": "Настроить E2E тесты с RestAssured и Allure отчётами",
+      "description": "## Цель\n\nРеализовать комплексный набор E2E тестов для warehouse-api.\n\n## Выполнено\n\n- RestAssured с helper классами и fluent API\n- Тесты для Auth контроллера (логин успех/ошибка)\n- Тесты для Products контроллера (CRUD операции)\n- Allure Server для отчётов с историей\n- Интеграция с CI/CD pipeline\n\n## Инфраструктура тестов\n\n- Base test классы\n- Helper методы для авторизации\n- Фикстуры для тестовых данных\n\n## Ссылки\n\n- Allure Server: http://192.168.1.74:5050\n- Allure UI: http://192.168.1.74:5252\n\n## Результат\n\nE2E тесты запускаются через CI/CD, отчёты доступны в Allure.",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 900.0,
+        "estimated_hours_without_ai": 15.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-28",
+      "summary": "Настроить нагрузочное тестирование с Locust в K3s",
+      "description": "## Задача\nРазвернуть кластер Locust для нагрузочного тестирования warehouse-api:\n- Мастер + 3 воркера в K3s\n- Реалистичный сценарий пользователя (логин, CRUD продуктов)\n- Ступенчатая нагрузка до 50 пользователей\n- Интеграция с Prometheus и Grafana\n\n## Результаты:\n- Namespace loadtest с Locust кластером\n- Python-сценарий с имитацией пользователей\n- Grafana дашборд для мониторинга нагрузки\n- Веб-интерфейс Locust на порту 30089",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 600.0,
+        "estimated_hours_without_ai": 10.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-29",
+      "summary": "Добавить этап нагрузочного тестирования в CI/CD pipeline",
+      "description": "## Задача\nДобавить новый этап в GitLab CI/CD pipeline для автоматического нагрузочного тестирования после деплоя в K3s.\n\n## Требования:\n- Этап запускается после успешного деплоя в K3s\n- Использует существующий кластер Locust в namespace loadtest\n- Запускает тест через Locust API\n- Собирает метрики и формирует отчёт\n\n## Параметры теста:\n- Длительность: 15 минут\n- Пользователей: до 100\n- Рост: 10 пользователей в минуту",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-30",
+      "summary": "CI/CD и автоматизация сборки",
+      "description": "## Эпик\n\nЗадачи связанные с CI/CD пайплайнами, автоматизацией сборки и деплоя.\n\n## Включает\n\n- Настройка GitLab CI/CD\n- Docker образы и Registry\n- Деплой в K3s (staging/production)\n- E2E и нагрузочное тестирование\n- Allure отчёты\n\n## Связанные задачи\n\n- WH-17: Dockerfile для API\n- WH-20: CI/CD pipeline\n- WH-27: E2E тесты\n- WH-28: Locust нагрузочное тестирование\n- WH-29: Load tests в pipeline",
+      "state": "Fixed",
+      "issue_type": "Build",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-31",
+      "summary": "Интеграции с внешними системами",
+      "description": "## Эпик\n\nЗадачи интеграции с внешними сервисами и системами.\n\n## Включает\n\n- Telegram бот для уведомлений\n- GitLab webhooks\n- Claude AI интеграция\n- YouTrack API\n- Внешние API и сервисы\n\n## Связанные задачи\n\n- WH-32: Telegram бот для CI/CD\n- WH-33: Команда /health\n- WH-34: Bot v3.0\n- WH-35: Reply keyboard\n- WH-36: Claude интеграция",
+      "state": "Fixed",
+      "issue_type": "Epic",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-27",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-32",
+      "summary": "Разработать Telegram-бот для уведомлений о CI/CD",
+      "description": "## Задача\nРазвернуть webhook-сервис в K3s для отправки уведомлений в Telegram:\n- Приём webhooks от GitLab\n- Уведомления о старте/завершении pipeline\n- Статусы отдельных jobs\n- Красивое форматирование с эмодзи\n\n## Результаты:\n- Python сервис в K3s (namespace: notifications)\n- Интеграция с GitLab webhooks\n- Telegram бот отправляет уведомления",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 240,
+      "spent_hours_with_ai": 4.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 960.0,
+        "estimated_hours_without_ai": 16.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-27",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-33",
+      "summary": "Добавить команду /health в Telegram бот для мониторинга серверов",
+      "description": "## Задача\nРасширить функциональность Telegram бота для мониторинга статуса staging и production серверов.\n\n## Реализовано:\n\n### Новые команды:\n- /health - показывает полный статус всех серверов\n- /status - алиас для /health\n- /help - справка по командам\n\n### Мониторинг Staging (K3s):\n- Проверка API через internal DNS\n- Проверка Frontend через internal DNS\n- Статус подов (warehouse-api, postgresql, warehouse-frontend)\n- Метрики ресурсов из Prometheus (CPU, RAM)\n\n### Мониторинг Production (Yandex Cloud):\n- Проверка API (https://api.wh-lab.ru)\n- Проверка Frontend (https://wh-lab.ru)\n- Статус контейнеров\n\n### Технические детали:\n- Telegram long polling с обработкой 409 Conflict\n- Асинхронные проверки через httpx\n- Internal K8s DNS для staging сервисов\n- Prometheus интеграция для метрик ноды\n\n## Результат:\nБот отвечает на /health с полным отчётом о состоянии инфраструктуры",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-28",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-34",
+      "summary": "Telegram Bot v3.0 - Menu, Load Testing, Humor",
+      "description": "Добавить в Telegram бота:\n- Inline меню с кнопками\n- Нагрузочное тестирование через Locust\n- Юмор и шутки\n\nФайлы: gitlab-telegram-bot/app.py",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 480.0,
+        "estimated_hours_without_ai": 8.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-28",
+      "resolved": "2025-11-28"
+    },
+    {
+      "id": "WH-35",
+      "summary": "Telegram Bot - Reply keyboard, защита паролем, realtime статистика",
+      "description": "## Цель\n\nУлучшить Telegram бота дополнительными фичами.\n\n## Выполнено\n\n- Reply keyboard с быстрыми командами\n- Защита команд паролем\n- Realtime статистика по запросам\n- Улучшенное форматирование сообщений\n\n## Команды\n\n- /start - начало работы с ботом\n- /health - статус серверов\n- /metrics - метрики системы\n- /loadtest - запуск нагрузочного теста\n\n## Результат\n\nБот стал удобнее в использовании, добавлена защита от несанкционированного доступа.",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 480.0,
+        "estimated_hours_without_ai": 8.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-28",
+      "resolved": "2025-11-28"
+    },
+    {
+      "id": "WH-36",
+      "summary": "Настройка GitLab Telegram бота с Claude интеграцией",
+      "description": "## Цель\n\nДобавить в Telegram бота интеграцию с Claude AI для умных ответов.\n\n## Выполнено\n\n- Интеграция с Claude API через прокси\n- Команда /ask для вопросов к Claude\n- Контекст проекта передаётся в промпт\n- Анализ логов через AI\n- Помощь с дебагом и архитектурой\n\n## Технические детали\n\n- Claude Proxy: http://192.168.1.74:8765\n- Модель: claude-3-5-sonnet\n- Контекст: warehouse-api, k8s, инфраструктура\n\n## Команды\n\n- /ask <вопрос> - задать вопрос Claude\n- /analyze - анализ последних логов\n- /debug - помощь с отладкой\n\n## Результат\n\nБот умеет отвечать на вопросы по проекту с помощью AI.",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Development",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 720.0,
+        "estimated_hours_without_ai": 12.0,
+        "reasoning": "Python, Telegram Bot, интеграции API"
+      },
+      "required_specialists": [
+        "Python Developer",
+        "Backend Developer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-28",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-37",
+      "summary": "Миграция инфраструктуры в warehouse-master",
+      "description": "Перенести всю оркестрацию, k8s манифесты, тесты и Locust в warehouse-master.\n\n**План:**\n1. Перенести k8s/ из warehouse-api и warehouse-frontend\n2. Перенести locustfile.py в loadtest/\n3. Перенести e2e тесты в e2e-tests/\n4. Создать k8s/loadtest/ и k8s/monitoring/\n5. Почистить warehouse-api и warehouse-frontend\n6. Обновить README",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 480.0,
+        "estimated_hours_without_ai": 8.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-28",
+      "created": "2025-11-28",
+      "resolved": "2025-11-28"
+    },
+    {
+      "id": "WH-38",
+      "summary": "Инфраструктура и Kubernetes",
+      "description": "## Эпик\n\nЗадачи связанные с инфраструктурой, Kubernetes и базовой настройкой окружения.\n\n## Включает\n\n- PostgreSQL в K3s\n- K8s манифесты\n- Мониторинг (Grafana/Prometheus)\n- Ревью инфраструктуры",
+      "state": "Submitted",
+      "issue_type": "Epic",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-39",
+      "summary": "Frontend",
+      "description": "## Эпик\n\nЗадачи связанные с Vue.js фронтендом.\n\n## Включает\n\n- Базовый фронтенд\n- Аутентификация\n- UI компоненты",
+      "state": "Submitted",
+      "issue_type": "Epic",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-40",
+      "summary": "Backlog",
+      "description": "## Эпик\n\nЗадачи на будущее, низкий приоритет.\n\n## Включает\n\n- Code Quality\n- YouTrack Automation\n- Документация",
+      "state": "Submitted",
+      "issue_type": "Epic",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-41",
+      "summary": "Баги",
+      "description": "## Эпик\n\nБаги и технический долг.\n\n## Включает\n\n- Баги в тестах\n- Технический долг\n- Фиксы",
+      "state": "Submitted",
+      "issue_type": "Epic",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-42",
+      "summary": "Улучшение UX приложения Warehouse",
+      "description": "## Цель\nУлучшить пользовательский опыт приложения Warehouse, сделав интерфейс более удобным и функциональным.\n\n## Основные задачи:\n1. Разделить экраны добавления товара и статистики\n2. Адаптировать интерфейс под браузер\n3. Убрать служебную информацию с экранов\n4. Добавить описание товара (до 100 символов)\n5. Реализовать категории товаров\n6. Добавить фильтры на экране статистики\n7. Реализовать редактирование товаров\n\n## Критерии готовности\n- Все экраны разделены и работают независимо\n- Интерфейс корректно отображается в браузере\n- Нет технической информации на UI\n- Полная функциональность CRUD для товаров",
+      "state": "Fixed",
+      "issue_type": "User Story",
+      "priority": "Normal",
+      "work_type": "Frontend",
+      "spent_minutes_with_ai": 240,
+      "spent_hours_with_ai": 4.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 960.0,
+        "estimated_hours_without_ai": 16.0,
+        "reasoning": "Vue.js компоненты, верстка, состояние"
+      },
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-43",
+      "summary": "Реализовать категории товаров",
+      "description": "Функционал категорий:\n- CRUD для категорий\n- Привязка товара к категории\n- Фильтрация по категориям",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-44",
+      "summary": "Добавить фильтры на экране статистики",
+      "description": "На экране статистики добавить фильтры:\n- По категории товара\n- По дате добавления\n- По наличию на складе\n- Поиск по названию",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-45",
+      "summary": "Добавить поле описание товара (макс 100 символов)",
+      "description": "При создании/редактировании товара:\n- Добавить поле 'Описание'\n- Ограничить длину 100 символами\n- Отображать описание в списке товаров",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-46",
+      "summary": "Разделить экраны добавления товара и статистики",
+      "description": "Текущий экран содержит оба функционала. Нужно:\n- Создать отдельный экран для добавления товара\n- Создать отдельный экран для просмотра статистики\n- Добавить навигацию между экранами",
+      "state": "Fixed",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": "Frontend",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Vue.js компоненты, верстка, состояние"
+      },
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-47",
+      "summary": "Реализовать редактирование товаров",
+      "description": "Функционал редактирования:\n- Кнопка 'Редактировать' у товара\n- Форма редактирования всех полей\n- Валидация данных\n- Сохранение изменений",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-48",
+      "summary": "Адаптировать экраны под браузер",
+      "description": "Экраны должны корректно отображаться в браузере:\n- Responsive дизайн для разных размеров экрана\n- Корректные отступы и размеры элементов\n- Удобная работа с мышью и клавиатурой",
+      "state": "Fixed",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": "Frontend",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Vue.js компоненты, верстка, состояние"
+      },
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-49",
+      "summary": "Убрать служебную информацию с экранов",
+      "description": "На экранах не должно быть:\n- URL API\n- Debug информации\n- Технических логов\n- Системных сообщений",
+      "state": "Fixed",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": "Frontend",
+      "spent_minutes_with_ai": 30,
+      "spent_hours_with_ai": 0.5,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 120.0,
+        "estimated_hours_without_ai": 2.0,
+        "reasoning": "Vue.js компоненты, верстка, состояние"
+      },
+      "required_specialists": [
+        "Vue.js Frontend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-50",
+      "summary": "Deploy Этап 1: Frontend (UI cleanup) → Prod",
+      "description": "Деплой первого этапа:\n1. Deploy Frontend → Staging\n2. Проверка на Staging\n3. Deploy Frontend → Prod\n\nВключает: WH-49, WH-46, WH-48",
+      "state": "Fixed",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-51",
+      "summary": "Deploy Этап 2: Description field → Prod",
+      "description": "Деплой второго этапа:\n1. Deploy API → Staging\n2. Deploy Frontend → Staging\n3. Тестирование на Staging\n4. Deploy All → Prod\n\nВключает: WH-45 + backend task",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-52",
+      "summary": "[API] Добавить поле description в Product",
+      "description": "Добавить поле описания товара в бэкенд:\n- Поле description VARCHAR(100) в entity Product\n- Миграция БД\n- Обновить DTO и маппинг\n- Обновить POST/PUT/GET endpoints\n\nСвязано с WH-45",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-53",
+      "summary": "[API] Добавить фильтрацию в GET /api/products",
+      "description": "Реализовать фильтрацию товаров:\n- Query parameters: category, inStock, search, dateFrom, dateTo\n- Spring Data Specifications или QueryDSL\n- Пагинация\n\nСвязано с WH-44",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-54",
+      "summary": "[API] Реализовать PUT /api/products/{id}",
+      "description": "Endpoint для редактирования товара:\n- PUT /api/products/{id}\n- Валидация данных\n- Обновление всех полей включая категорию\n\nСвязано с WH-47",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-55",
+      "summary": "Deploy Этап 4: Filters + Edit → Prod",
+      "description": "Финальный деплой:\n1. Deploy API → Staging\n2. Deploy Frontend → Staging\n3. E2E тесты\n4. Deploy All → Prod\n\nВключает: WH-44, WH-47 + backend tasks",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-56",
+      "summary": "Deploy Этап 3: Categories → Prod",
+      "description": "Деплой третьего этапа:\n1. Deploy API → Staging\n2. Deploy Frontend → Staging\n3. Тестирование на Staging\n4. Deploy All → Prod\n\nВключает: WH-43 + backend task",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-57",
+      "summary": "[API] Реализовать CRUD для категорий товаров",
+      "description": "Создать функционал категорий в API:\n- Entity Category (id, name)\n- Repository + Service + Controller\n- CRUD endpoints /api/categories\n- Связь Product → Category (ManyToOne)\n- Обновить Product endpoints\n\nСвязано с WH-43",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-58",
+      "summary": "[BUG] Исправить футер с именем/ролью и кнопку выхода",
+      "description": "После рефакторинга пропали:\n- Имя и роль пользователя в хедере\n- Кнопка выхода\n\nНужно вернуть обратно",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-59",
+      "summary": "[TASK] Удалить тестовые данные из БД",
+      "description": "Очистить тестовые данные из:\n- Staging PostgreSQL\n- Production PostgreSQL",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-60",
+      "summary": "[BUG] Ускорить переходы между экранами",
+      "description": "Долгие переходы между экранами.\nУбрать lazy loading для основных компонентов.",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-61",
+      "summary": "[BugFix] Дублирующиеся элементы в header",
+      "description": "На главном экране дублировалась кнопка + Добавить.\n\nПричина: кнопка была и в навигации App.vue, и в HomePage.vue\nРешение: убрана из HomePage.vue\nКоммит: bd9c5cd",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Bugfix",
+      "spent_minutes_with_ai": 30,
+      "spent_hours_with_ai": 0.5,
+      "extrapolation": {
+        "coefficient": 2.5,
+        "complexity": "low",
+        "estimated_minutes_without_ai": 75.0,
+        "estimated_hours_without_ai": 1.25,
+        "reasoning": "Простые исправления, минимум исследований"
+      },
+      "required_specialists": [
+        "Full-stack Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-62",
+      "summary": "[BugFix] Медленные переходы между экранами",
+      "description": "Переходы между страницами работали очень медленно.\n\nПричина: lazy loading компонентов\nРешение: прямые импорты для HomePage, AddProductPage, LoginPage\nКоммит: 0254bf9",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Bugfix",
+      "spent_minutes_with_ai": 30,
+      "spent_hours_with_ai": 0.5,
+      "extrapolation": {
+        "coefficient": 2.5,
+        "complexity": "low",
+        "estimated_minutes_without_ai": 75.0,
+        "estimated_hours_without_ai": 1.25,
+        "reasoning": "Простые исправления, минимум исследований"
+      },
+      "required_specialists": [
+        "Full-stack Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-63",
+      "summary": "[BugFix] Удалить тестовые данные с прода",
+      "description": "В продакшн БД остались тестовые продукты.\n\nРешение: DELETE FROM products в PostgreSQL",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Bugfix",
+      "spent_minutes_with_ai": 30,
+      "spent_hours_with_ai": 0.5,
+      "extrapolation": {
+        "coefficient": 2.5,
+        "complexity": "low",
+        "estimated_minutes_without_ai": 75.0,
+        "estimated_hours_without_ai": 1.25,
+        "reasoning": "Простые исправления, минимум исследований"
+      },
+      "required_specialists": [
+        "Full-stack Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-64",
+      "summary": "[BugFix] Новый функционал не появился в проде",
+      "description": "Категории, описания, фильтрация, редактирование не работали в проде.\n\nПричина: образы не обновились в k3s после git push\nРешение:\n- Вручную пересобраны docker образы\n- Импортированы в k3s через k3s ctr images import\n- Добавлен секрет warehouse-api-secrets с JWT_SECRET\n- Пропатчен deployment для использования секрета",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Bugfix",
+      "spent_minutes_with_ai": 30,
+      "spent_hours_with_ai": 0.5,
+      "extrapolation": {
+        "coefficient": 2.5,
+        "complexity": "low",
+        "estimated_minutes_without_ai": 75.0,
+        "estimated_hours_without_ai": 1.25,
+        "reasoning": "Простые исправления, минимум исследований"
+      },
+      "required_specialists": [
+        "Full-stack Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-65",
+      "summary": "Инфраструктурные улучшения Warehouse: Redis, Kafka, Selenide, Monitoring",
+      "description": "## Цель\nУлучшить инфраструктуру проекта Warehouse: добавить кэширование, очереди сообщений, UI-тестирование, мониторинг и исправить Telegram бота.\n\n## Подзадачи (Subtasks):\n\n### Redis\n- WH-66: K8s манифесты (deployment, service, configmap)\n- WH-67: Интеграция в warehouse-api (@Cacheable, Rate Limiting, JWT blacklist)\n\n### Kafka\n- WH-68: K8s манифесты KRaft (без Zookeeper)\n- WH-71: Интеграция в warehouse-api (audit-log, notifications)\n\n### Selenide UI-тесты\n- WH-72: Selenoid K8s манифесты\n- WH-73: Модуль ui-tests с Page Objects\n- WH-74: Интеграция в .gitlab-ci.yml\n\n### Мониторинг\n- WH-75: Grafana K8s манифесты\n- WH-76: Grafana Dashboard JSON\n- WH-77: Prometheus scrape config\n\n### Telegram Bot\n- WH-78: Фикс 409 Conflict\n- WH-79: Structured logging\n\n### Финализация\n- WH-80: Деплой на STAGING и верификация\n- WH-83: Полный аудит и AUDIT_REPORT.md\n\n## Критерии готовности\n- Все компоненты работают на staging\n- UI-тесты проходят после деплоя\n- Grafana показывает метрики\n- Telegram бот отвечает",
+      "state": "Fixed",
+      "issue_type": "User Story",
+      "priority": "Normal",
+      "work_type": "Infrastructure",
+      "spent_minutes_with_ai": 480,
+      "spent_hours_with_ai": 8.0,
+      "extrapolation": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "estimated_minutes_without_ai": 2880.0,
+        "estimated_hours_without_ai": 48.0,
+        "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-66",
+      "summary": "Redis: K8s манифесты (deployment, service, configmap)",
+      "description": "Создать Kubernetes манифесты для Redis в namespace warehouse:\n- redis-deployment.yaml\n- redis-service.yaml\n- redis-configmap.yaml\n\nRedis используется для: кэширование, rate limiting, JWT blacklist",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Infrastructure",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "estimated_minutes_without_ai": 360.0,
+        "estimated_hours_without_ai": 6.0,
+        "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-67",
+      "summary": "Redis: Интеграция в warehouse-api (@Cacheable, Rate Limiting, JWT blacklist)",
+      "description": "Интегрировать Redis в warehouse-api:\n1. @Cacheable для GET /api/products\n2. Rate Limiting для /api/auth/login (защита от брутфорса)\n3. JWT blacklist для инвалидации токенов при logout\n\nЗависит от: WH-66 (Redis K8s манифесты)",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Backend",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 600.0,
+        "estimated_hours_without_ai": 10.0,
+        "reasoning": "Интеграции с Redis/Kafka, Spring Security, отладка"
+      },
+      "required_specialists": [
+        "Java/Spring Developer",
+        "Senior Backend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-68",
+      "summary": "Kafka KRaft: K8s манифесты (без Zookeeper)",
+      "description": "Создать Kubernetes манифесты для Kafka в режиме KRaft (без Zookeeper):\n- kafka-deployment.yaml\n- kafka-service.yaml\n- kafka-configmap.yaml\n\nТопики:\n- warehouse.audit - аудит-лог операций\n- warehouse.notifications - уведомления о low stock",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Infrastructure",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "estimated_minutes_without_ai": 720.0,
+        "estimated_hours_without_ai": 12.0,
+        "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-71",
+      "summary": "Kafka: Интеграция в warehouse-api (audit-log, notifications)",
+      "description": "",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Backend",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 600.0,
+        "estimated_hours_without_ai": 10.0,
+        "reasoning": "Интеграции с Redis/Kafka, Spring Security, отладка"
+      },
+      "required_specialists": [
+        "Java/Spring Developer",
+        "Senior Backend Developer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-72",
+      "summary": "Selenoid: K8s манифесты в warehouse namespace",
+      "description": "",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Infrastructure",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 6.0,
+        "complexity": "high",
+        "estimated_minutes_without_ai": 360.0,
+        "estimated_hours_without_ai": 6.0,
+        "reasoning": "K8s с нуля, много проб и ошибок, YAML конфиги, troubleshooting"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-73",
+      "summary": "Selenide: Модуль ui-tests с Page Objects (Login, Products, RoleAccess)",
+      "description": "",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 900.0,
+        "estimated_hours_without_ai": 15.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-74",
+      "summary": "Selenide: Интеграция UI-тестов в .gitlab-ci.yml",
+      "description": "",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-75",
+      "summary": "Grafana: K8s манифесты в monitoring namespace",
+      "description": "",
+      "state": "In Progress",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-76",
+      "summary": "Grafana: Dashboard JSON (API + Frontend + Business метрики)",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-77",
+      "summary": "Prometheus: Scrape config для staging (api + frontend nginx)",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-78",
+      "summary": "Telegram Bot: Фикс 409 Conflict (single instance)",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-79",
+      "summary": "Telegram Bot: Structured logging и диагностика",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-80",
+      "summary": "Деплой на STAGING и верификация всех компонентов",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-83",
+      "summary": "Audit: Full project audit and AUDIT_REPORT.md update",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-84",
+      "summary": "[BUG] Grafana dashboard - неверный datasource UID",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-85",
+      "summary": "[BUG] Frontend 30000 - ERR_CONNECTION_REFUSED",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-86",
+      "summary": "[BUG] Swagger 403 Forbidden",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-87",
+      "summary": "[BUG] Grafana dashboard без данных",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-88",
+      "summary": "PM-функции для Telegram бота: статус агента, аудит сторей, отчёты",
+      "description": "## Цель\nДобавить Project Manager функции в Telegram бот для управления проектом и мониторинга работы.\n\n## Основные изменения\n\n### 1. Кнопка PM вместо Claude\nМеню с функциями:\n- Статус агента (текущая работа Claude)\n- Аудит открытых user stories\n- Отчёты за день/неделю\n\n### 2. Улучшенные GitLab уведомления\n- Парсинг WH-xxx из ветки/коммита\n- Stage с номером и описанием\n- Ожидания по этапу\n\n### 3. Отчёты включают\n- Завершённые задачи\n- В работе\n- Начатые\n- Тишина (задачи без активности)\n\n### 4. Больше юмора\nКонтекстные шутки для всех ситуаций\n\n### 5. Claude интеграция\nОтправка сообщений отключена (код сохранён)\n\n## Критерии готовности\n- [ ] Кнопка PM работает\n- [ ] Статус агента показывается\n- [ ] Аудит загружает стори из YouTrack\n- [ ] Отчёты генерируются\n- [ ] GitLab уведомления показывают задачу\n- [ ] Шутки разнообразные",
+      "state": "Open",
+      "issue_type": "User Story",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-89",
+      "summary": "PM меню и клавиатуры в keyboards.py",
+      "description": "Заменить кнопку Claude на PM.\n\nИзменения:\n- get_reply_keyboard(): 🤖 Claude → 📋 PM\n- get_pm_menu_keyboard(): новая клавиатура PM меню\n- get_report_period_keyboard(): выбор периода отчёта\n- get_stories_keyboard(): список сторей с пагинацией (по 5 шт)\n\nФайл: telegram-bot/bot/keyboards.py",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-90",
+      "summary": "PM handler: статус агента",
+      "description": "Создать handler pm.py с функцией статуса агента.\n\nФункции:\n- handle_pm_menu(): показывает PM меню\n- handle_pm_status(): запрашивает статус у Claude Proxy /status\n- format_agent_status(): форматирует статус в сообщение\n\nФайл: telegram-bot/bot/handlers/pm.py (новый)",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-91",
+      "summary": "YouTrack API сервис",
+      "description": "Создать сервис для работы с YouTrack API.\n\nФункции:\n- get_open_stories(): список открытых User Stories\n- get_story_details(): детали стори с подзадачами\n- get_subtasks(): подзадачи стори\n- get_tasks_for_period(): задачи с активностью за период\n\nФайл: telegram-bot/services/youtrack.py (новый)\n\nДобавить в config.py:\n- YOUTRACK_URL\n- YOUTRACK_TOKEN\n- YOUTRACK_PROJECT",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-92",
+      "summary": "PM handler: аудит открытых сторей",
+      "description": "Добавить функции аудита в pm.py.\n\nФункции:\n- handle_pm_audit(): список открытых сторей с пагинацией\n- handle_story_details(): детали стори с подзадачами\n- format_story_details(): форматирование (выполнено/в работе/ожидает)\n\nИспользует YouTrack API сервис.",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-93",
+      "summary": "PM handler: отчёты за день/неделю",
+      "description": "Добавить функции отчётов в pm.py.\n\nФункции:\n- handle_pm_report(): меню выбора периода\n- handle_report_generate(): генерация отчёта\n- format_period_report(): форматирование\n\nСекции отчёта:\n- Завершено (→ Done)\n- В работе (→ In Progress)\n- Начато (создано за период)\n- Тишина (день: без активности сегодня, неделя: молчит 3+ дней)",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-94",
+      "summary": "Улучшенные GitLab уведомления",
+      "description": "Улучшить формат уведомлений о pipeline/job.\n\nИзменения в messages.py:\n- extract_task_id(): парсинг WH-xxx из ветки (приоритет) и коммита (fallback)\n- STAGE_INFO: маппинг stage → описание\n- get_stage_info(): \"Этап 2/4: Тестирование - проверяем что работает\"\n- get_stage_expectation(): \"Ожидаем: все тесты зелёные\"\n- Обновить format_job_message() с новыми полями\n\nФайлы:\n- telegram-bot/bot/messages.py\n- telegram-bot/bot/handlers/gitlab_webhook.py",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-95",
+      "summary": "Расширить юмор в боте",
+      "description": "Добавить больше контекстных шуток в messages.py.\n\nНовые категории JOKES:\n- pipeline_success: 8+ вариантов\n- pipeline_failed: 8+ вариантов\n- pipeline_running: 7+ вариантов\n- deploy_prod: 5+ вариантов\n- pm_status_free/busy: 3+ вариантов\n- report_good/silent: 3+ вариантов\n\nСтиль: IT-юмор + мемный стиль\n\nФайл: telegram-bot/bot/messages.py",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Minor",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-96",
+      "summary": "Claude Proxy: эндпоинт /status",
+      "description": "Добавить эндпоинт /status в Claude Proxy.\n\nОтвет:\n```json\n{\n  \"active\": true/false,\n  \"task\": \"WH-65: Описание\",\n  \"current_action\": \"Fixing Redis\",\n  \"progress\": \"12/14 tasks done\",\n  \"started_at\": \"2025-11-29T15:34:00\"\n}\n```\n\nЕсли агент свободен: {\"active\": false}",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-97",
+      "summary": "Интеграция PM handlers в app.py",
+      "description": "Подключить PM функции в главный файл.\n\nИзменения в app.py:\n- Импорт pm.py handlers\n- Обработка callback: pm_menu, pm_status, pm_audit, pm_audit_page_*, pm_story_*, pm_report, pm_report_day, pm_report_week\n- Заменить обработку 🤖 Claude на 📋 PM\n- Закомментировать Claude handlers (сохранить код)\n\nФайл: telegram-bot/app.py",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-98",
+      "summary": "Тестирование PM функций",
+      "description": "Проверить все PM функции.\n\nЧеклист:\n- [ ] Кнопка PM показывает меню\n- [ ] Статус агента: показывает состояние (свободен/занят)\n- [ ] Аудит: загружает стори из YouTrack\n- [ ] Аудит: пагинация работает\n- [ ] Аудит: детали стори с подзадачами\n- [ ] Отчёт за день генерируется\n- [ ] Отчёт за неделю генерируется\n- [ ] Отчёт показывает \"тишину\"\n- [ ] GitLab: парсится WH-xxx\n- [ ] GitLab: stage с описанием\n- [ ] Юмор разнообразный",
+      "state": "Open",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-99",
+      "summary": "[BUG] Frontend - сломанная верстка, кнопки, пустая база",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-100",
+      "summary": "[BUG] Grafana - пустые панели API Response Time и Service Health",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-101",
+      "summary": "[BUG] Prometheus 30090 - ERR_CONNECTION_REFUSED",
+      "description": "",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-102",
+      "summary": "Настройка UI тестирования: Selenoid + Selenide + Allure",
+      "description": "## Выполненная работа\n\n### 1. Удалено лишнее\n- `e2e-tests/selenium_ui_test.py` - дублирующий Python скрипт\n- `k8s/warehouse/selenoid-*.yaml` - манифесты Selenoid из K8s (не работал из-за Docker socket)\n- Job `deploy-selenoid` - больше не нужен\n\n### 2. Selenoid вынесен в Docker Compose\nСоздана директория `selenoid/` с конфигурацией:\n- `docker-compose.yml` - Selenoid + Selenoid UI\n- `config/browsers.json` - Chrome 131.0, 130.0, Firefox 132.0\n\n**URLs:**\n- Selenoid Hub: http://192.168.1.74:4444/wd/hub\n- Selenoid UI: http://192.168.1.74:8090\n\n### 3. Обновлён CI Pipeline\nJob `run-ui-tests` теперь работает автономно (как `run-e2e-tests`):\n- Автоматически поднимает Selenoid если не запущен\n- Запускает Selenide тесты\n- Загружает результаты в Allure\n- Выводит ссылку на отчёт со скриншотами\n\n**Одна кнопка - всё работает**\n\n### 4. Allure отчёты со скриншотами\nСкриншоты включены в BaseTest.java. URL отчёта:\nhttp://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest\n\n### 5. ",
+      "state": "Fixed",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 240,
+      "spent_hours_with_ai": 4.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 1200.0,
+        "estimated_hours_without_ai": 20.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-103",
+      "summary": "A/B нагрузочное тестирование Redis + Kafka",
+      "description": "## Цель\nПровести профессиональное A/B нагрузочное тестирование для оценки влияния Redis (кэширование) и Kafka (асинхронные события) на производительность и стабильность API.\n\n## Основные изменения\n\n### 1. Структура PerformanceTesting/\n- `docs/` — стратегия НТ (AsciiDoc)\n- `scripts/` — скрипты запуска тестов\n- `configs/` — ConfigMap для режимов A/B\n- `results/` — результаты (test-a, test-b)\n- `allure-results/` — интеграция с Allure\n\n### 2. Стратегия нагрузочного тестирования (AsciiDoc)\n\n**Раздел 1: Архитектура системы**\n- Структурная схема (компоненты, связи)\n- Функциональная архитектура (потоки данных, API endpoints)\n- Технологический стек (Java 17, Spring Boot 3.2, PostgreSQL, Redis, Kafka)\n\n**Раздел 2: Параметры тестового стенда**\n- Хост: 192.168.1.74 (K3s cluster)\n- CPU/RAM ноды\n- Ресурсы контейнеров (requests/limits)\n- Сетевая конфигурация (NodePorts)\n- Версии ПО\n\n**Раздел 3: Цели и scope**\n- Что тестируем, что не тестируем\n- Критерии успеха (Error < 1%, p95 < 500ms)\n\n**Раздел 4: П",
+      "state": "Open",
+      "issue_type": "User Story",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-104",
+      "summary": "Создать структуру директории PerformanceTesting",
+      "description": "## Задача\nСоздать структуру директории для нагрузочного тестирования.\n\n## Структура\n```\nPerformanceTesting/\n├── docs/           # Стратегия и отчёты (AsciiDoc)\n├── scripts/        # Скрипты запуска тестов\n├── configs/        # ConfigMap для A/B режимов\n├── results/        # Результаты тестов\n│   ├── test-a/     # Baseline (без Redis/Kafka)\n│   └── test-b/     # Optimized (с Redis/Kafka)\n└── allure-results/ # Интеграция с Allure\n```\n\n## Критерии готовности\n- [ ] Директория создана\n- [ ] Структура соответствует плану",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-105",
+      "summary": "Написать стратегию нагрузочного тестирования",
+      "description": "## Задача\nНаписать документ стратегии НТ в формате AsciiDoc.\n\n## Содержание документа\n\n### Раздел 1: Архитектура системы\n- Структурная схема (компоненты, связи)\n- Функциональная архитектура (потоки данных, API endpoints)\n- Технологический стек (Java 17, Spring Boot 3.2, PostgreSQL, Redis, Kafka)\n\n### Раздел 2: Параметры тестового стенда\n- Хост: 192.168.1.74 (K3s cluster)\n- CPU/RAM ноды\n- Ресурсы контейнеров (requests/limits)\n- Сетевая конфигурация (NodePorts)\n- Версии ПО\n\n### Раздел 3: Цели и scope\n- Что тестируем, что не тестируем\n- Критерии успеха (Error < 1%, p95 < 500ms)\n\n### Раздел 4: Профили нагрузки\n- Поиск максимума (step-load)\n- Стабильность (80% от max, 1 час)\n\n### Раздел 5: Методология A/B\n- Тест A: baseline без Redis/Kafka\n- Тест B: optimized с Redis/Kafka\n\n## Критерии готовности\n- [ ] Документ написан в AsciiDoc\n- [ ] Все разделы заполнены\n- [ ] Схемы архитектуры добавлены",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-106",
+      "summary": "Создать ConfigMap для режима без Redis/Kafka",
+      "description": "## Задача\nСоздать альтернативный ConfigMap для API, который отключает Redis и Kafka.\n\n## Изменения\n- `spring.cache.type=none` — отключить кэширование\n- `spring.kafka.bootstrap-servers=` — отключить Kafka\n- Exclude Redis auto-configuration\n\n## Файлы\n- `configs/api-configmap-nocache.yaml`\n\n## Критерии готовности\n- [ ] ConfigMap создан\n- [ ] API запускается без ошибок в режиме nocache\n- [ ] Redis/Kafka сервисы не используются",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-107",
+      "summary": "Создать скрипты для A/B тестирования",
+      "description": "## Задача\nСоздать скрипты для автоматизации A/B тестирования.\n\n## Скрипты\n\n### switch-mode.sh\nПереключение между режимами:\n- `--mode nocache` — применить ConfigMap без Redis/Kafka\n- `--mode cache` — применить ConfigMap с Redis/Kafka\n- Rollout restart API deployment\n- Ожидание ready\n\n### run-max-search.sh\nПоиск максимума RPS:\n- Step-load профиль\n- Критерии: Error < 1%, p95 < 500ms\n- Сохранение результатов\n\n### run-stability.sh\nТест стабильности:\n- 80% от максимума\n- Длительность 1 час\n- Мониторинг JVM heap\n\n### upload-to-allure.sh\nЗагрузка результатов в Allure Server\n\n## Критерии готовности\n- [ ] Все скрипты созданы\n- [ ] Скрипты исполняемые\n- [ ] Тестовый прогон успешен",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-108",
+      "summary": "Настроить интеграцию Locust с Allure",
+      "description": "## Задача\nНастроить загрузку результатов Locust в Allure Server.\n\n## Требования\n- Конвертация Locust CSV/JSON в Allure формат\n- Загрузка в проект `warehouse-loadtest` на Allure Server\n- Дублирование результатов локально в `results/`\n\n## Allure Server\n- API: http://192.168.1.74:5050\n- UI: http://192.168.1.74:5252\n\n## Критерии готовности\n- [ ] Скрипт загрузки работает\n- [ ] Результаты видны в Allure UI\n- [ ] Локальные копии сохраняются",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-109",
+      "summary": "Провести Тест A — Baseline (без Redis/Kafka)",
+      "description": "## Задача\nПровести нагрузочное тестирование API без Redis и Kafka.\n\n## Этапы\n\n### 1. Подготовка\n- Переключить API в режим nocache\n- Убедиться что Redis/Kafka не используются\n- Проверить health API\n\n### 2. Поиск максимума\n- Step-load: 10 → 200+ users\n- Критерии остановки: Error >= 1% ИЛИ p95 >= 500ms\n- Записать максимальный RPS\n\n### 3. Тест стабильности\n- Нагрузка: 80% от максимума\n- Длительность: 1 час\n- Мониторинг:\n  - JVM heap (утечки памяти)\n  - CPU usage\n  - DB connections\n  - Error rate\n\n### 4. Сохранение результатов\n- Locust CSV/JSON\n- Скриншоты Grafana\n- Загрузка в Allure\n\n## Критерии готовности\n- [ ] Максимум RPS найден\n- [ ] Тест стабильности пройден (1 час)\n- [ ] Результаты сохранены\n- [ ] Отчёт об утечках памяти",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-110",
+      "summary": "Провести Тест B — Optimized (с Redis/Kafka)",
+      "description": "## Задача\nПровести нагрузочное тестирование API с Redis и Kafka.\n\n## Этапы\n\n### 1. Подготовка\n- Переключить API в режим cache\n- Убедиться что Redis и Kafka работают\n- Проверить health всех сервисов\n\n### 2. Поиск максимума\n- Step-load: 10 → 200+ users\n- Критерии остановки: Error >= 1% ИЛИ p95 >= 500ms\n- Записать максимальный RPS\n- Сравнить с Тестом A\n\n### 3. Тест стабильности\n- Нагрузка: 80% от максимума\n- Длительность: 1 час\n- Мониторинг:\n  - JVM heap (утечки памяти)\n  - Redis memory/hits\n  - Kafka lag\n  - CPU usage\n  - DB connections\n\n### 4. Сохранение результатов\n- Locust CSV/JSON\n- Скриншоты Grafana\n- Загрузка в Allure\n\n## Критерии готовности\n- [ ] Максимум RPS найден\n- [ ] Тест стабильности пройден (1 час)\n- [ ] Результаты сохранены\n- [ ] Сравнение с Тестом A",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-111",
+      "summary": "Подготовить итоговый отчёт по НТ",
+      "description": "## Задача\nПодготовить развёрнутый отчёт по результатам A/B тестирования в формате AsciiDoc.\n\n## Содержание отчёта\n\n### 1. Executive Summary\n- Краткие выводы\n- Рекомендации\n\n### 2. Результаты Теста A (Baseline)\n- Максимальный RPS\n- Latency (avg, p50, p95, p99)\n- Error rate\n- Потребление ресурсов\n- Утечки памяти (да/нет)\n\n### 3. Результаты Теста B (Optimized)\n- Максимальный RPS\n- Latency (avg, p50, p95, p99)\n- Error rate\n- Redis cache hit ratio\n- Kafka throughput\n- Потребление ресурсов\n- Утечки памяти (да/нет)\n\n### 4. Сравнительный анализ\n- Таблица A vs B\n- Графики производительности\n- Прирост/падение метрик (%)\n\n### 5. Выводы\n- Влияние Redis на производительность\n- Влияние Kafka на стабильность\n- Рекомендации для Production\n\n## Критерии готовности\n- [ ] Отчёт написан в AsciiDoc\n- [ ] Все данные из тестов включены\n- [ ] Графики и таблицы добавлены\n- [ ] Выводы сформулированы",
+      "state": "Submitted",
+      "issue_type": "Task",
+      "priority": "Major",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-112",
+      "summary": "Настройка и стабилизация E2E и UI тестирования",
+      "description": "## Цель\nНастроить полноценное автоматизированное тестирование для staging и production окружений с отчётами в Allure.\n\n## Что сделано (ретроспективно)\n\n### 1. Selenoid инфраструктура\n- Перенесён из K8s в Docker Compose (`selenoid/docker-compose.yml`)\n- Исправлена сетевая изоляция контейнеров (`-container-network selenoid_default`)\n- Браузер: Chrome 127.0\n- UI: http://192.168.1.74:8090\n\n### 2. Allure Report Server\n- Единый сервер для всех отчётов (`allure/docker-compose.yml`)\n- Проекты: `warehouse-api`, `warehouse-ui-staging`, `warehouse-ui-prod`\n- UI: http://192.168.1.74:5252\n- API: http://192.168.1.74:5050\n\n### 3. UI тесты (Selenide)\n- Добавлены data-testid атрибуты во frontend\n- Обновлены Page Objects на новые локаторы\n- Тесты: LoginTest, ProductsTest, RoleAccessTest\n- Результат: 13/15 passed (2 RBAC бага найдены)\n\n### 4. Pipeline в GitLab\n- `run-ui-tests-staging` - UI тесты для staging\n- `run-ui-tests-prod` - UI тесты для production\n- Загрузка результатов архивом в Allure\n\n## Что тр",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 180,
+      "spent_hours_with_ai": 3.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 900.0,
+        "estimated_hours_without_ai": 15.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-113",
+      "summary": "WH-112: Настройка Selenoid для UI тестирования",
+      "description": "## Задача\nПеренести Selenoid из K8s в Docker Compose и настроить для стабильной работы UI тестов.\n\n## Результат\n\n### Конфигурация\n- `selenoid/docker-compose.yml` - Docker Compose файл\n- `selenoid/config/browsers.json` - конфигурация браузеров\n\n### Исправленные проблемы\n1. **Сетевая изоляция** - браузерные контейнеры создавались в другой сети\n   - Решение: добавлен флаг `-container-network selenoid_default`\n2. **Chrome 128.0 не отвечал** - образ устарел\n   - Решение: скачан Chrome 127.0, обновлён default в browsers.json\n\n### Доступ\n- Selenoid API: http://192.168.1.74:4444/wd/hub\n- Selenoid UI: http://192.168.1.74:8090\n\n### Коммиты\n- `9860873` fix(selenoid): Add container-network for browser containers",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    },
+    {
+      "id": "WH-114",
+      "summary": "Настройка Selenoid для UI тестирования",
+      "description": "## Результат\n\n### Проблема\nSelenoid создавал браузерные контейнеры в сети `bridge` (172.17.x.x), в то время как сам находился в сети `selenoid_default` (172.21.x.x). Контейнеры не могли обмениваться данными.\n\n### Решение\n1. Добавлен флаг `-container-network selenoid_default` в docker-compose.yml\n2. Chrome 128.0 не отвечал на запросы - скачан Chrome 127.0 и установлен как default\n3. Создана конфигурация browsers.json с Chrome 127.0/128.0 и Firefox 125.0\n\n### Файлы\n- `selenoid/docker-compose.yml` - добавлен container-network\n- `selenoid/config/browsers.json` - конфигурация браузеров\n\n### Статус\nSelenoid работает корректно, браузерные контейнеры создаются в правильной сети.",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 300.0,
+        "estimated_hours_without_ai": 5.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-115",
+      "summary": "Настройка Allure Report Server",
+      "description": "## Результат\n\n### Проблема\n1. Allure UI показывал Network Error - указывал на неправильный IP (100.81.243.12 вместо 192.168.1.74)\n2. Ошибка 404 из-за дублирования пути: `/allure-docker-service/allure-docker-service`\n\n### Решение\n1. Создан единый docker-compose.yml для Allure server\n2. Настроен `ALLURE_DOCKER_PUBLIC_API_URL: http://192.168.1.74:5050`\n3. Исправлен `ALLURE_DOCKER_PUBLIC_API_URL_PREFIX: \"\"` (пустой)\n4. Создана структура проектов:\n   - warehouse-api (E2E тесты)\n   - warehouse-ui-staging (UI тесты staging)\n   - warehouse-ui-prod (UI тесты production)\n\n### Файлы\n- `allure/docker-compose.yml` - конфигурация Allure server\n\n### Доступ\n- UI: http://192.168.1.74:5252\n- API: http://192.168.1.74:5050/allure-docker-service",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "DevOps",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "Grafana дашборды, Prometheus, конфигурация"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "SRE"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-116",
+      "summary": "UI тесты с data-testid атрибутами",
+      "description": "## Результат\n\n### Проблема\nUI тесты использовали нестабильные локаторы (CSS классы, XPath), которые ломались при изменении вёрстки.\n\n### Решение\n1. Добавлены data-testid атрибуты во frontend компоненты:\n   - Sidebar: nav-dashboard, nav-products, nav-warehouses, nav-suppliers, nav-reports, nav-settings, nav-about\n   - Header: header-title, user-menu, user-name, menu-item-profile, menu-item-settings, menu-item-logout\n   - Login: login-title, input-username, input-password, btn-login, error-message\n   - Dashboard: dashboard-title, products-total-value, products-count-value, warehouses-count-value, low-stock-count-value\n   - Products: products-title, btn-add-product, product-row-*, product-name-*, edit-product-*, delete-product-*\n   - ProductForm: product-form-title, input-product-name, input-product-description, input-product-price, input-product-quantity, select-product-category, btn-save-product, btn-cancel-product\n\n2. Обновлены Page Objects в ui-tests для использования новых локаторов\n",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "Testing",
+      "spent_minutes_with_ai": 120,
+      "spent_hours_with_ai": 2.0,
+      "extrapolation": {
+        "coefficient": 5.0,
+        "complexity": "medium-high",
+        "estimated_minutes_without_ai": 600.0,
+        "estimated_hours_without_ai": 10.0,
+        "reasoning": "Тест-дизайн, Selenide/RestAssured, инфра тестов"
+      },
+      "required_specialists": [
+        "QA Automation Engineer",
+        "SDET"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-117",
+      "summary": "Разделение pipeline на staging и production",
+      "description": "## Результат\n\n### Изменения в .gitlab-ci.yml\n\n1. **UI тесты разделены на два окружения:**\n   - `run-ui-tests-staging` - тестирует http://192.168.1.74:30081\n   - `run-ui-tests-prod` - тестирует https://wh-lab.ru\n\n2. **Оптимизация загрузки результатов:**\n   - Результаты загружаются как tar.gz архив (быстрее чем поштучно)\n   - Автоматическое создание проекта в Allure если не существует\n\n3. **Автоматический запуск Selenoid:**\n   - Проверка статуса Selenoid перед тестами\n   - Автозапуск если не работает\n\n### Проекты Allure\n- warehouse-api - E2E тесты API\n- warehouse-ui-staging - UI тесты staging\n- warehouse-ui-prod - UI тесты production",
+      "state": "Fixed",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": "CI/CD",
+      "spent_minutes_with_ai": 60,
+      "spent_hours_with_ai": 1.0,
+      "extrapolation": {
+        "coefficient": 4.0,
+        "complexity": "medium",
+        "estimated_minutes_without_ai": 240.0,
+        "estimated_hours_without_ai": 4.0,
+        "reasoning": "GitLab CI YAML, Docker, скрипты деплоя"
+      },
+      "required_specialists": [
+        "DevOps Engineer",
+        "Release Engineer"
+      ],
+      "work_date": "2025-11-29",
+      "created": "2025-11-29",
+      "resolved": "2025-11-29"
+    },
+    {
+      "id": "WH-118",
+      "summary": "RBAC: Неправильная видимость кнопки Add Product для разных ролей",
+      "description": "## Описание\n\nUI тесты выявили проблемы с RBAC для кнопки \"Add Product\".\n\n## Проблемы\n\n### 1. Employee видит Add Product (не должен)\n- Тест: `RoleAccessTest.testEmployeeReadOnly`\n- Ожидание: Employee НЕ должен видеть кнопку Add Product\n- Реальность: Employee ВИДИТ кнопку Add Product\n\n### 2. Manager не видит Add Product (должен)\n- Тест: `RoleAccessTest.testManagerAccess`\n- Ожидание: Manager ДОЛЖЕН видеть кнопку Add Product\n- Реальность: Manager НЕ ВИДИТ кнопку Add Product\n\n## Ожидаемое поведение\n| Роль | Add Product | Edit | Delete |\n|------|-------------|------|--------|\n| Admin | Да | Да | Да |\n| Manager | Да | Да | Нет |\n| Employee | Нет | Нет | Нет |\n\n## Воспроизведение\n1. Запустить UI тесты: `./mvnw test -Dtest=RoleAccessTest`\n2. Или вручную залогиниться как manager/employee и проверить видимость кнопок",
+      "state": "Submitted",
+      "issue_type": "Bug",
+      "priority": "Normal",
+      "work_type": null,
+      "spent_minutes_with_ai": 0,
+      "spent_hours_with_ai": 0.0,
+      "extrapolation": {
+        "coefficient": 3.0,
+        "complexity": "unknown",
+        "estimated_minutes_without_ai": 0.0,
+        "estimated_hours_without_ai": 0.0,
+        "reasoning": ""
+      },
+      "required_specialists": [
+        "Developer"
+      ],
+      "work_date": null,
+      "created": "2025-11-29",
+      "resolved": null
+    }
+  ],
+  "daily_breakdown": {
+    "2025-11-29": {
+      "hours_with_ai": 41.5,
+      "hours_without_ai": 204.0,
+      "task_count": 23
+    },
+    "2025-11-28": {
+      "hours_with_ai": 14.0,
+      "hours_without_ai": 56.0,
+      "task_count": 6
+    },
+    "2025-11-27": {
+      "hours_with_ai": 11.0,
+      "hours_without_ai": 49.0,
+      "task_count": 7
+    },
+    "2025-11-26": {
+      "hours_with_ai": 16.0,
+      "hours_without_ai": 67.0,
+      "task_count": 5
+    },
+    "2025-11-25": {
+      "hours_with_ai": 3.0,
+      "hours_without_ai": 18.0,
+      "task_count": 1
+    }
+  },
+  "recommendations": [
+    {
+      "area": "Инфраструктура",
+      "finding": "Самый высокий коэффициент экстраполяции (6.0x) - 15.0ч превратились бы в 90.0ч",
+      "recommendation": "ИИ наиболее эффективен для инфраструктурных задач - K8s, Docker, CI/CD конфиги"
+    },
+    {
+      "area": "Тестирование",
+      "finding": "Высокий коэффициент (5.0x) - автоматизация тестов существенно ускоряется с ИИ",
+      "recommendation": "Использовать ИИ для генерации тестов, Page Objects, test fixtures"
+    },
+    {
+      "area": "Команда",
+      "finding": "Без ИИ потребовалось бы 11 специалистов",
+      "recommendation": "С ИИ-агентом 1 специалист покрывает компетенции всей команды"
+    }
+  ]
+}
