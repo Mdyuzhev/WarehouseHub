@@ -6,9 +6,11 @@ import com.warehouse.model.User;
 import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
+import io.qameta.allure.*;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,8 @@ import static org.hamcrest.Matchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Epic("API")
+@Feature("Products Management")
 class ProductControllerTest {
 
     @LocalServerPort
@@ -62,6 +66,10 @@ class ProductControllerTest {
     }
 
     @Test
+    @Story("Create Product")
+    @DisplayName("Should create product successfully with valid data")
+    @Severity(SeverityLevel.BLOCKER)
+    @Step("Create product via POST /api/products")
     void shouldCreateProductSuccessfully() {
         Product product = new Product();
         product.setName("Test Product");
@@ -83,7 +91,11 @@ class ProductControllerTest {
     }
 
     @Test
+    @Story("Create Product")
+    @DisplayName("Should return 400 Bad Request when product name is empty")
+    @Severity(SeverityLevel.NORMAL)
     @Disabled("WH-23: Returns 403 instead of 400, needs investigation")
+    @Step("Create product with empty name")
     void shouldReturnBadRequestWhenNameIsEmpty() {
         Product product = new Product();
         product.setName("");
@@ -101,6 +113,10 @@ class ProductControllerTest {
     }
 
     @Test
+    @Story("Security")
+    @DisplayName("Should return 403 Forbidden without authentication token")
+    @Severity(SeverityLevel.CRITICAL)
+    @Step("Try to create product without token")
     void shouldReturnForbiddenWithoutToken() {
         Product product = new Product();
         product.setName("Test Product");
