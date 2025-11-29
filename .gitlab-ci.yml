@@ -319,6 +319,62 @@ run-load-tests:
     - shell
   when: manual
 
+# API Tests for Staging environment
+run-api-tests-staging:
+  stage: test
+  variables:
+    BASE_URL: "http://192.168.1.74:30080"
+    PROJECT_ID: "warehouse-api-staging"
+  script:
+    - echo "Running API Tests on STAGING..."
+    - echo "Target URL - $BASE_URL"
+    - cd /home/flomaster/warehouse-master/api-tests
+    - sudo rm -rf target/ || true
+    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    # Upload to Allure
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd /home/flomaster/warehouse-master/api-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "API STAGING ALLURE REPORT - http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/api-tests/target/ || true
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: api-test-staging
+    url: http://192.168.1.74:30080
+
+# API Tests for Production environment
+run-api-tests-prod:
+  stage: test
+  variables:
+    BASE_URL: "https://api.wh-lab.ru"
+    PROJECT_ID: "warehouse-api-prod"
+  script:
+    - echo "Running API Tests on PRODUCTION..."
+    - echo "Target URL - $BASE_URL"
+    - cd /home/flomaster/warehouse-master/api-tests
+    - sudo rm -rf target/ || true
+    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    # Upload to Allure
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd /home/flomaster/warehouse-master/api-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "API PROD ALLURE REPORT - http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/api-tests/target/ || true
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: api-test-production
+    url: https://api.wh-lab.ru
+
 # =============================================================================
 # TELEGRAM BOT
 # =============================================================================

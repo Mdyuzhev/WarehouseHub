@@ -3,10 +3,14 @@ report-widget.zip
 
 # Maven build artifacts
 ui-tests/target/
+api-tests/target/
 ui-tests/target.bak.*/
 ui-tests/.mvn/
 ui-tests/mvnw
 ui-tests/mvnw.cmd
+api-tests/.mvn/
+api-tests/mvnw
+api-tests/mvnw.cmd
 
 # E2E test screenshots
 e2e-tests/screenshots/
