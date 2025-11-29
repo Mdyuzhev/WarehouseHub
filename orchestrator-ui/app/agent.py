@@ -4,9 +4,9 @@
 """
 
 import httpx
-from anthropic import AsyncAnthropic
 from typing import Optional
 import json
+import traceback
 
 from .config import CLAUDE_PROXY_URL, ANTHROPIC_API_KEY
 from .database import (
@@ -16,50 +16,25 @@ from .database import (
 )
 
 # Системный промпт для агента
-SYSTEM_PROMPT = """Ты - помощник для управления Warehouse системой. Твои возможности:
+SYSTEM_PROMPT = """Ты - помощник для управления Warehouse системой. Отвечай коротко и по делу.
 
-1. **Анализ логов** - можешь разобраться что пошло не так
-2. **Советы по деплою** - подсказать как лучше развернуть
-3. **Диагностика проблем** - помочь найти причину ошибок
-4. **Ответы на вопросы** - по архитектуре, K8s, Docker и т.д.
-
-Контекст системы:
-- Warehouse API: Spring Boot приложение на K8s
+Контекст:
+- Warehouse API: Spring Boot на K8s
 - Frontend: Vue.js SPA
-- База данных: PostgreSQL
-- Кеш: Redis
+- База: PostgreSQL
 - Кластер: K3s на 192.168.1.74
 
-ВАЖНО: Отвечай с юмором! Ты в 8-битной консоли, так что можно добавить:
-- Отсылки к ретро-играм
-- ASCII-арт (но небольшой)
-- Эмодзи по настроению
-- Сарказм (в меру)
-
-Но при этом будь полезным и давай конкретные советы!
+Отвечай с юмором, но будь полезным!
 """
 
 
 class AgentService:
     def __init__(self):
-        self.client = None
-        self._init_client()
-
-    def _init_client(self):
-        """Инициализация клиента Anthropic"""
-        if ANTHROPIC_API_KEY:
-            self.client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-        else:
-            # Используем прокси
-            self.client = AsyncAnthropic(
-                api_key="dummy",  # Прокси не требует ключ
-                base_url=CLAUDE_PROXY_URL
-            )
+        self.proxy_url = CLAUDE_PROXY_URL
 
     async def chat(self, user_message: str, context: Optional[str] = None) -> str:
         """
         Отправить сообщение агенту и получить ответ
-        context - дополнительный контекст (логи, статус и т.д.)
         """
         try:
             # Получаем или создаём сессию
@@ -68,48 +43,49 @@ class AgentService:
             # Сохраняем сообщение пользователя
             await add_message(session_id, "user", user_message)
 
-            # Получаем историю для контекста
-            history = await get_session_messages(session_id, limit=20)
+            # Получаем историю для контекста (последние 10 сообщений)
+            history = await get_session_messages(session_id, limit=10)
 
             # Формируем сообщения для API
             messages = []
-
-            # Добавляем контекст если есть
-            if context:
-                messages.append({
-                    "role": "user",
-                    "content": f"[Контекст системы]\n{context}"
-                })
-                messages.append({
-                    "role": "assistant",
-                    "content": "Понял, учту этот контекст."
-                })
-
-            # Добавляем историю
             for msg in history:
-                messages.append({
-                    "role": msg["role"] if msg["role"] == "user" else "assistant",
-                    "content": msg["content"]
-                })
+                role = "user" if msg["role"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
 
-            # Вызываем Claude
-            response = await self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                messages=messages
-            )
+            # Вызываем Claude через прокси напрямую
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.proxy_url}/v1/messages",
+                    json={
+                        "model": "claude-sonnet-4-20250514",
+                        "max_tokens": 1024,
+                        "system": SYSTEM_PROMPT,
+                        "messages": messages
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
 
-            # Извлекаем ответ
-            assistant_message = response.content[0].text
+                if response.status_code != 200:
+                    return f"🔥 Прокси вернул ошибку {response.status_code}: {response.text[:200]}"
+
+                data = response.json()
+
+                # Извлекаем ответ
+                if "content" in data and len(data["content"]) > 0:
+                    assistant_message = data["content"][0].get("text", "")
+                else:
+                    assistant_message = str(data)
 
             # Сохраняем ответ
             await add_message(session_id, "agent", assistant_message)
 
             return assistant_message
 
+        except httpx.TimeoutException:
+            return "⏰ Таймаут! Агент думает слишком долго, попробуй ещё раз."
         except Exception as e:
-            error_msg = f"🔥 Упс! Агент временно недоступен: {str(e)}"
+            error_msg = f"🔥 Ошибка: {str(e)}"
+            print(f"Agent error: {traceback.format_exc()}")
             return error_msg
 
     async def analyze_logs(self, logs: str) -> str:

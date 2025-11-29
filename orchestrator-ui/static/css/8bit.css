@@ -9,22 +9,22 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 :root {
-    /* Палитра в стиле старого монитора */
+    /* Палитра — приглушённая, чтобы глаза не резало */
     --bg-dark: #0a0a0a;
     --bg-terminal: #0d1117;
-    --green-bright: #00ff41;
-    --green-dim: #00aa2a;
-    --green-dark: #004d1a;
-    --amber: #ffb000;
-    --red-alert: #ff0040;
-    --cyan: #00ffff;
-    --magenta: #ff00ff;
-    --white: #ffffff;
-    --gray: #666666;
+    --green-bright: #4a9f5a;
+    --green-dim: #2d6b3a;
+    --green-dark: #1a3d22;
+    --amber: #b8860b;
+    --red-alert: #a63d4f;
+    --cyan: #5a9ea8;
+    --magenta: #8b5a8b;
+    --white: #c0c0c0;
+    --gray: #555555;
 
-    /* CRT эффект */
-    --scanline-color: rgba(0, 255, 65, 0.03);
-    --glow-color: rgba(0, 255, 65, 0.5);
+    /* CRT эффект — тоже мягче */
+    --scanline-color: rgba(74, 159, 90, 0.02);
+    --glow-color: rgba(74, 159, 90, 0.3);
 }
 
 * {

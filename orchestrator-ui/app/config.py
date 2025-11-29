@@ -24,7 +24,7 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 # Kubernetes
 KUBECONFIG = os.getenv("KUBECONFIG", os.path.expanduser("~/.kube/config"))
 
-# Сервисы (для мониторинга)
+# Сервисы (для мониторинга) — только те что реально есть
 SERVICES = {
     "api": {
         "name": "warehouse-api",
@@ -44,13 +44,6 @@ SERVICES = {
         "name": "postgresql",
         "namespace": "warehouse",
         "icon": "🗄️",
-        "url": None,
-        "health_endpoint": None
-    },
-    "redis": {
-        "name": "redis",
-        "namespace": "warehouse",
-        "icon": "⚡",
         "url": None,
         "health_endpoint": None
     }
