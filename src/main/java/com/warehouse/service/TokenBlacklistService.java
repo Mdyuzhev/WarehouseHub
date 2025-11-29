@@ -1,7 +1,8 @@
 package com.warehouse.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,13 +12,20 @@ import java.util.Date;
 /**
  * JWT Token Blacklist Service using Redis.
  * Allows invalidating tokens on logout.
+ * Опциональный - работает только если Redis доступен.
  */
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(RedisTemplate.class)
 @Slf4j
 public class TokenBlacklistService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    public TokenBlacklistService(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        log.info("TokenBlacklistService initialized with Redis");
+    }
 
     private static final String BLACKLIST_PREFIX = "jwt_blacklist:";
 

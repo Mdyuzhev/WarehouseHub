@@ -10,6 +10,7 @@ import com.warehouse.security.JwtService;
 import com.warehouse.service.RateLimitingService;
 import com.warehouse.service.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,16 +30,16 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RateLimitingService rateLimitingService;
-    private final TokenBlacklistService tokenBlacklistService;
+    private final RateLimitingService rateLimitingService;  // nullable если Redis недоступен
+    private final TokenBlacklistService tokenBlacklistService;  // nullable если Redis недоступен
 
     public AuthController(
             @Lazy AuthenticationManager authenticationManager,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            RateLimitingService rateLimitingService,
-            TokenBlacklistService tokenBlacklistService) {
+            @Autowired(required = false) RateLimitingService rateLimitingService,
+            @Autowired(required = false) TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,8 +53,8 @@ public class AuthController {
         String clientIp = getClientIp(httpRequest);
         String rateLimitKey = request.getUsername() + ":" + clientIp;
 
-        // Check rate limit
-        if (!rateLimitingService.isLoginAllowed(rateLimitKey)) {
+        // Check rate limit (only if Redis is available)
+        if (rateLimitingService != null && !rateLimitingService.isLoginAllowed(rateLimitKey)) {
             long retryAfter = rateLimitingService.getTimeUntilReset(rateLimitKey);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(retryAfter))
@@ -71,8 +72,10 @@ public class AuthController {
             User user = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> new BadCredentialsException("User not found"));
 
-            // Reset rate limit on successful login
-            rateLimitingService.resetLoginAttempts(rateLimitKey);
+            // Reset rate limit on successful login (only if Redis is available)
+            if (rateLimitingService != null) {
+                rateLimitingService.resetLoginAttempts(rateLimitKey);
+            }
 
             String token = jwtService.generateToken(user);
 
@@ -84,12 +87,17 @@ public class AuthController {
                     .build());
 
         } catch (BadCredentialsException e) {
-            int remaining = rateLimitingService.getRemainingAttempts(rateLimitKey);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(
-                            "error", "Invalid username or password",
-                            "remainingAttempts", remaining
-                    ));
+            int remaining = rateLimitingService != null ? rateLimitingService.getRemainingAttempts(rateLimitKey) : -1;
+            if (remaining >= 0) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of(
+                                "error", "Invalid username or password",
+                                "remainingAttempts", remaining
+                        ));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid username or password"));
+            }
         }
     }
 
@@ -165,8 +173,12 @@ public class AuthController {
 
         try {
             String token = authHeader.substring(7);
-            java.util.Date expiration = jwtService.extractExpiration(token);
-            tokenBlacklistService.blacklistToken(token, expiration);
+
+            // Blacklist token only if Redis is available
+            if (tokenBlacklistService != null) {
+                java.util.Date expiration = jwtService.extractExpiration(token);
+                tokenBlacklistService.blacklistToken(token, expiration);
+            }
 
             return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
         } catch (Exception e) {

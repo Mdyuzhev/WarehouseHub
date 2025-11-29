@@ -2,7 +2,9 @@ package com.warehouse.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,13 +13,20 @@ import java.time.Duration;
 /**
  * Rate Limiting Service using Redis.
  * Protects endpoints from brute force attacks.
+ * Опциональный - работает только если Redis доступен.
  */
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(RedisTemplate.class)
 @Slf4j
 public class RateLimitingService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    public RateLimitingService(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        log.info("RateLimitingService initialized with Redis");
+    }
 
     private static final String RATE_LIMIT_PREFIX = "rate_limit:";
 

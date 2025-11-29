@@ -5,7 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,12 +18,21 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
-    private final TokenBlacklistService tokenBlacklistService;
+    private final TokenBlacklistService tokenBlacklistService;  // nullable если Redis недоступен
+
+    @Autowired
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            UserDetailsService userDetailsService,
+            @Autowired(required = false) TokenBlacklistService tokenBlacklistService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     @Override
     protected void doFilterInternal(
@@ -43,8 +52,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
 
-        // Check if token is blacklisted (user logged out)
-        if (tokenBlacklistService.isBlacklisted(jwt)) {
+        // Check if token is blacklisted (user logged out) - only if Redis is available
+        if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jwt)) {
             logger.debug("Token is blacklisted, rejecting request");
             filterChain.doFilter(request, response);
             return;
