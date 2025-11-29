@@ -69,7 +69,6 @@ deploy-frontend-staging:
   stage: deploy-staging
   script:
     - echo "🚀 Deploying Frontend to Staging..."
-    - kubectl apply -f k8s/warehouse/frontend-configmap.yaml
     - kubectl apply -f k8s/warehouse/frontend-deployment.yaml
     - kubectl apply -f k8s/warehouse/frontend-service.yaml
     - kubectl rollout restart deployment/warehouse-frontend -n $K8S_NAMESPACE_APP
