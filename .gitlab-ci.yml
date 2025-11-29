@@ -2,12 +2,24 @@
 # Warehouse Master - Оркестрация деплоя и тестирования
 # =============================================================================
 
+# Чтобы pipeline не падал когда все jobs manual
+workflow:
+  rules:
+    - when: always
+
 stages:
-  - build
+  - init
   - deploy-staging
   - deploy-prod
   - test
-  - notify
+
+# Фейковый job чтобы pipeline был "успешным" и показывал кнопки
+pipeline-init:
+  stage: init
+  script:
+    - echo "🎮 Pipeline ready! Click buttons below to run jobs."
+  tags:
+    - shell
 
 # =============================================================================
 # Переменные
