@@ -1,2 +1,15 @@
 __pycache__/
 report-widget.zip
+
+# Maven build artifacts
+ui-tests/target/
+ui-tests/.mvn/
+ui-tests/mvnw
+ui-tests/mvnw.cmd
+
+# E2E test screenshots
+e2e-tests/screenshots/
+
+# Python virtual environments
+.venv/
+venv/
