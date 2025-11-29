@@ -41,7 +41,7 @@ SERVICES = {
         "health_endpoint": "/"
     },
     "postgres": {
-        "name": "postgresql",
+        "name": "postgres",
         "namespace": "warehouse",
         "icon": "🗄️",
         "url": None,

@@ -117,16 +117,27 @@ async def check_service_health(service_key: str) -> dict:
 async def check_pod_status(name: str, namespace: str) -> dict:
     """Проверить статус пода через kubectl"""
     try:
+        # Пробуем найти под по имени (для StatefulSet типа postgres-0)
         process = await asyncio.create_subprocess_exec(
-            "kubectl", "get", "pods", "-n", namespace,
-            "-l", f"app={name}",
-            "-o", "jsonpath={.items[0].status.phase}",
+            "kubectl", "get", "pod", f"{name}-0", "-n", namespace,
+            "-o", "jsonpath={.status.phase}",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-
         phase = stdout.decode().strip()
+
+        # Если не нашли по имени-0, пробуем по label
+        if not phase:
+            process = await asyncio.create_subprocess_exec(
+                "kubectl", "get", "pods", "-n", namespace,
+                "-l", f"app={name}",
+                "-o", "jsonpath={.items[0].status.phase}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            phase = stdout.decode().strip()
 
         if phase == "Running":
             return {"status": "live", "message": "Под работает! 🏃"}
