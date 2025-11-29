@@ -229,7 +229,7 @@ run-ui-tests:
     - cd ui-tests
     - rm -rf target/ || true
     - |
-      mvn test \
+      ./mvnw test \
         -Dbase.url=$BASE_URL \
         -Dselenoid.url=$SELENOID_URL \
         -Dbrowser=chrome \
