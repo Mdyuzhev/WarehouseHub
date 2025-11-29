@@ -41,4 +41,9 @@ public class Product {
     @Schema(description = "Product description", example = "High-performance laptop")
     @Column(length = 100)
     private String description;
+
+    @Size(max = 50, message = "Category max length is 50 characters")
+    @Schema(description = "Product category", example = "Электроника")
+    @Column(length = 50)
+    private String category;
 }
