@@ -43,7 +43,7 @@ services:
       - "5252:5252"
     environment:
       ALLURE_DOCKER_PUBLIC_API_URL: "http://192.168.1.74:5050"
-      ALLURE_DOCKER_PUBLIC_API_URL_PREFIX: "/allure-docker-service"
+      ALLURE_DOCKER_PUBLIC_API_URL_PREFIX: ""
     depends_on:
       - allure-server
     restart: unless-stopped
