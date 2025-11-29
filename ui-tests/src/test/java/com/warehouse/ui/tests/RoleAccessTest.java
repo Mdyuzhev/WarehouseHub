@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.$;
 
-@Epic("Authorization")
-@Feature("Role-Based Access Control")
+@Epic("Авторизация")
+@Feature("Ролевая модель доступа (RBAC)")
 @Tag("rbac")
 public class RoleAccessTest extends BaseTest {
 
@@ -21,72 +21,76 @@ public class RoleAccessTest extends BaseTest {
     private final ProductsPage productsPage = new ProductsPage();
 
     @Test
-    @Story("Admin Access")
-    @DisplayName("Admin should have full access to products")
+    @Story("Доступ администратора")
+    @DisplayName("Администратор имеет полный доступ к управлению товарами")
+    @Description("Проверка что администратор (роль ADMIN) видит все кнопки управления: добавление, редактирование и удаление товаров")
     @Severity(SeverityLevel.CRITICAL)
     void testAdminFullAccess() {
         loginPage.login(config.adminUsername(), config.adminPassword());
         loginPage.verifyLoginSuccess();
 
-        // Admin should see products section
+        // Администратор должен видеть раздел товаров
         productsPage.verifySectionVisible();
 
-        // Admin should see Add Product link
-        Assertions.assertTrue(productsPage.isAddProductVisible(), "Admin should see Add Product");
+        // Администратор должен видеть кнопку добавления товара
+        Assertions.assertTrue(productsPage.isAddProductVisible(), "Администратор должен видеть кнопку 'Добавить товар'");
 
-        // Admin should see Edit buttons
-        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Admin should see Edit buttons");
+        // Администратор должен видеть кнопки редактирования
+        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Администратор должен видеть кнопки 'Редактировать'");
 
-        // Admin should see Delete buttons
-        Assertions.assertTrue(productsPage.isDeleteButtonVisible(), "Admin should see Delete buttons");
+        // Администратор должен видеть кнопки удаления
+        Assertions.assertTrue(productsPage.isDeleteButtonVisible(), "Администратор должен видеть кнопки 'Удалить'");
     }
 
     @Test
-    @Story("Manager Access")
-    @DisplayName("Manager should be able to view and edit products")
+    @Story("Доступ менеджера")
+    @DisplayName("Менеджер может просматривать и редактировать товары")
+    @Description("Проверка что менеджер (роль MANAGER) имеет доступ к просмотру, добавлению и редактированию товаров")
     @Severity(SeverityLevel.CRITICAL)
     void testManagerAccess() {
         loginPage.login(config.managerUsername(), config.managerPassword());
         loginPage.verifyLoginSuccess();
 
-        // Manager should see products section
+        // Менеджер должен видеть раздел товаров
         productsPage.verifySectionVisible();
 
-        // Manager should see Add Product link
-        Assertions.assertTrue(productsPage.isAddProductVisible(), "Manager should see Add Product");
+        // Менеджер должен видеть кнопку добавления товара
+        Assertions.assertTrue(productsPage.isAddProductVisible(), "Менеджер должен видеть кнопку 'Добавить товар'");
 
-        // Manager should see Edit buttons
-        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Manager should see Edit buttons");
+        // Менеджер должен видеть кнопки редактирования
+        Assertions.assertTrue(productsPage.isEditButtonVisible(), "Менеджер должен видеть кнопки 'Редактировать'");
     }
 
     @Test
-    @Story("Employee Access")
-    @DisplayName("Employee should only have read access")
+    @Story("Доступ сотрудника")
+    @DisplayName("Сотрудник имеет только права на просмотр товаров")
+    @Description("Проверка что сотрудник (роль EMPLOYEE) не видит кнопки управления товарами - только просмотр списка")
     @Severity(SeverityLevel.CRITICAL)
     void testEmployeeReadOnly() {
         loginPage.login(config.employeeUsername(), config.employeePassword());
         loginPage.verifyLoginSuccess();
 
-        // Employee should see products section
+        // Сотрудник должен видеть раздел товаров
         productsPage.verifySectionVisible();
 
-        // Employee should NOT see Add Product link
-        Assertions.assertFalse(productsPage.isAddProductVisible(), "Employee should NOT see Add Product");
+        // Сотрудник НЕ должен видеть кнопку добавления товара
+        Assertions.assertFalse(productsPage.isAddProductVisible(), "Сотрудник НЕ должен видеть кнопку 'Добавить товар'");
 
-        // Employee should NOT see Edit buttons
-        Assertions.assertFalse(productsPage.isEditButtonVisible(), "Employee should NOT see Edit buttons");
+        // Сотрудник НЕ должен видеть кнопки редактирования
+        Assertions.assertFalse(productsPage.isEditButtonVisible(), "Сотрудник НЕ должен видеть кнопки 'Редактировать'");
 
-        // Employee should NOT see Delete buttons
-        Assertions.assertFalse(productsPage.isDeleteButtonVisible(), "Employee should NOT see Delete buttons");
+        // Сотрудник НЕ должен видеть кнопки удаления
+        Assertions.assertFalse(productsPage.isDeleteButtonVisible(), "Сотрудник НЕ должен видеть кнопки 'Удалить'");
     }
 
     @Test
-    @Story("Unauthorized Access")
-    @DisplayName("Login page should be shown for unauthenticated users")
+    @Story("Неавторизованный доступ")
+    @DisplayName("Неавторизованный пользователь видит страницу входа")
+    @Description("Проверка редиректа неавторизованного пользователя на страницу входа при попытке доступа к системе")
     @Severity(SeverityLevel.BLOCKER)
     void testUnauthenticatedRedirect() {
-        // When opening the app without authentication
-        // Login form should be visible (since app redirects to login)
+        // При открытии приложения без авторизации
+        // Должна отображаться форма входа (редирект на страницу логина)
         $("[data-testid='username-input']").shouldBe(visible);
         $("[data-testid='password-input']").shouldBe(visible);
         $("[data-testid='login-button']").shouldBe(visible);

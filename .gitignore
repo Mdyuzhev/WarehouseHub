@@ -15,6 +15,12 @@ api-tests/mvnw.cmd
 # E2E test screenshots
 e2e-tests/screenshots/
 
+# UI test screenshots (Selenide)
+ui-tests/screenshots/
+
+# Selenoid runtime logs
+selenoid/logs/
+
 # Python virtual environments
 .venv/
 venv/

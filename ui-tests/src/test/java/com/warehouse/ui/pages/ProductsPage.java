@@ -9,80 +9,80 @@ import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
 
 /**
- * Products Page Object for Warehouse application.
- * Uses data-testid attributes for reliable element selection.
+ * Page Object для страницы товаров системы Warehouse.
+ * Использует data-testid атрибуты для надёжной идентификации элементов.
  */
 public class ProductsPage {
 
-    // Main elements
+    // Основные элементы раздела товаров
     private final SelenideElement productsSection = $("[data-testid='products-section']");
     private final SelenideElement productsTitle = $("[data-testid='products-title']");
     private final SelenideElement productsList = $("[data-testid='products-list']");
     private final ElementsCollection productItems = $$("[data-testid^='product-item-']");
 
-    // Navigation
+    // Элементы навигации
     private final SelenideElement navAddProduct = $("[data-testid='nav-add-product']");
     private final SelenideElement navProducts = $("[data-testid='nav-products']");
 
-    @Step("Verify products section is visible")
+    @Step("Проверить отображение раздела 'Товары' на странице")
     public ProductsPage verifySectionVisible() {
         productsSection.shouldBe(visible);
         return this;
     }
 
-    @Step("Verify products title is visible")
+    @Step("Проверить отображение заголовка раздела товаров")
     public ProductsPage verifyTitleVisible() {
         productsTitle.shouldBe(visible);
         return this;
     }
 
-    @Step("Verify products list is visible")
+    @Step("Проверить отображение списка товаров на складе")
     public ProductsPage verifyListVisible() {
         productsList.shouldBe(visible);
         return this;
     }
 
-    @Step("Get products count")
+    @Step("Получить количество товаров в списке")
     public int getProductsCount() {
         return productItems.size();
     }
 
-    @Step("Verify at least one product exists")
+    @Step("Проверить наличие хотя бы одного товара в списке")
     public ProductsPage verifyProductsExist() {
         productsList.shouldBe(visible);
         productItems.shouldHave(com.codeborne.selenide.CollectionCondition.sizeGreaterThan(0));
         return this;
     }
 
-    @Step("Navigate to Add Product page")
+    @Step("Нажать кнопку 'Добавить товар' для перехода к форме создания")
     public ProductsPage clickAddProduct() {
         navAddProduct.shouldBe(visible, enabled).click();
         return this;
     }
 
-    @Step("Click edit button for product with id {productId}")
+    @Step("Нажать кнопку 'Редактировать' для товара с ID: {productId}")
     public ProductsPage clickEditProduct(int productId) {
         $("[data-testid='edit-product-" + productId + "']").shouldBe(visible, enabled).click();
         return this;
     }
 
-    @Step("Click delete button for product with id {productId}")
+    @Step("Нажать кнопку 'Удалить' для товара с ID: {productId}")
     public ProductsPage clickDeleteProduct(int productId) {
         $("[data-testid='delete-product-" + productId + "']").shouldBe(visible, enabled).click();
         return this;
     }
 
-    @Step("Verify edit button is visible for any product")
+    @Step("Проверить видимость кнопки 'Редактировать' у товаров")
     public boolean isEditButtonVisible() {
         return $$("[data-testid^='edit-product-']").size() > 0;
     }
 
-    @Step("Verify delete button is visible for any product")
+    @Step("Проверить видимость кнопки 'Удалить' у товаров")
     public boolean isDeleteButtonVisible() {
         return $$("[data-testid^='delete-product-']").size() > 0;
     }
 
-    @Step("Verify Add Product navigation is visible")
+    @Step("Проверить видимость кнопки 'Добавить товар' в навигации")
     public boolean isAddProductVisible() {
         return navAddProduct.isDisplayed();
     }
