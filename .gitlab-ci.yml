@@ -224,25 +224,14 @@ run-ui-tests-staging:
     - echo "🎭 Running UI Tests on STAGING..."
     - echo "🌐 Target: $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
-    - |
-      if ! curl -s "http://192.168.1.74:4444/status" | grep -q "total"; then
-        echo "🚀 Starting Selenoid..."
-        cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d
-        sleep 10
-      fi
+    - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
     # Очистка предыдущих результатов
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
     # Запуск тестов
     - cd /home/flomaster/warehouse-master/ui-tests
     - sudo rm -rf target/ || true
-    - |
-      /home/flomaster/warehouse-master/ui-tests/mvnw test \
-        -Dbase.url=$BASE_URL \
-        -Dselenoid.url=$SELENOID_URL \
-        -Dbrowser=chrome \
-        -Dbrowser.size=1920x1080 \
-        --batch-mode || true
+    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
     # Загрузка результатов в Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
@@ -274,25 +263,14 @@ run-ui-tests-prod:
     - echo "🎭 Running UI Tests on PRODUCTION..."
     - echo "🌐 Target: $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
-    - |
-      if ! curl -s "http://192.168.1.74:4444/status" | grep -q "total"; then
-        echo "🚀 Starting Selenoid..."
-        cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d
-        sleep 10
-      fi
+    - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
     # Очистка предыдущих результатов
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
     # Запуск тестов
     - cd /home/flomaster/warehouse-master/ui-tests
     - sudo rm -rf target/ || true
-    - |
-      /home/flomaster/warehouse-master/ui-tests/mvnw test \
-        -Dbase.url=$BASE_URL \
-        -Dselenoid.url=$SELENOID_URL \
-        -Dbrowser=chrome \
-        -Dbrowser.size=1920x1080 \
-        --batch-mode || true
+    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
     # Загрузка результатов в Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
