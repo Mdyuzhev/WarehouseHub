@@ -1,6 +1,6 @@
 # Warehouse Project - Infrastructure Guide
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-11-29
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-11-30
 
 ---
 
@@ -40,8 +40,8 @@
 │  192.168.1.74                                                           │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  K8s Namespaces                                                   │   │
-│  │  ├── warehouse:      API + Frontend + PostgreSQL + Redis + Kafka │   │
-│  │  │                   + Selenoid (UI тесты)                       │   │
+│  │  ├── warehouse:      API (2) + Frontend + PostgreSQL + Replica   │   │
+│  │  │                   + Redis + Kafka + Selenoid                  │   │
 │  │  ├── loadtest:       Locust Master + Workers                     │   │
 │  │  ├── notifications:  Telegram Bot                                │   │
 │  │  └── monitoring:     Prometheus + Grafana                        │   │
@@ -108,11 +108,13 @@ warehouse-master/
 
 | Сервис | Внутренний URL | NodePort | Описание |
 |--------|----------------|----------|----------|
-| **warehouse-api** | `warehouse-api-service.warehouse.svc.cluster.local:8080` | `30080` | Spring Boot API |
+| **warehouse-api** | `warehouse-api-service.warehouse.svc.cluster.local:8080` | `30080` | Spring Boot API (2 replicas) |
 | **warehouse-frontend** | `warehouse-frontend-service.warehouse.svc.cluster.local:80` | `30081` | Vue.js Frontend |
-| **PostgreSQL** | `postgres-service.warehouse.svc.cluster.local:5432` | - | Database |
-| **Redis** | `redis-service.warehouse.svc.cluster.local:6379` | - | Кэширование |
-| **Kafka** | `kafka-service.warehouse.svc.cluster.local:9092` | - | Messaging (KRaft) |
+| **PostgreSQL** | `postgres-service.warehouse.svc.cluster.local:5432` | `30432` | Database (primary) |
+| **PostgreSQL Replica** | `postgres-replica-service.warehouse.svc.cluster.local:5432` | - | Database (read replica) |
+| **Redis** | `redis.warehouse.svc.cluster.local:6379` | - | Кэширование |
+| **Kafka** | `kafka.warehouse.svc.cluster.local:9092` | - | Messaging (KRaft) |
+| **Selenoid** | `selenoid.warehouse.svc.cluster.local:4444` | `30040` | Selenium Hub |
 
 ### K8s Services (namespace: loadtest)
 
@@ -413,4 +415,4 @@ sudo docker image prune -f
 
 ---
 
-*Последнее обновление: 2025-11-29 (полный аудит)*
+*Последнее обновление: 2025-11-30 (НТ WH-103 завершено)*

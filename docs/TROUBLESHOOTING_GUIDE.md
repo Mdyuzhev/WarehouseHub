@@ -4,6 +4,107 @@
 
 ---
 
+# Обновление от 30 ноября 2025
+
+## Нагрузочное тестирование — Проблемы и решения (WH-103)
+
+### Проблема: BCrypt bottleneck при нагрузочном тестировании
+
+**Симптомы:**
+- Login endpoint показывает 20-60% ошибок при нагрузке
+- Высокая latency на /api/auth/login (20+ секунд)
+- CPU API pod на 100%
+
+**Причина:**
+BCrypt использует cost factor 12 по умолчанию, что требует ~250ms CPU на каждый хэш. При высокой нагрузке это становится bottleneck.
+
+**Решение (без изменения кода):**
+```bash
+# Горизонтальное масштабирование
+kubectl scale deployment/warehouse-api -n warehouse --replicas=2
+kubectl set resources deployment/warehouse-api -n warehouse --limits=cpu=1500m,memory=1Gi
+```
+
+**Результат:** 2 реплики API с 1500m CPU дают 63 RPS и 0% ошибок при 150 concurrent users.
+
+---
+
+### Проблема: PostgreSQL connection exhaustion
+
+**Симптомы:**
+```
+HikariPool-1 - Connection is not available, request timed out after 30000ms
+```
+
+**Причина:**
+При 4+ репликах API, каждая с HikariCP pool = 20, общее количество connections превышает max_connections PostgreSQL.
+
+**Диагностика:**
+```bash
+kubectl exec -n warehouse postgres-0 -- psql -U postgres -d warehouse -c "SELECT count(*) FROM pg_stat_activity;"
+kubectl exec -n warehouse postgres-0 -- psql -U postgres -d warehouse -c "SHOW max_connections;"
+```
+
+**Решение:**
+```bash
+# Увеличить max_connections PostgreSQL
+kubectl exec -n warehouse postgres-0 -- psql -U postgres -c "ALTER SYSTEM SET max_connections = 200;"
+kubectl rollout restart statefulset/postgres -n warehouse
+
+# Уменьшить HikariCP pool per pod
+kubectl set env deployment/warehouse-api -n warehouse SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=10
+```
+
+---
+
+### Проблема: Locust workers перезапускаются во время теста
+
+**Симптомы:**
+- Workers показывают RESTARTS > 0
+- Тест прерывается, статистика теряется
+
+**Причина:**
+Недостаточно памяти для workers или слишком много virtual users на worker.
+
+**Решение:**
+```bash
+# Проверить причину рестартов
+kubectl describe pod -n loadtest -l app=locust-worker
+
+# Увеличить ресурсы workers
+kubectl set resources deployment/locust-worker -n loadtest --limits=cpu=500m,memory=512Mi
+```
+
+---
+
+### Проблема: Redis FLUSHALL во время теста
+
+**Симптомы:**
+- Внезапный рост latency после очистки Redis
+- Первые запросы после flush медленнее
+
+**Причина:**
+Кэш Redis очищен, все запросы идут напрямую в PostgreSQL.
+
+**Решение:**
+Не очищать Redis во время нагрузочного тестирования. Очистка — только перед началом теста:
+```bash
+kubectl exec -n warehouse deployment/redis -- redis-cli FLUSHALL
+# Подождать прогрев кэша перед началом теста
+```
+
+---
+
+### Рекомендуемые лимиты для Production (по результатам WH-103)
+
+| Сценарий | Users | RPS | Error Rate | Конфигурация |
+|----------|-------|-----|------------|--------------|
+| **Safe** | 150 | 63 | 0% | 2 replicas, 1500m CPU |
+| Moderate | 200-250 | 50-60 | <1% | 2 replicas, 1500m CPU |
+| Max | 350-400 | 40-50 | <2% | 2 replicas, 1500m CPU |
+
+---
+
 # Обновление от 26 ноября 2025
 
 ## CI/CD Pipeline — Проблемы и решения
