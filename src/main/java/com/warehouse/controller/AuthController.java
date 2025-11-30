@@ -9,6 +9,7 @@ import com.warehouse.repository.UserRepository;
 import com.warehouse.security.JwtService;
 import com.warehouse.service.RateLimitingService;
 import com.warehouse.service.TokenBlacklistService;
+import com.warehouse.service.AuthTokenCacheService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -32,6 +33,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final RateLimitingService rateLimitingService;  // nullable если Redis недоступен
     private final TokenBlacklistService tokenBlacklistService;  // nullable если Redis недоступен
+    private final AuthTokenCacheService authTokenCacheService;  // nullable если Redis недоступен
 
     public AuthController(
             @Lazy AuthenticationManager authenticationManager,
@@ -39,13 +41,15 @@ public class AuthController {
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             @Autowired(required = false) RateLimitingService rateLimitingService,
-            @Autowired(required = false) TokenBlacklistService tokenBlacklistService) {
+            @Autowired(required = false) TokenBlacklistService tokenBlacklistService,
+            @Autowired(required = false) AuthTokenCacheService authTokenCacheService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.rateLimitingService = rateLimitingService;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.authTokenCacheService = authTokenCacheService;
     }
 
     @PostMapping("/login")
@@ -65,12 +69,36 @@ public class AuthController {
         }
 
         try {
+            // Сначала получаем пользователя для проверки кэша
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+            // Проверяем кэш токенов (только если Redis доступен)
+            // Ключ кэша включает hash пароля, поэтому неверный пароль = cache miss
+            if (authTokenCacheService != null) {
+                // Проверяем пароль перед использованием кэша
+                if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                    String cachedToken = authTokenCacheService.getCachedToken(
+                            request.getUsername(), user.getPassword());
+                    if (cachedToken != null && jwtService.isTokenValid(cachedToken, user)) {
+                        // Cache HIT - возвращаем кэшированный токен без BCrypt
+                        if (rateLimitingService != null) {
+                            rateLimitingService.resetLoginAttempts(rateLimitKey);
+                        }
+                        return ResponseEntity.ok(AuthResponse.builder()
+                                .token(cachedToken)
+                                .username(user.getUsername())
+                                .fullName(user.getFullName())
+                                .role(user.getRole())
+                                .build());
+                    }
+                }
+            }
+
+            // Cache MISS или Redis недоступен - стандартная аутентификация
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
-
-            User user = userRepository.findByUsername(request.getUsername())
-                    .orElseThrow(() -> new BadCredentialsException("User not found"));
 
             // Reset rate limit on successful login (only if Redis is available)
             if (rateLimitingService != null) {
@@ -78,6 +106,11 @@ public class AuthController {
             }
 
             String token = jwtService.generateToken(user);
+
+            // Кэшируем токен для будущих логинов
+            if (authTokenCacheService != null) {
+                authTokenCacheService.cacheToken(request.getUsername(), user.getPassword(), token);
+            }
 
             return ResponseEntity.ok(AuthResponse.builder()
                     .token(token)
@@ -173,6 +206,15 @@ public class AuthController {
 
         try {
             String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+
+            // Инвалидируем кэш токенов (только если Redis доступен)
+            if (authTokenCacheService != null && username != null) {
+                User user = userRepository.findByUsername(username).orElse(null);
+                if (user != null) {
+                    authTokenCacheService.invalidateToken(username, user.getPassword());
+                }
+            }
 
             // Blacklist token only if Redis is available
             if (tokenBlacklistService != null) {
