@@ -15,6 +15,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import static com.codeborne.selenide.Selenide.closeWebDriver;
 import static com.codeborne.selenide.Selenide.open;
 
+@SuppressWarnings("null")
 public abstract class BaseTest {
 
     protected static TestConfig config = ConfigFactory.create(TestConfig.class, System.getenv());

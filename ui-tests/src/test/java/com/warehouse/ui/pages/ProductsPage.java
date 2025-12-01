@@ -22,6 +22,8 @@ public class ProductsPage {
 
     // Элементы навигации
     private final SelenideElement navAddProduct = $("[data-testid='nav-add-product']");
+    // navProducts используется для навигации к списку товаров при необходимости
+    @SuppressWarnings("unused")
     private final SelenideElement navProducts = $("[data-testid='nav-products']");
 
     @Step("Проверить отображение раздела 'Товары' на странице")

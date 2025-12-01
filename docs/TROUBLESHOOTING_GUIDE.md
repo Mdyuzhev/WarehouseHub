@@ -2,11 +2,81 @@
 
 Руководство по устранению типичных проблем в проекте Warehouse.
 
+> Обновлено: 2025-12-01 (WH-170 Улучшения и стабилизация)
+
 ---
 
-# Обновление от 1 декабря 2025 (WH-155 QA)
+## Оглавление
 
-## QA подсистема — Проблемы и решения
+1. [Общие принципы диагностики](#общие-принципы-диагностики)
+2. [QA подсистема](#qa-подсистема-wh-155)
+3. [Warehouse Robot (WH-120)](#warehouse-robot-wh-120)
+4. [Analytics Service (WH-121)](#analytics-service-wh-121)
+5. [Telegram Bot](#telegram-bot)
+6. [K3s и образы](#k3s-и-образы)
+7. [CI/CD Pipeline](#cicd-pipeline)
+8. [Нагрузочное тестирование](#нагрузочное-тестирование)
+9. [YouTrack API](#youtrack-api)
+10. [Конфигурация приложений](#конфигурация-приложений)
+11. [Frontend](#frontend)
+12. [Best Practices](#best-practices)
+
+---
+
+## Общие принципы диагностики
+
+### Шаг 1: Проверить статус сервисов
+
+```bash
+# Все поды
+kubectl get pods -A
+
+# Конкретный namespace
+kubectl get pods -n warehouse
+
+# Детали пода
+kubectl describe pod -n warehouse <pod-name>
+```
+
+### Шаг 2: Проверить логи
+
+```bash
+# Логи пода
+kubectl logs -n warehouse <pod-name> --tail=100
+
+# Логи предыдущего контейнера (после рестарта)
+kubectl logs -n warehouse <pod-name> --previous
+
+# Follow логов
+kubectl logs -n warehouse -l app=warehouse-api -f
+```
+
+### Шаг 3: Проверить health endpoints
+
+```bash
+# API
+curl -s http://192.168.1.74:30080/actuator/health | jq
+
+# Robot
+curl -s http://192.168.1.74:30070/health | jq
+
+# Analytics
+curl -s http://192.168.1.74:30091/health | jq
+```
+
+### Шаг 4: Проверить сетевую связность
+
+```bash
+# Из пода в другой сервис
+kubectl exec -n warehouse deployment/warehouse-api -- curl -s http://redis:6379
+
+# DNS resolution
+kubectl exec -n warehouse deployment/warehouse-api -- nslookup postgres-service
+```
+
+---
+
+## QA подсистема (WH-155)
 
 ### Проблема: E2E тесты не запускаются в CI/CD
 
@@ -118,6 +188,22 @@ curl -s "http://192.168.1.74:5050/allure-docker-service/projects/e2e-staging/rep
 
 ---
 
+### Проблема: Allure отчёт показывает JSON вместо HTML
+
+**Симптомы:**
+При клике на ссылку в Telegram открывается JSON.
+
+**Причина:**
+URL не содержит `/index.html` на конце.
+
+**Решение:**
+Правильный URL должен быть:
+```
+https://advertiser-dark-remaining-sail.trycloudflare.com/allure-docker-service/projects/e2e-staging/reports/latest/index.html
+```
+
+---
+
 ### Проблема: QA кнопки в боте не работают
 
 **Симптомы:**
@@ -161,11 +247,9 @@ curl http://192.168.1.74:4444/wd/hub/status
 
 ---
 
-## Новые компоненты (WH-120, WH-121, WH-122)
+## Warehouse Robot (WH-120)
 
-### Warehouse Robot — Проблемы и решения
-
-#### Проблема: Robot Service недоступен снаружи кластера
+### Проблема: Robot Service недоступен снаружи кластера
 
 **Симптомы:**
 ```bash
@@ -193,7 +277,7 @@ curl http://192.168.1.74:30070/health
 
 ---
 
-#### Проблема: Robot не может подключиться к Warehouse API
+### Проблема: Robot не может подключиться к Warehouse API
 
 **Симптомы:**
 ```
@@ -223,7 +307,7 @@ kubectl get secret warehouse-robot-secrets -n warehouse -o jsonpath='{.data.empl
 
 ---
 
-#### Проблема: Уведомления от Robot не приходят в Telegram
+### Проблема: Уведомления от Robot не приходят в Telegram
 
 **Симптомы:**
 Сценарий выполняется, но уведомление в чат не приходит.
@@ -242,9 +326,9 @@ URL должен быть: `http://gitlab-telegram-bot.notifications.svc.cluster
 
 ---
 
-### Analytics Service — Проблемы и решения
+## Analytics Service (WH-121)
 
-#### Проблема: WebSocket не подключается
+### Проблема: WebSocket не подключается
 
 **Симптомы:**
 Frontend показывает "Отключено", WebSocket не устанавливается.
@@ -278,7 +362,7 @@ kubectl exec -n warehouse deployment/kafka -- kafka-topics.sh --list --bootstrap
 
 ---
 
-#### Проблема: Analytics не получает события из Kafka
+### Проблема: Analytics не получает события из Kafka
 
 **Симптомы:**
 Analytics Service работает, но события не появляются в feed.
@@ -309,9 +393,32 @@ kubectl logs -n warehouse deployment/warehouse-api --tail=100 | grep -i kafka
 
 ---
 
-### Telegram Bot Robot — Проблемы и решения
+### Проблема: Analytics показывает 0 клиентов WebSocket
 
-#### Проблема: Кнопки Robot не работают
+**Симптомы:**
+```json
+{"websocket_clients": 0}
+```
+
+**Диагностика:**
+```bash
+# Проверить что frontend правильно подключается
+# Открыть http://192.168.1.74:30081/analytics
+# Проверить в DevTools → Network → WS
+```
+
+**Решение:**
+Проверить что `window.__ANALYTICS_URL__` в frontend правильно определяется:
+```javascript
+// В index.html должно быть
+window.__ANALYTICS_URL__ = 'http://192.168.1.74:30091';
+```
+
+---
+
+## Telegram Bot
+
+### Проблема: Кнопки Robot не работают
 
 **Симптомы:**
 При нажатии на кнопку ничего не происходит или ошибка "Не удалось подключиться к Robot API".
@@ -333,9 +440,39 @@ kubectl exec -n notifications deployment/gitlab-telegram-bot -- curl -s http://w
 
 ---
 
-### K3s Image Update — Проблемы и решения
+### Проблема: Bot не отвечает на команды
 
-#### Проблема: K3s использует старый образ после пересборки
+**Симптомы:**
+Бот онлайн, но не реагирует на /start, /status и т.д.
+
+**Диагностика:**
+```bash
+# Логи
+kubectl logs -n notifications deployment/gitlab-telegram-bot --tail=100 -f
+
+# Проверить health
+curl -s http://192.168.1.74:30088/health
+```
+
+**Причины:**
+1. Неверный BOT_TOKEN
+2. Webhook не настроен
+3. Ошибка в обработчиках
+
+**Решение:**
+```bash
+# Проверить секреты
+kubectl get secret gitlab-telegram-bot-secret -n notifications -o yaml
+
+# Перезапустить бота
+kubectl rollout restart deployment/gitlab-telegram-bot -n notifications
+```
+
+---
+
+## K3s и образы
+
+### Проблема: K3s использует старый образ после пересборки
 
 **Симптомы:**
 После `docker build` и перезапуска pod, pod запускается со старым кодом.
@@ -361,7 +498,7 @@ docker save IMAGE:TAG | sudo k3s ctr images import -
 kubectl delete pod -n NAMESPACE -l app=APP_LABEL
 
 # 6. ПРОВЕРИТЬ (обязательно!)
-kubectl exec -n NAMESPACE deployment/DEPLOY -- grep 'PATTERN' FILE
+kubectl exec -n NAMESPACE deployment/DEPLOY -- cat /app/VERSION
 ```
 
 **One-liner:**
@@ -371,32 +508,111 @@ docker rmi IMAGE:TAG; docker build --no-cache -t IMAGE:TAG . && sudo k3s ctr ima
 
 ---
 
-### YouTrack API — Проблемы и решения
-
-#### Проблема: OAuth и /api/users/login не работают
+### Проблема: ErrImageNeverPull
 
 **Симптомы:**
-```json
-{"error": "invalid_grant"}
+```
+Failed to pull image "warehouse-api:latest": rpc error: code = Unknown desc = failed to pull and unpack image
 ```
 
 **Причина:**
-В текущей конфигурации YouTrack OAuth отключен или не настроен.
+`imagePullPolicy: Never` указывает K8s использовать локальный образ, но образ не импортирован в containerd K3s.
 
 **Решение:**
-**ИСПОЛЬЗОВАТЬ ТОЛЬКО Basic Auth!**
 ```bash
-curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-120'
-```
+# Экспортировать из Docker
+docker save warehouse-api:latest -o /tmp/warehouse-api.tar
 
-**Best Practice:**
-Все запросы к YouTrack API делать через Basic Auth с `-u 'user:password'`.
+# Импортировать в K3s
+sudo k3s ctr images import /tmp/warehouse-api.tar
+
+# Проверить
+sudo k3s ctr images list | grep warehouse-api
+```
 
 ---
 
-# Обновление от 30 ноября 2025
+## CI/CD Pipeline
 
-## Нагрузочное тестирование — Проблемы и решения (WH-103)
+### Проблема: gitlab-runner не может выполнить sudo k3s ctr images import
+
+**Симптомы:**
+```
+sudo: a terminal is required to read the password
+```
+
+**Причина:**
+Пользователь `gitlab-runner` не имеет прав sudo для выполнения команд K3s без пароля.
+
+**Решение:**
+```bash
+sudo bash -c 'cat > /etc/sudoers.d/cicd-automation << EOF
+# CI/CD automation for gitlab-runner
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images import *
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images list
+gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images rm *
+gitlab-runner ALL=(ALL) NOPASSWD: /bin/rm -f /tmp/warehouse-api.tar
+
+# Manual deployments for flomaster
+flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images import *
+flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images list
+flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images rm *
+EOF'
+
+sudo chmod 440 /etc/sudoers.d/cicd-automation
+```
+
+---
+
+### Проблема: permission denied при docker build
+
+**Симптомы:**
+```
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock
+```
+
+**Причина:**
+Пользователь `gitlab-runner` не входит в группу `docker`.
+
+**Решение:**
+```bash
+sudo usermod -aG docker gitlab-runner
+sudo systemctl restart gitlab-runner
+```
+
+**Проверка:**
+```bash
+sudo -u gitlab-runner docker ps
+```
+
+---
+
+### Проблема: error validating data: failed to download openapi
+
+**Симптомы:**
+```
+error: error validating "k8s/configmap.yaml": error validating data: failed to download openapi
+```
+
+**Причина:**
+Пользователь `gitlab-runner` не имеет kubeconfig или не имеет прав на его чтение.
+
+**Решение:**
+```bash
+sudo mkdir -p /home/gitlab-runner/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml /home/gitlab-runner/.kube/config
+sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.kube
+sudo chmod 600 /home/gitlab-runner/.kube/config
+```
+
+**Проверка:**
+```bash
+sudo -u gitlab-runner kubectl get nodes
+```
+
+---
+
+## Нагрузочное тестирование
 
 ### Проблема: BCrypt bottleneck при нагрузочном тестировании
 
@@ -406,7 +622,7 @@ curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-120'
 - CPU API pod на 100%
 
 **Причина:**
-BCrypt использует cost factor 12 по умолчанию, что требует ~250ms CPU на каждый хэш. При высокой нагрузке это становится bottleneck.
+BCrypt использует cost factor 12 по умолчанию, что требует ~250ms CPU на каждый хэш.
 
 **Решение (без изменения кода):**
 ```bash
@@ -467,24 +683,6 @@ kubectl set resources deployment/locust-worker -n loadtest --limits=cpu=500m,mem
 
 ---
 
-### Проблема: Redis FLUSHALL во время теста
-
-**Симптомы:**
-- Внезапный рост latency после очистки Redis
-- Первые запросы после flush медленнее
-
-**Причина:**
-Кэш Redis очищен, все запросы идут напрямую в PostgreSQL.
-
-**Решение:**
-Не очищать Redis во время нагрузочного тестирования. Очистка — только перед началом теста:
-```bash
-kubectl exec -n warehouse deployment/redis -- redis-cli FLUSHALL
-# Подождать прогрев кэша перед началом теста
-```
-
----
-
 ### Рекомендуемые лимиты для Production (по результатам WH-103)
 
 | Сценарий | Users | RPS | Error Rate | Конфигурация |
@@ -495,119 +693,69 @@ kubectl exec -n warehouse deployment/redis -- redis-cli FLUSHALL
 
 ---
 
-# Обновление от 26 ноября 2025
+## YouTrack API
 
-## CI/CD Pipeline — Проблемы и решения
-
-### Проблема: gitlab-runner не может выполнить sudo k3s ctr images import
+### Проблема: 401 Unauthorized при запросе к API
 
 **Симптомы:**
+```json
+{"error": "Unauthorized", "error_description": "You are not logged in."}
 ```
-sudo: a terminal is required to read the password
-```
-или pipeline зависает на стадии `image`.
 
 **Причина:**
-Пользователь `gitlab-runner` не имеет прав sudo для выполнения команд K3s без пароля.
+Токен истёк, отозван или неверный.
 
 **Решение:**
-Создать файл sudoers с разрешениями для конкретных команд:
-
+**ИСПОЛЬЗОВАТЬ ТОЛЬКО Basic Auth!**
 ```bash
-sudo bash -c 'cat > /etc/sudoers.d/cicd-automation << EOF
-# CI/CD automation for gitlab-runner
-gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images import *
-gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images list
-gitlab-runner ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images rm *
-gitlab-runner ALL=(ALL) NOPASSWD: /bin/rm -f /tmp/warehouse-api.tar
-
-# Manual deployments for flomaster
-flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images import *
-flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images list
-flomaster ALL=(ALL) NOPASSWD: /usr/local/bin/k3s ctr images rm *
-EOF'
-
-sudo chmod 440 /etc/sudoers.d/cicd-automation
+curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-120'
 ```
-
-**Best Practice:**
-Давать sudo права только для конкретных команд, а не полный NOPASSWD: ALL.
 
 ---
 
-### Проблема: permission denied при docker build
+### Проблема: OAuth и /api/users/login не работают
 
 **Симптомы:**
-```
-permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock
+```json
+{"error": "invalid_grant"}
 ```
 
 **Причина:**
-Пользователь `gitlab-runner` не входит в группу `docker`.
+В текущей конфигурации YouTrack OAuth отключен или не настроен.
 
 **Решение:**
-```bash
-sudo usermod -aG docker gitlab-runner
-sudo systemctl restart gitlab-runner
-```
-
-**Проверка:**
-```bash
-sudo -u gitlab-runner docker ps
-```
-
-**Best Practice:**
-После добавления пользователя в группу необходимо перезапустить сервис, чтобы изменения вступили в силу.
+**ИСПОЛЬЗОВАТЬ ТОЛЬКО Basic Auth!**
+Все запросы к YouTrack API делать через Basic Auth с `-u 'user:password'`.
 
 ---
 
-### Проблема: cannot remove '/tmp/warehouse-api.tar': Operation not permitted
+## Конфигурация приложений
 
-**Симптомы:**
-Pipeline падает на очистке временных файлов после успешного импорта образа.
-
-**Причина:**
-Файл создаётся Docker с определёнными правами, и gitlab-runner не может его удалить.
-
-**Решение:**
-1. Добавить право на удаление в sudoers (см. выше)
-2. В .gitlab-ci.yml использовать:
-```yaml
-- sudo rm -f /tmp/$IMAGE_NAME.tar || true
-```
-
-**Best Practice:**
-Использовать `|| true` для некритичных операций очистки, чтобы pipeline не падал.
-
----
-
-### Проблема: error validating data: failed to download openapi
+### Проблема: Приложение не может подключиться к PostgreSQL
 
 **Симптомы:**
 ```
-error: error validating "k8s/configmap.yaml": error validating data: failed to download openapi
+Connection refused to 192.168.1.74:5432
 ```
 
 **Причина:**
-Пользователь `gitlab-runner` не имеет kubeconfig или не имеет прав на его чтение.
+Неверный хост или порт PostgreSQL.
 
 **Решение:**
-Скопировать kubeconfig K3s для пользователя gitlab-runner:
 
-```bash
-sudo mkdir -p /home/gitlab-runner/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml /home/gitlab-runner/.kube/config
-sudo chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.kube
-sudo chmod 600 /home/gitlab-runner/.kube/config
+Для K8s deployment (application-k8s.properties):
+```properties
+spring.datasource.url=jdbc:postgresql://postgres-service.warehouse.svc.cluster.local:5432/warehouse
+spring.datasource.username=warehouse_user
+spring.datasource.password=warehouse_secret_2025
 ```
 
-**Проверка:**
-```bash
-sudo -u gitlab-runner kubectl get nodes
+Для локальной разработки (application.properties):
+```properties
+spring.datasource.url=jdbc:postgresql://192.168.1.74:30432/warehouse
+spring.datasource.username=warehouse_user
+spring.datasource.password=warehouse_secret_2025
 ```
-
-**Best Practice:**
-Каждый пользователь, работающий с kubectl, должен иметь свою копию kubeconfig с правильными правами доступа (chmod 600).
 
 ---
 
@@ -615,9 +763,6 @@ sudo -u gitlab-runner kubectl get nodes
 
 **Симптомы:**
 Pod запускается, но не переходит в Ready, происходят рестарты.
-
-**Причина:**
-Обычно — приложение не может подключиться к базе данных или отсутствует зависимость.
 
 **Диагностика:**
 ```bash
@@ -636,158 +781,60 @@ kubectl describe pod -n warehouse -l app=warehouse-api
 2. PostgreSQL недоступен
 3. Отсутствует зависимость spring-boot-starter-actuator (для health probes)
 
-**Решение для actuator:**
-Добавить в pom.xml:
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-```
-
 ---
 
-### Проблема: ErrImageNeverPull
+## Frontend
+
+### Проблема: API URL определяется неверно
 
 **Симптомы:**
-```
-Failed to pull image "warehouse-api:latest": rpc error: code = Unknown desc = failed to pull and unpack image
-```
-
-**Причина:**
-`imagePullPolicy: Never` указывает K8s использовать локальный образ, но образ не импортирован в containerd K3s.
-
-**Решение:**
-```bash
-# Экспортировать из Docker
-docker save warehouse-api:latest -o /tmp/warehouse-api.tar
-
-# Импортировать в K3s
-sudo k3s ctr images import /tmp/warehouse-api.tar
-
-# Проверить
-sudo k3s ctr images list | grep warehouse-api
-```
-
-**Best Practice:**
-K3s использует containerd, а не Docker. Образы из Docker нужно экспортировать и импортировать в containerd.
-
----
-
-## Инфраструктура — Проблемы и решения
-
-### Проблема: Дублирование компонентов (PostgreSQL, GitLab Runner)
-
-**Симптомы:**
-Несколько экземпляров одного сервиса (например, PostgreSQL в Docker и в K8s одновременно).
-
-**Последствия:**
-- Путаница при конфигурации (какой использовать?)
-- Расход ресурсов
-- Потенциальные конфликты портов
+Frontend делает запросы на неправильный URL.
 
 **Диагностика:**
-```bash
-# Docker контейнеры
-docker ps --format "table {{.Names}}\t{{.Ports}}"
-
-# K8s pods
-kubectl get pods -A
-
-# Helm releases
-helm list -A
+Открыть DevTools → Console:
+```javascript
+console.log(window.__API_URL__)
+console.log(window.__ANALYTICS_URL__)
 ```
 
 **Решение:**
-1. Определить, какой экземпляр использовать
-2. Удалить дублирующийся
-
-Удаление Docker контейнера:
-```bash
-docker stop <container_name>
-docker rm <container_name>
+Проверить index.html содержит правильный скрипт:
+```html
+<script>
+  (function() {
+    var host = window.location.hostname;
+    if (host === 'wh-lab.ru' || host === 'www.wh-lab.ru') {
+      window.__API_URL__ = 'https://api.wh-lab.ru/api';
+      window.__ANALYTICS_URL__ = 'https://analytics.wh-lab.ru';
+    } else if (host === '192.168.1.74') {
+      window.__API_URL__ = 'http://192.168.1.74:30080/api';
+      window.__ANALYTICS_URL__ = 'http://192.168.1.74:30091';
+    } else {
+      window.__API_URL__ = 'http://' + host + ':30080/api';
+      window.__ANALYTICS_URL__ = 'http://' + host + ':30091';
+    }
+  })();
+</script>
 ```
-
-Удаление Helm release:
-```bash
-helm uninstall <release_name> -n <namespace>
-kubectl delete namespace <namespace>
-```
-
-**Best Practice:**
-Перед развёртыванием нового компонента проверять, не существует ли он уже в другом месте. Документировать архитектуру в ARCHITECTURE.md.
 
 ---
 
-## YouTrack API — Проблемы и решения
-
-### Проблема: 401 Unauthorized при запросе к API
-
-**Симптомы:**
-```json
-{"error": "Unauthorized", "error_description": "You are not logged in."}
-```
-
-**Причина:**
-Токен истёк, отозван или неверный.
-
-**Решение:**
-1. Создать новый Permanent Token в YouTrack:
-   - Profile → Account Security → Tokens → New token
-   - Scope: YouTrack
-   - Скопировать токен (показывается один раз!)
-
-2. Обновить переменную окружения:
-```bash
-export YOUTRACK_TOKEN="perm:NEW_TOKEN_HERE"
-echo 'export YOUTRACK_TOKEN="perm:NEW_TOKEN_HERE"' >> ~/.bashrc
-```
-
-**Проверка:**
-```bash
-curl -s "http://192.168.1.74:8088/api/admin/projects?fields=id,name" \
-  -H "Authorization: Bearer $YOUTRACK_TOKEN" \
-  -H "Accept: application/json"
-```
-
-**Best Practice:**
-Хранить токен в переменной окружения `$YOUTRACK_TOKEN`, а не в коде или командах. При смене токена достаточно обновить одно место.
-
----
-
-## Конфигурация приложения — Проблемы и решения
-
-### Проблема: Приложение не может подключиться к PostgreSQL после миграции
+### Проблема: CORS ошибки в браузере
 
 **Симптомы:**
 ```
-Connection refused to 192.168.1.74:5432
+Access to fetch at 'http://...' from origin 'http://...' has been blocked by CORS policy
 ```
 
-**Причина:**
-После миграции PostgreSQL из Docker в K8s изменились: порт (5432 → 30432), credentials, hostname.
-
 **Решение:**
-Обновить application.properties:
-
+Проверить что origin добавлен в CORS настройки API (application.properties):
 ```properties
-# Для локальной разработки (NodePort)
-spring.datasource.url=jdbc:postgresql://192.168.1.74:30432/warehouse
-
-# Для K8s (ClusterIP) - в application-k8s.properties
-spring.datasource.url=jdbc:postgresql://postgres-service.warehouse.svc.cluster.local:5432/warehouse
-
-# Новые credentials
-spring.datasource.username=warehouse_user
-spring.datasource.password=warehouse_secret_2025
+cors.allowed-origins=http://localhost:3000,http://localhost:5173,http://192.168.1.74:30081,https://wh-lab.ru
 ```
-
-**Best Practice:**
-Использовать Spring profiles (application-k8s.properties) для разных окружений. В K8s передавать credentials через environment variables из Secrets.
 
 ---
 
-## Best Practices — Сводка
+## Best Practices
 
 ### CI/CD Pipeline
 1. Давать sudo права только для конкретных команд
@@ -801,6 +848,7 @@ spring.datasource.password=warehouse_secret_2025
 2. Импортировать образы в containerd при использовании K3s
 3. Настраивать readiness и liveness probes
 4. Хранить secrets в Kubernetes Secrets, не в ConfigMaps
+5. Использовать Kustomize для применения манифестов с commonLabels
 
 ### Инфраструктура
 1. Документировать архитектуру (ARCHITECTURE.md)
@@ -814,57 +862,108 @@ spring.datasource.password=warehouse_secret_2025
 3. Привязывать коммиты к задачам через #WH-XX в сообщении
 4. **ТОЛЬКО Basic Auth!** OAuth не работает
 
----
+### K3s / containerd
+1. Всегда удалять старый образ из containerd перед импортом
+2. Использовать `--no-cache` при docker build для обновлений
+3. Проверять что новый код действительно в контейнере после деплоя
+4. Помнить: K3s ≠ Docker!
+
+### Тестирование
+1. Использовать отдельные Allure проекты для staging и prod
+2. Запускать тесты через Telegram Bot для tracking
+3. Проверять Selenoid доступность перед UI тестами
+4. Хранить скриншоты при падении тестов
 
 ---
 
-### Проблема: Allure отчёт показывает JSON вместо HTML
+---
+
+## Конфигурация через .env (WH-183)
+
+### Проблема: Переменные окружения не применяются
 
 **Симптомы:**
-При клике на ссылку в Telegram открывается JSON:
-```json
-{"data":{"project":"e2e-staging"...}}
-```
+Сервис использует значения по умолчанию вместо `.env`.
 
 **Причина:**
-URL не содержит `/index.html` на конце.
+Файл `.env` не создан или не в той директории.
 
 **Решение:**
-Правильный URL должен быть:
-```
-https://advertiser-dark-remaining-sail.trycloudflare.com/allure-docker-service/projects/e2e-staging/reports/latest/index.html
-```
+```bash
+# Создать .env из шаблона
+cp .env.example .env
 
-Исправить в `services/allure.py`:
-```python
-def get_allure_report_url(project_id: str = "warehouse-api") -> str:
-    return f"{ALLURE_PUBLIC_URL}/allure-docker-service/projects/{project_id}/reports/latest/index.html"
+# Проверить что .env загружается
+docker run --env-file .env ...
 ```
 
 ---
 
-### Проблема: get_allure_report_url() takes 0 positional arguments but 1 was given
+### Проблема: Секреты случайно закоммичены
+
+**Симптомы:**
+В git history видны пароли или токены.
+
+**Решение:**
+```bash
+# Проверить .gitignore
+cat .gitignore | grep -E "\.env|secrets"
+
+# Удалить из истории (BFG Repo-Cleaner)
+bfg --delete-files .env
+
+# Или через git filter-branch
+git filter-branch --force --index-filter \
+  "git rm --cached --ignore-unmatch .env" \
+  --prune-empty --tag-name-filter cat -- --all
+```
+
+**Профилактика (WH-184):**
+Все секретные файлы уже в `.gitignore`:
+- `.env`, `*.env.local`
+- `credentials.json`, `secrets.yaml`
+- `*.pem`, `*.key`, `*.crt`
+
+---
+
+## Locust (WH-185)
+
+### Проблема: Дублирование Locust файлов
+
+**Симптомы:**
+Разные сценарии в `loadtest/` и `PerformanceTesting/`.
+
+**Решение (WH-185):**
+```bash
+# Теперь PerformanceTesting/configs/locustfile.py - это симлинк
+ls -la PerformanceTesting/configs/locustfile.py
+# lrwxrwxrwx -> ../../loadtest/locustfile.py
+
+# Единственный источник истины:
+loadtest/locustfile.py
+```
+
+---
+
+### Проблема: JWT токен истекает во время нагрузочного теста
 
 **Симптомы:**
 ```
-TypeError: get_allure_report_url() takes 0 positional arguments but 1 was given
+401 Unauthorized after 24 hours
 ```
 
-**Причина:**
-Функция `get_allure_report_url()` не принимает параметр `project_id`.
-
 **Решение:**
-Обновить `services/allure.py`:
+Унифицированный `locustfile.py` использует кэширование с thread-safe lock:
 ```python
-# Было
-def get_allure_report_url() -> str:
-    return f"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest"
+_token_cache = {}
+_token_lock = threading.Lock()
 
-# Стало
-def get_allure_report_url(project_id: str = "warehouse-api") -> str:
-    return f"{ALLURE_PUBLIC_URL}/allure-docker-service/projects/{project_id}/reports/latest/index.html"
+def get_cached_token(self):
+    with _token_lock:
+        if username in _token_cache:
+            return _token_cache[username]
 ```
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule, WH-155 QA v5.4)*
+*Последнее обновление: 2025-12-01 (WH-170 Улучшения и стабилизация - 15 задач Fixed)*

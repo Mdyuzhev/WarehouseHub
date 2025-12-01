@@ -54,6 +54,7 @@ public class LoginPage {
     }
 
     @Step("Проверить что сообщение об ошибке содержит текст: {text}")
+    @SuppressWarnings("null")
     public LoginPage verifyErrorContains(String text) {
         errorMessage.shouldBe(visible).shouldHave(text(text));
         return this;
