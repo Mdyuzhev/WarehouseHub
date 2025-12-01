@@ -16,12 +16,12 @@ async def handle_start(chat_id: int):
     welcome_msg = f"""
 {joke}
 
-<b>🤖 Warehouse Bot v5.2</b>
+<b>🤖 Warehouse Bot v5.4</b>
 
 <b>Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🧪 E2E | 🔥 нагрузка | 🛑 стоп
-📋 PM | 🤖 робот | ❓ помощь
+🔬 QA | 🛑 стоп | 🤖 робот
+📋 PM | 🎰 шутка | ❓ помощь
 
 <b>🔐 Деплой и тесты через GitLab CI!</b>
     """
@@ -31,19 +31,24 @@ async def handle_start(chat_id: int):
 async def handle_help(chat_id: int):
     """Обработка команды /help."""
     help_msg = """
-<b>❓ Справка — Warehouse Bot v5.2</b>
+<b>❓ Справка — Warehouse Bot v5.4</b>
 
 <b>📱 Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🧪 E2E | 🔥 нагрузка | 🛑 стоп
-📋 PM | 🤖 робот | ❓ помощь
+🔬 QA | 🛑 стоп | 🤖 робот
+📋 PM | 🎰 шутка | ❓ помощь
+
+<b>🔬 QA (тестирование):</b>
+• Выбор среды — STAGING или PRODUCTION
+• Типы тестов — E2E, UI, Нагрузочное
+• Запуск тестов через GitLab CI
+• Отчёты Allure по каждому типу
 
 <b>🤖 Warehouse Robot:</b>
-• Запуск сценариев — Приёмка/Отгрузка/Инвентаризация
+• Сценарии — Приёмка/Отгрузка/Инвентаризация
 • Продолжительность — 5мин/30мин/1час/однократно
 • Скорость — пауза между повторами (1с/5с/15с)
 • Планирование — запуск по расписанию (МСК)
-• Статус и статистика робота
 
 <b>📋 PM Dashboard:</b>
 • 🔄 Сейчас в работе — последние задачи агента
@@ -51,13 +56,7 @@ async def handle_help(chat_id: int):
 • 📈 Отчёт за день/неделю — активность
 
 <b>🚀 Деплой:</b>
-/deploy — меню деплоя
-Staging: API | Frontend | Всё
-Production: API | Frontend | Всё
-
-<b>🧪 Тестирование:</b>
-/e2e — E2E тесты (RestAssured)
-/load — нагрузочное тестирование (Locust)
+/deploy — меню деплоя (Staging / Production)
 
 <b>📊 Мониторинг:</b>
 /status — статус серверов
@@ -153,25 +152,21 @@ async def handle_pods(chat_id: int):
 async def handle_release(chat_id: int):
     """Показывает версию бота и последние релиз ноутс."""
     msg = """
-<b>🚀 Warehouse Bot v5.2.0</b>
+<b>🚀 Warehouse Bot v5.4.0</b>
 <i>Release: 2025-12-01</i>
 
-<b>Что нового в v5.2:</b>
+<b>Что нового в v5.4 (WH-155):</b>
 
-🤖 <b>Warehouse Robot</b> — эмуляция складских операций
-• Сценарии: Приёмка, Отгрузка, Инвентаризация
-• Продолжительность: 5мин / 30мин / 1час / однократно
-• Скорость: пауза между повторами (1с/5с/15с)
-• Планирование запуска по расписанию (МСК)
-• Уведомления с детализацией товаров
-
-📋 <b>PM Dashboard</b>
-• 🔄 Сейчас в работе — последние задачи агента
-• 📋 Аудит сторей — открытые User Stories
-• 📈 Отчёты за день/неделю — активность
+🔬 <b>QA Menu</b> — новая структура тестирования
+• Выбор среды: STAGING или PRODUCTION
+• Типы тестов: E2E, UI, Нагрузочное
+• Раздельные Allure отчёты по проектам:
+  - e2e-staging, e2e-prod
+  - ui-staging, ui-prod
 
 <b>Предыдущие версии:</b>
-• v5.1.0 — PM Dashboard, YouTrack интеграция
+• v5.2.0 — Warehouse Robot, планирование
+• v5.1.0 — PM Dashboard, YouTrack
 • v5.0.0 — GitLab CI/CD, Locust, E2E, K8s
     """
     await send_message_with_reply_keyboard(msg.strip(), get_reply_keyboard(), chat_id=chat_id)

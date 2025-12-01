@@ -1,6 +1,6 @@
 # Warehouse Project - Architecture
 
-> Полная архитектура проекта. Обновлено: 2025-12-01 (WH-120, WH-121, WH-122)
+> Полная архитектура проекта. Обновлено: 2025-12-01 (WH-120, WH-121, WH-122, WH-155 QA)
 
 ---
 
@@ -16,7 +16,7 @@
 8. [Инфраструктура Production](#инфраструктура-production)
 9. [CI/CD Pipeline](#cicd-pipeline)
 10. [Мониторинг и тестирование](#мониторинг-и-тестирование)
-11. [UI и E2E тестирование](#ui-и-e2e-тестирование)
+11. [QA подсистема (WH-155)](#qa-подсистема-wh-155)
 12. [Сетевая схема](#сетевая-схема)
 
 ---
@@ -712,11 +712,14 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 - **Kube State Metrics:** метрики K8s
 
 ### Allure Report Server
-- **API:** http://192.168.1.74:5050
-- **UI:** http://192.168.1.74:5252
-- **Projects:**
-  - `warehouse-api` - API тесты
-  - `warehouse-ui` - UI тесты
+- **API (internal):** http://192.168.1.74:5050
+- **UI (internal):** http://192.168.1.74:5252
+- **Public URL (cloudflared):** https://advertiser-dark-remaining-sail.trycloudflare.com
+- **Projects (WH-155):**
+  - `e2e-staging` — E2E тесты на staging
+  - `e2e-prod` — E2E тесты на production
+  - `ui-staging` — UI тесты на staging
+  - `ui-prod` — UI тесты на production
 
 ### Locust Load Testing
 - **UI:** http://192.168.1.74:30089
@@ -743,7 +746,38 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ---
 
-## UI и E2E тестирование
+## QA подсистема (WH-155)
+
+### Архитектура QA
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Telegram Bot QA Menu                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  🔬 QA (главное меню)                                                       │
+│      │                                                                      │
+│      ├── 🧪 STAGING                                                         │
+│      │   ├── 📝 E2E → run-e2e-tests-staging → Allure (e2e-staging)         │
+│      │   ├── 🎭 UI  → run-ui-tests-staging  → Allure (ui-staging)          │
+│      │   └── 🔥 Нагрузочное → Locust UI                                    │
+│      │                                                                      │
+│      └── 🚀 PRODUCTION                                                      │
+│          ├── 📝 E2E → run-e2e-tests-prod → Allure (e2e-prod)               │
+│          ├── 🎭 UI  → run-ui-tests-prod  → Allure (ui-prod)                │
+│          └── 🔥 Нагрузочное → Locust UI                                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Allure Projects (4 проекта)
+
+| Project ID | Описание | GitLab Job | URL |
+|------------|----------|------------|-----|
+| `e2e-staging` | E2E API тесты на staging | `run-e2e-tests-staging` | http://192.168.1.74:5050/allure-docker-service/projects/e2e-staging/reports/latest |
+| `e2e-prod` | E2E API тесты на prod | `run-e2e-tests-prod` | http://192.168.1.74:5050/allure-docker-service/projects/e2e-prod/reports/latest |
+| `ui-staging` | UI тесты на staging | `run-ui-tests-staging` | http://192.168.1.74:5050/allure-docker-service/projects/ui-staging/reports/latest |
+| `ui-prod` | UI тесты на prod | `run-ui-tests-prod` | http://192.168.1.74:5050/allure-docker-service/projects/ui-prod/reports/latest |
 
 ### Selenoid (Docker на хосте + K8s)
 - **Selenium Hub:** http://192.168.1.74:4444/wd/hub (Docker) или :30040 (K8s)
@@ -751,13 +785,40 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 - **VNC:** Включен для отладки
 - **Браузеры:** Chrome 131.0, 130.0, Firefox 132.0
 
-**Запуск Selenoid:**
-```bash
-cd selenoid && docker-compose up -d
+### E2E тесты (e2e-tests/)
+
+**Технологии:** Java 17, RestAssured, JUnit 5, Allure 2.25.0
+
+| Тестовый класс | Тестов | Описание |
+|----------------|--------|----------|
+| `AuthApiTest` | ~15 | Авторизация, роли, негативные сценарии |
+| `ProductsApiTest` | ~20 | CRUD товаров, права доступа, валидация |
+| `HealthApiTest` | ~4 | Health check эндпоинты |
+
+```
+e2e-tests/
+├── src/test/java/com/warehouse/e2e/
+│   ├── AuthApiTest.java         # Тесты авторизации
+│   ├── ProductsApiTest.java     # Тесты товаров
+│   └── HealthApiTest.java       # Тесты мониторинга
+├── pom.xml
+├── mvnw                         # Maven Wrapper
+└── .mvn/wrapper/
 ```
 
-### ui-tests/ (Selenide + Allure)
+**Последние результаты (2025-12-01):**
+- Staging: 34 passed, 9 failed, 43 total
+- Prod: 34 passed, 9 failed, 43 total
+
+### UI тесты (ui-tests/)
+
 **Технологии:** Java 17, Selenide 7.0.4, JUnit 5, Allure 2.25.0
+
+| Тестовый класс | Тестов | Описание |
+|----------------|--------|----------|
+| `LoginTest` | 2 | Авторизация пользователей |
+| `AnalyticsTest` | 2 | Доступ analyst/admin к /analytics |
+| `RoleAccessTest` | 2 | Проверка ролей |
 
 ```
 ui-tests/
@@ -766,45 +827,42 @@ ui-tests/
 │   │   ├── TestConfig.java      # Owner конфиг
 │   │   └── BaseTest.java        # Базовый класс (скриншоты включены!)
 │   ├── pages/
-│   │   ├── LoginPage.java       # Page Object
-│   │   └── ProductsPage.java
+│   │   ├── LoginPage.java
+│   │   ├── ProductsPage.java
+│   │   └── AnalyticsPage.java   # Page Object для /analytics
 │   └── tests/
 │       ├── LoginTest.java
-│       ├── ProductsTest.java
+│       ├── AnalyticsTest.java   # Тесты аналитики (WH-155)
 │       └── RoleAccessTest.java
 ├── pom.xml
 └── mvnw
 ```
 
-**Запуск UI тестов:**
-```bash
-cd ui-tests
-mvn test -Dbase.url=http://192.168.1.74:30081 -Dselenoid.url=http://192.168.1.74:4444/wd/hub
-```
+**Последние результаты (2025-12-01):**
+- Staging: 6 passed, 0 failed, 6 total
+- Prod: 6 passed, 0 failed, 6 total
 
-**Allure отчёт со скриншотами:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest
+### CI/CD Jobs для тестирования
 
-### e2e-tests/ (RestAssured API тесты)
-**Технологии:** Spring Boot Test, RestAssured, Allure, JUnit 5
+| Job | Stage | PROJECT_ID | Окружение |
+|-----|-------|------------|-----------|
+| `run-e2e-tests-staging` | test | e2e-staging | http://192.168.1.74:30080 |
+| `run-e2e-tests-prod` | test | e2e-prod | https://api.wh-lab.ru |
+| `run-ui-tests-staging` | test | ui-staging | http://192.168.1.74:30081 |
+| `run-ui-tests-prod` | test | ui-prod | https://wh-lab.ru |
+| `run-load-tests` | test | - | Locust |
 
-```
-e2e-tests/
-├── src/test/java/com/warehouse/e2e/
-│   ├── base/BaseE2ETest.java    # Базовый класс
-│   ├── helpers/                  # Хелперы (Auth, Product)
-│   ├── data/TestData.java       # Тестовые данные
-│   └── tests/
-│       ├── AuthControllerE2ETest.java
-│       └── ProductControllerE2ETest.java
-```
+### Telegram Bot: QA Handlers
 
-### CI Pipeline для тестов
-```yaml
-deploy-selenoid:        # Запуск Selenoid (Docker Compose)
-run-ui-tests:           # Selenide UI тесты → Allure со скриншотами
-run-e2e-tests:          # RestAssured API тесты
-run-load-tests:         # Locust НТ
-```
+**Файлы:**
+- `bot/handlers/testing.py` — Логика QA меню
+- `bot/keyboards.py` — Клавиатуры QA
+- `config.py` — GITLAB_JOBS mapping
+
+**Keyboards:**
+- `qa_menu_keyboard()` — Главное QA меню (Staging/Production)
+- `qa_test_type_keyboard(env)` — Выбор типа теста (E2E/UI/Load)
+- `qa_action_keyboard(env, test_type)` — Действия (Запустить/Отчёт)
 
 ---
 
@@ -884,4 +942,4 @@ run-load-tests:         # Locust НТ
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule)*
+*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule, WH-155 QA v5.4)*

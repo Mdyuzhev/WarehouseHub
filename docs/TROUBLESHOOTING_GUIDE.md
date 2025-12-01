@@ -4,7 +4,162 @@
 
 ---
 
-# Обновление от 1 декабря 2025
+# Обновление от 1 декабря 2025 (WH-155 QA)
+
+## QA подсистема — Проблемы и решения
+
+### Проблема: E2E тесты не запускаются в CI/CD
+
+**Симптомы:**
+```
+./mvnw: No such file or directory
+```
+
+**Причина:**
+Maven Wrapper отсутствует в директории e2e-tests.
+
+**Решение:**
+```bash
+# Скопировать Maven Wrapper из ui-tests
+cp ~/warehouse-master/ui-tests/mvnw ~/warehouse-master/e2e-tests/
+cp -r ~/warehouse-master/ui-tests/.mvn ~/warehouse-master/e2e-tests/
+chmod +x ~/warehouse-master/e2e-tests/mvnw
+git add e2e-tests/mvnw e2e-tests/.mvn
+git commit -m "fix: Add Maven Wrapper to e2e-tests"
+```
+
+---
+
+### Проблема: Permission denied на pom.xml в CI/CD
+
+**Симптомы:**
+```
+[ERROR] Error executing Maven
+Permission denied
+```
+
+**Причина:**
+pom.xml имеет неправильные права доступа (600 вместо 644).
+
+**Решение:**
+```bash
+chmod 644 ~/warehouse-master/e2e-tests/pom.xml
+git add e2e-tests/pom.xml
+git commit -m "fix: Fix pom.xml permissions"
+```
+
+---
+
+### Проблема: AccessDeniedException при компиляции тестов
+
+**Симптомы:**
+```
+java.nio.file.AccessDeniedException: /builds/.../target/test-classes
+```
+
+**Причина:**
+Директория target/ принадлежит gitlab-runner от предыдущих запусков.
+
+**Решение:**
+```bash
+# В .gitlab-ci.yml добавить очистку:
+script:
+  - rm -rf target/ || true
+  - ./mvnw test ...
+
+# Или перезапустить pipeline (новый workspace)
+```
+
+---
+
+### Проблема: Allure проект не существует
+
+**Симптомы:**
+```
+Project 'e2e-staging' does not exist
+```
+
+**Решение:**
+```bash
+# Создать проект через API
+curl -X POST "http://192.168.1.74:5050/allure-docker-service/projects" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "e2e-staging"}'
+```
+
+**Все 4 проекта:**
+- e2e-staging
+- e2e-prod
+- ui-staging
+- ui-prod
+
+**Публичный доступ к Allure:**
+- Внутренний URL: http://192.168.1.74:5050
+- Внешний URL: https://advertiser-dark-remaining-sail.trycloudflare.com
+- Cloudflared tunnel: `nohup cloudflared tunnel --url http://localhost:5050 &`
+
+---
+
+### Проблема: Отчёт Allure не обновляется
+
+**Симптомы:**
+Запуск тестов прошёл, но в Allure UI старый отчёт.
+
+**Диагностика:**
+```bash
+# Проверить статистику через API
+curl -s "http://192.168.1.74:5050/allure-docker-service/projects/e2e-staging/reports/latest/widgets/summary.json"
+```
+
+**Решение:**
+1. Проверить, что RESULTS_DIRECTORY в CI правильный
+2. Проверить, что generate-report вызван после upload
+3. Очистить кэш браузера (Ctrl+Shift+R)
+
+---
+
+### Проблема: QA кнопки в боте не работают
+
+**Симптомы:**
+Кнопка "🔬 QA" не отвечает или выдаёт ошибку.
+
+**Диагностика:**
+```bash
+kubectl logs -n notifications deployment/gitlab-telegram-bot --tail=100 | grep -i qa
+```
+
+**Решение:**
+```bash
+# Проверить handlers/__init__.py содержит testing router
+# Проверить keyboards.py содержит qa_menu_keyboard()
+# Передеплоить бота
+kubectl rollout restart deployment/gitlab-telegram-bot -n notifications
+```
+
+---
+
+### Проблема: Тесты проходят локально, но падают в CI
+
+**Симптомы:**
+Локально `./mvnw test` проходит, в GitLab падает.
+
+**Причины:**
+1. Разные BASE_URL (staging vs localhost)
+2. Selenoid недоступен из CI
+3. Разные версии Java/Maven
+
+**Решение:**
+```bash
+# Проверить переменные в .gitlab-ci.yml
+variables:
+  BASE_URL: "http://192.168.1.74:30080"
+  SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
+
+# Проверить доступность Selenoid
+curl http://192.168.1.74:4444/wd/hub/status
+```
+
+---
 
 ## Новые компоненты (WH-120, WH-121, WH-122)
 
@@ -661,4 +816,55 @@ spring.datasource.password=warehouse_secret_2025
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule)*
+---
+
+### Проблема: Allure отчёт показывает JSON вместо HTML
+
+**Симптомы:**
+При клике на ссылку в Telegram открывается JSON:
+```json
+{"data":{"project":"e2e-staging"...}}
+```
+
+**Причина:**
+URL не содержит `/index.html` на конце.
+
+**Решение:**
+Правильный URL должен быть:
+```
+https://advertiser-dark-remaining-sail.trycloudflare.com/allure-docker-service/projects/e2e-staging/reports/latest/index.html
+```
+
+Исправить в `services/allure.py`:
+```python
+def get_allure_report_url(project_id: str = "warehouse-api") -> str:
+    return f"{ALLURE_PUBLIC_URL}/allure-docker-service/projects/{project_id}/reports/latest/index.html"
+```
+
+---
+
+### Проблема: get_allure_report_url() takes 0 positional arguments but 1 was given
+
+**Симптомы:**
+```
+TypeError: get_allure_report_url() takes 0 positional arguments but 1 was given
+```
+
+**Причина:**
+Функция `get_allure_report_url()` не принимает параметр `project_id`.
+
+**Решение:**
+Обновить `services/allure.py`:
+```python
+# Было
+def get_allure_report_url() -> str:
+    return f"{ALLURE_SERVER_URL}/allure-docker-service/projects/warehouse-api/reports/latest"
+
+# Стало
+def get_allure_report_url(project_id: str = "warehouse-api") -> str:
+    return f"{ALLURE_PUBLIC_URL}/allure-docker-service/projects/{project_id}/reports/latest/index.html"
+```
+
+---
+
+*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule, WH-155 QA v5.4)*

@@ -165,6 +165,9 @@ async def handle_qa_run(chat_id: int, test_type: str, env: str):
 
 async def monitor_test_job(chat_id: int, project: str, job_id: int, test_type: str, env: str):
     """Мониторит тесты и отправляет результат."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     max_wait = 600
     check_interval = 20
     elapsed = 0
@@ -173,22 +176,30 @@ async def monitor_test_job(chat_id: int, project: str, job_id: int, test_type: s
     type_names = {"e2e": "E2E", "ui": "UI"}
     test_name = type_names.get(test_type, test_type.upper())
 
+    logger.info(f"Starting monitor for job {job_id}, project={project}, test_type={test_type}, env={env}")
+
     while elapsed < max_wait:
         await asyncio.sleep(check_interval)
         elapsed += check_interval
 
         result = await get_job_status(project, job_id)
+        logger.info(f"Job {job_id} status check: {result}")
+
         if not result.get("success"):
+            logger.warning(f"Failed to get job status: {result.get('error')}")
             continue
 
         status = result.get("status")
 
         if status == "success":
+            logger.info(f"Job {job_id} SUCCESS! Sending notification...")
             joke = get_random_joke("e2e_success")
             duration = result.get("duration", 0)
 
             # Пробуем получить детали из Allure
             allure_details = await get_allure_report_details(project_id)
+            logger.info(f"Allure details for {project_id}: {allure_details}")
+
             if allure_details and allure_details.get("statistic"):
                 stats = allure_details["statistic"]
                 msg = format_test_report(stats, int(duration), test_name, env.upper())
@@ -202,9 +213,11 @@ async def monitor_test_job(chat_id: int, project: str, job_id: int, test_type: s
                 )
 
             await send_message_with_reply_keyboard(msg, get_reply_keyboard(), chat_id=chat_id)
+            logger.info(f"Job {job_id} notification sent!")
             return
 
         elif status == "failed":
+            logger.info(f"Job {job_id} FAILED! Sending notification...")
             joke = get_random_joke("e2e_failure")
             await send_message_with_reply_keyboard(
                 f"{joke}\n\n"
@@ -214,7 +227,18 @@ async def monitor_test_job(chat_id: int, project: str, job_id: int, test_type: s
                 get_reply_keyboard(),
                 chat_id=chat_id
             )
+            logger.info(f"Job {job_id} failure notification sent!")
             return
+
+    # Таймаут - тесты не завершились за 10 минут
+    logger.warning(f"Job {job_id} TIMEOUT after {max_wait}s!")
+    await send_message_with_reply_keyboard(
+        f"⏱ <b>Таймаут!</b>\n\n"
+        f"{test_name} тесты выполняются дольше 10 минут.\n"
+        f"Проверь статус в GitLab.",
+        get_reply_keyboard(),
+        chat_id=chat_id
+    )
 
 
 async def handle_qa_report(chat_id: int, test_type: str, env: str):

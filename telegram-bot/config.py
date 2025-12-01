@@ -85,7 +85,10 @@ GITLAB_JOBS = {
 # =============================================================================
 # Allure
 # =============================================================================
+# Внутренний URL для API запросов (статистика)
 ALLURE_SERVER_URL = os.getenv("ALLURE_SERVER_URL", "http://192.168.1.74:5050")
+# Внешний URL для ссылок в сообщениях (cloudflared tunnel)
+ALLURE_PUBLIC_URL = os.getenv("ALLURE_PUBLIC_URL", "https://advertiser-dark-remaining-sail.trycloudflare.com")
 
 # =============================================================================
 # Claude Proxy

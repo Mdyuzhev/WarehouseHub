@@ -1,6 +1,6 @@
 # Warehouse Project - Infrastructure Guide
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-01
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-01 (WH-155 QA)
 
 ---
 
@@ -155,6 +155,7 @@ warehouse-master/
 | **YouTrack** | http://192.168.1.74:8088 | 8088 | Issue tracker |
 | **Allure Server** | http://192.168.1.74:5050 | 5050 | Test reports API |
 | **Allure UI** | http://192.168.1.74:5252 | 5252 | Test reports UI |
+| **Allure Public** | https://advertiser-dark-remaining-sail.trycloudflare.com | cloudflared | Публичный доступ |
 | **Selenoid** | http://192.168.1.74:4444/wd/hub | 4444 | Selenium Hub |
 | **Selenoid UI** | http://192.168.1.74:8090 | 8090 | Просмотр сессий |
 | **Claude Proxy** | http://192.168.1.74:8765 | 8765 | Anthropic API proxy |
@@ -436,10 +437,18 @@ warehouse-master (оркестрация):
     - run-load-tests
 ```
 
-### Артефакты
+### Артефакты (WH-155)
 
-- **Allure API Reports:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-api/reports/latest
-- **Allure UI Reports:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest
+**Allure Projects (4 проекта):**
+
+| Project ID | Описание | URL |
+|------------|----------|-----|
+| `e2e-staging` | E2E тесты на staging | http://192.168.1.74:5050/allure-docker-service/projects/e2e-staging/reports/latest |
+| `e2e-prod` | E2E тесты на prod | http://192.168.1.74:5050/allure-docker-service/projects/e2e-prod/reports/latest |
+| `ui-staging` | UI тесты на staging | http://192.168.1.74:5050/allure-docker-service/projects/ui-staging/reports/latest |
+| `ui-prod` | UI тесты на prod | http://192.168.1.74:5050/allure-docker-service/projects/ui-prod/reports/latest |
+
+- **Allure UI:** http://192.168.1.74:5252
 - **JUnit Reports:** сохраняются в GitLab
 
 ---
@@ -540,7 +549,7 @@ curl -s http://192.168.1.74:30081/ -o /dev/null -w "%{http_code}"
 | **Production Frontend** | https://wh-lab.ru |
 | **GitLab** | http://192.168.1.74:8080 |
 | **YouTrack** | http://192.168.1.74:8088 |
-| **Allure Reports** | http://192.168.1.74:5252 |
+| **Allure Reports** | http://192.168.1.74:5252 (внутр) / https://advertiser-dark-remaining-sail.trycloudflare.com (внешн) |
 | **Locust** | http://192.168.1.74:30089 |
 | **Prometheus** | http://192.168.1.74:30090 |
 | **Grafana** | http://192.168.1.74:30300 |
@@ -550,4 +559,4 @@ curl -s http://192.168.1.74:30081/ -o /dev/null -w "%{http_code}"
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule)*
+*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule, WH-155 QA v5.4)*
