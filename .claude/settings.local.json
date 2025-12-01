@@ -12,7 +12,8 @@
       "Task",
       "TodoWrite",
       "NotebookEdit",
-      "mcp__*"
+      "mcp__*",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []
@@ -147,32 +148,55 @@
       "grafana": "http://192.168.1.74:30300",
       "telegram_bot": "http://192.168.1.74:30088"
     },
-    "k8s_namespaces": ["warehouse", "notifications", "loadtest", "monitoring"],
+    "k8s_namespaces": [
+      "warehouse",
+      "notifications",
+      "loadtest",
+      "monitoring"
+    ],
     "credentials_note": "Все учётки и секреты в docs/CREDENTIALS.md"
   },
   "templates": {
     "youtrack_get_issue": "curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-XXX'",
     "youtrack_add_comment": "curl -s -u 'admin:Misha2021@1@' -X POST 'http://192.168.1.74:8088/api/issues/WH-XXX/comments' -H 'Content-Type: application/json' -d '{\"text\":\"COMMENT\"}'",
+    "youtrack_close_issue": "curl -s -u 'admin:Misha2021@1@' -X POST 'http://192.168.1.74:8088/api/issues/WH-XXX' -H 'Content-Type: application/json' -d '{\"customFields\":[{\"name\":\"State\",\"$type\":\"StateIssueCustomField\",\"value\":{\"name\":\"Fixed\"}}]}'",
     "k8s_restart": "kubectl rollout restart deployment/NAME -n NAMESPACE",
-    "k8s_logs": "kubectl logs -n NAMESPACE deployment/NAME --tail=100"
+    "k8s_logs": "kubectl logs -n NAMESPACE deployment/NAME --tail=100",
+    "prod_deploy": "ssh -i ~/.ssh/yc_prod_key ubuntu@130.193.44.34 'cd /opt/warehouse && sudo docker compose pull && sudo docker compose up -d'",
+    "prod_health": "curl -s https://api.wh-lab.ru/actuator/health",
+    "staging_health": "curl -s http://192.168.1.74:30080/actuator/health"
   },
   "audit": {
     "description": "Краткая сводка по инфраструктуре (детали в docs/)",
     "last_audit": "2025-12-01",
+    "last_user_story": "WH-170 Улучшения и стабилизация (15 задач Fixed)",
     "components": {
-      "warehouse-api": "Java Spring Boot, 2 replicas, port 30080",
-      "warehouse-frontend": "Vue.js, port 30081",
-      "warehouse-robot": "Python FastAPI (WH-120), port 30070",
-      "analytics-service": "Python FastAPI (WH-121), port 30091",
-      "telegram-bot": "Python aiogram v5.4, port 30088",
-      "databases": "PostgreSQL (StatefulSet), Redis, Kafka"
+      "warehouse-api": "Java 17 + Spring Boot 3.2.0, 2 replicas, port 30080, JWT+Redis",
+      "warehouse-frontend": "Vue.js 3.4 + Vite 5, port 30081, runtime API URL",
+      "warehouse-robot": "Python 3.11 FastAPI (WH-120), port 30070, .env.example",
+      "analytics-service": "Python 3.11 FastAPI (WH-121), port 30091, .env.example",
+      "telegram-bot": "Python aiogram v5.4, port 30088, .env.example",
+      "databases": "PostgreSQL 15 (StatefulSet), Redis 7.4.7, Kafka KRaft"
     },
-    "new_since_wh120": [
-      "warehouse-robot — симулятор складских операций",
-      "analytics-service — real-time Kafka аналитика",
-      "ANALYST role в API",
-      "/analytics страница во frontend"
-    ]
+    "wh170_improvements": [
+      ".env.example для всех Python сервисов (WH-183)",
+      "Защита секретов в .gitignore (WH-184)",
+      "Унифицированный locustfile.py с 4 типами users (WH-185)",
+      "Конфигурируемые таймауты (WH-179, 180, 181)",
+      "Документация magic numbers (WH-182)"
+    ],
+    "env_files": {
+      "telegram-bot/.env.example": "BOT_*, GITLAB_*, ALLURE_*, YOUTRACK_*",
+      "warehouse-robot/.env.example": "ROBOT_API_*, ROBOT_*_USERNAME/PASSWORD",
+      "analytics-service/.env.example": "ANALYTICS_KAFKA_*, ANALYTICS_REDIS_*"
+    },
+    "production": {
+      "host": "130.193.44.34",
+      "api_url": "https://api.wh-lab.ru",
+      "frontend_url": "https://wh-lab.ru",
+      "status": "UP (PostgreSQL, Redis 7.4.7)",
+      "containers": ["api", "frontend", "analytics", "kafka", "redis", "db", "nginx", "certbot"]
+    }
   },
   "humor_phrases": {
     "task_start": [
