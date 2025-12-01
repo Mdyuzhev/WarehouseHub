@@ -462,18 +462,37 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 - **Shell executor** на `192.168.1.74`
 - Tag: `shell`
 
+### Dual Environment Pipeline (WH-200)
+
+С декабря 2025 настроен dual environment workflow:
+
+| Ветка | Окружение | Namespace | Порты | Деплой |
+|-------|-----------|-----------|-------|--------|
+| `develop` | Development | `warehouse-dev` | 31xxx | **Автоматический** |
+| `main` | Production | `warehouse` | 30xxx | **Ручной (manual)** |
+
 ### Pipeline Flow
 
 ```
-warehouse-api:
-  validate → build → test → package
+warehouse-api (develop branch):
+  validate → build → test → package → deploy-dev (auto)
   ↓
-  Docker image → Yandex Registry + K3s import
+  Docker image → Registry → K3s → warehouse-dev namespace
 
-warehouse-frontend:
-  test → build → package
+warehouse-api (main branch):
+  validate → build → test → package → deploy-prod (manual)
   ↓
-  Docker image → Yandex Registry + K3s import
+  Docker image → Registry → K3s → warehouse namespace
+
+warehouse-frontend (develop branch):
+  test → build → package → deploy-dev (auto)
+  ↓
+  Docker image → Registry → K3s → warehouse-dev namespace
+
+warehouse-frontend (main branch):
+  test → build → package → deploy-prod (manual)
+  ↓
+  Docker image → Registry → K3s → warehouse namespace
 
 warehouse-master (оркестрация):
   deploy-staging (manual):
@@ -495,6 +514,13 @@ warehouse-master (оркестрация):
     - run-ui-tests-prod
     - run-load-tests
 ```
+
+### GitLab Environments
+
+| Environment | API URL | Frontend URL | Описание |
+|-------------|---------|--------------|----------|
+| **development** | http://192.168.1.74:31080 | http://192.168.1.74:31081 | Dev окружение для develop |
+| **production** | http://192.168.1.74:30080 | http://192.168.1.74:30081 | Prod окружение для main |
 
 ### Allure Reports после тестов
 
@@ -706,4 +732,4 @@ secrets.yaml
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-170 Улучшения и стабилизация - 15 задач Fixed)*
+*Последнее обновление: 2025-12-01 (WH-200 CI/CD pipeline для dual environment)*
