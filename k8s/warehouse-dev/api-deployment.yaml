@@ -1,0 +1,147 @@
+# WH-197: Warehouse API для dev-окружения
+# Подключается к dev базам (postgres-service, redis)
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warehouse-api-config
+  namespace: warehouse-dev
+  labels:
+    app: warehouse-api
+    environment: development
+data:
+  # Spring профиль для dev
+  SPRING_PROFILES_ACTIVE: "k8s,dev"
+
+  # Настройки сервера
+  SERVER_PORT: "8080"
+
+  # Настройки JPA (для dev можем показывать SQL)
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_JPA_SHOW_SQL: "true"
+
+  # Настройки логирования (для dev больше дебага)
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_COM_WAREHOUSE: "DEBUG"
+
+  # Redis для dev namespace
+  SPRING_DATA_REDIS_HOST: "redis"
+  SPRING_DATA_REDIS_PORT: "6379"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: warehouse-api-secrets
+  namespace: warehouse-dev
+  labels:
+    app: warehouse-api
+    environment: development
+type: Opaque
+stringData:
+  # JWT секрет для dev (не использовать в prod!)
+  JWT_SECRET: "dev-jwt-secret-for-testing-only-12345"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warehouse-api
+  namespace: warehouse-dev
+  labels:
+    app: warehouse-api
+    environment: development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warehouse-api
+      environment: development
+  template:
+    metadata:
+      labels:
+        app: warehouse-api
+        environment: development
+    spec:
+      containers:
+        - name: warehouse-api
+          # Используем тот же образ что и в prod
+          image: warehouse-api:latest
+          imagePullPolicy: Never
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # ConfigMap
+          envFrom:
+            - configMapRef:
+                name: warehouse-api-config
+
+          # Подключение к dev базам
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/warehouse_dev"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: warehouse-api-secrets
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: warehouse-api-service
+  namespace: warehouse-dev
+  labels:
+    app: warehouse-api
+    environment: development
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 31080
+      protocol: TCP
+  selector:
+    app: warehouse-api
+    environment: development

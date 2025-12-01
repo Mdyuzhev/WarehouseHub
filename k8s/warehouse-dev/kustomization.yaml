@@ -1,0 +1,18 @@
+# WH-198: Kustomization для dev-окружения
+# Собирает все манифесты warehouse-dev в один пакет
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: warehouse-dev
+
+resources:
+  - namespace.yaml
+  - resourcequota.yaml
+  - postgres.yaml
+  - redis.yaml
+  - api-deployment.yaml
+  - frontend-deployment.yaml
+
+commonLabels:
+  environment: development
+  managed-by: kustomize

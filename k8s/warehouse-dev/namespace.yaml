@@ -1,0 +1,11 @@
+# WH-193: Namespace для dev-окружения
+# Изолированное окружение для параллельной разработки
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: warehouse-dev
+  labels:
+    environment: development
+    team: warehouse
+    project: logistics-hub
+    managed-by: claude-code

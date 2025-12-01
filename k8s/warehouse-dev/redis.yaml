@@ -1,0 +1,128 @@
+# WH-196: Redis для dev-окружения
+# Кэш и JWT blacklist для dev
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: warehouse-dev
+  labels:
+    app: redis
+    environment: development
+data:
+  redis.conf: |
+    # Memory management (меньше для dev)
+    maxmemory 100mb
+    maxmemory-policy allkeys-lru
+
+    # Persistence отключена для dev (быстрее)
+    save ""
+    appendonly no
+
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    timeout 0
+    tcp-keepalive 300
+
+    # Logging
+    loglevel notice
+
+    # Limits
+    maxclients 100
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: warehouse-dev
+  labels:
+    app: redis
+    environment: development
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      environment: development
+  template:
+    metadata:
+      labels:
+        app: redis
+        environment: development
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+          command:
+            - redis-server
+            - /usr/local/etc/redis/redis.conf
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: warehouse-dev
+  labels:
+    app: redis
+    environment: development
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: redis
+    environment: development
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external
+  namespace: warehouse-dev
+  labels:
+    app: redis
+    environment: development
+spec:
+  type: NodePort
+  ports:
+    - port: 6379
+      targetPort: 6379
+      nodePort: 31379
+      name: redis
+  selector:
+    app: redis
+    environment: development
