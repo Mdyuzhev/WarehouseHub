@@ -3,18 +3,23 @@
 Сценарий нагрузочного тестирования для Warehouse API
 =============================================================================
 
+WH-185: Унифицированный locustfile для всех окружений
+
 Описание:
-    Этот файл содержит сценарии нагрузочного тестирования с использованием
-    фреймворка Locust. Имитирует реальное поведение пользователей склада.
+    Единый сценарий нагрузочного тестирования с поддержкой:
+    - 4 типа пользователей (SuperUser, Admin, Manager, Employee)
+    - Кэширование JWT токенов для снижения нагрузки BCrypt
+    - 2 профиля нагрузки (LinearLoadShape, StepLoadShape)
 
-Профиль нагрузки:
-    - Линейный рост: 0 -> 100 пользователей за 10 минут
-    - Удержание на пике: 5 минут при 100 пользователях
-    - Общая длительность: 15 минут
+Профили нагрузки:
+    - LinearLoadShape: плавный рост 0 -> 100 за 10 мин + удержание 5 мин
+    - StepLoadShape: ступенчатый рост до 2000 пользователей для стресс-теста
 
-Типы пользователей:
-    - EmployeeUser (70%): сотрудники склада - создают/удаляют продукты
-    - ManagerUser (30%): менеджеры - только просмотр данных
+Типы пользователей и их веса:
+    - SuperUser (10%): полный доступ - CRUD + управление
+    - AdminUser (20%): администратор - только просмотр
+    - ManagerUser (30%): менеджер - только просмотр
+    - EmployeeUser (50%): сотрудник - просмотр + создание товаров
 
 Запуск локально:
     locust -f locustfile.py --host=http://localhost:8080
@@ -26,7 +31,10 @@
 Веб-интерфейс:
     После запуска открыть http://localhost:8089
 
-WH-177: Credentials вынесены в переменные окружения
+Переменные окружения (см. .env.example):
+    LOCUST_SUPERUSER_PASSWORD, LOCUST_ADMIN_PASSWORD,
+    LOCUST_MANAGER_PASSWORD, LOCUST_EMPLOYEE_PASSWORD
+
 =============================================================================
 """
 
@@ -34,28 +42,42 @@ import os
 import random
 import string
 import time
+import threading
 from locust import HttpUser, task, between
 from locust import LoadTestShape
 
 # =============================================================================
-# WH-177: Конфигурация из переменных окружения
+# Конфигурация из переменных окружения
 # =============================================================================
-EMPLOYEE_PASSWORD = os.getenv("LOCUST_EMPLOYEE_PASSWORD", "employee123")
-MANAGER_PASSWORD = os.getenv("LOCUST_MANAGER_PASSWORD", "manager123")
+SUPERUSER_PASSWORD = os.getenv("LOCUST_SUPERUSER_PASSWORD", "password123")
+ADMIN_PASSWORD = os.getenv("LOCUST_ADMIN_PASSWORD", "password123")
+MANAGER_PASSWORD = os.getenv("LOCUST_MANAGER_PASSWORD", "password123")
+EMPLOYEE_PASSWORD = os.getenv("LOCUST_EMPLOYEE_PASSWORD", "password123")
+
+# Категории товаров для тестов
+CATEGORIES = ["Электроника", "Одежда", "Продукты", "Инструменты", "Бытовая техника"]
+
+# =============================================================================
+# Глобальный кэш токенов
+# =============================================================================
+# Токен получаем 1 раз на роль, переиспользуем для всех users этой роли
+# Это значительно снижает нагрузку на BCrypt при массовой авторизации
+TOKEN_CACHE = {}
+TOKEN_CACHE_LOCK = threading.Lock()
 
 
 # =============================================================================
 # Базовый класс пользователя
 # =============================================================================
-
 class WarehouseUser(HttpUser):
     """
     Базовый класс пользователя склада.
 
     Содержит общую логику для всех типов пользователей:
-    - Авторизация с retry-механизмом
+    - Авторизация с кэшированием токенов и retry-механизмом
     - Управление JWT токеном
     - Очистка созданных данных при завершении
+    - Общие задачи (просмотр товаров, профиля)
 
     Attributes:
         wait_time: Пауза между запросами (1-3 секунды)
@@ -83,11 +105,11 @@ class WarehouseUser(HttpUser):
     def on_start(self):
         """
         Вызывается при старте каждого виртуального пользователя.
-        Инициализирует состояние и выполняет авторизацию.
+        Инициализирует состояние и выполняет авторизацию с кэшированием.
         """
-        self.token = None                    # JWT токен авторизации
-        self.created_product_ids = []        # ID созданных продуктов (для очистки)
-        self.login_with_retry()              # Авторизуемся сразу при старте
+        self.token = None
+        self.created_product_ids = []
+        self.login_with_cache()
 
     def on_stop(self):
         """
@@ -99,14 +121,36 @@ class WarehouseUser(HttpUser):
                 self.client.delete(
                     f"/api/products/{product_id}",
                     headers=self.auth_headers(),
-                    name="/api/products/[id] (cleanup)"  # Группируем в статистике
+                    name="/api/products/[id] (cleanup)"
                 )
             except:
-                pass  # Игнорируем ошибки при очистке
+                pass
 
     # -------------------------------------------------------------------------
     # Методы авторизации
     # -------------------------------------------------------------------------
+
+    def login_with_cache(self):
+        """
+        Логин с кэшированием токена по роли.
+
+        Сначала проверяет глобальный кэш токенов.
+        Если токен есть - использует его без HTTP запроса.
+        Если нет - выполняет реальный логин и сохраняет в кэш.
+
+        Returns:
+            bool: True если авторизация успешна
+        """
+        cache_key = self.username
+
+        # Проверяем кэш (thread-safe)
+        with TOKEN_CACHE_LOCK:
+            if cache_key in TOKEN_CACHE:
+                self.token = TOKEN_CACHE[cache_key]
+                return True
+
+        # Токена нет в кэше — делаем реальный логин
+        return self.login_with_retry()
 
     def login_with_retry(self, max_retries=3):
         """
@@ -114,6 +158,7 @@ class WarehouseUser(HttpUser):
 
         При высокой нагрузке сервер может временно не отвечать,
         поэтому делаем несколько попыток с экспоненциальной задержкой.
+        Успешный токен сохраняется в глобальный кэш.
 
         Args:
             max_retries: Максимальное количество попыток (по умолчанию 3)
@@ -121,6 +166,8 @@ class WarehouseUser(HttpUser):
         Returns:
             bool: True если авторизация успешна, False иначе
         """
+        cache_key = self.username
+
         for attempt in range(max_retries):
             try:
                 response = self.client.post(
@@ -132,9 +179,12 @@ class WarehouseUser(HttpUser):
                     data = response.json()
                     self.token = data.get("token")
                     if self.token:
+                        # Сохраняем в глобальный кэш
+                        with TOKEN_CACHE_LOCK:
+                            TOKEN_CACHE[cache_key] = self.token
                         return True
             except:
-                pass  # Сетевая ошибка - пробуем ещё раз
+                pass
 
             # Экспоненциальная задержка: 0.5s, 1s, 1.5s
             time.sleep(0.5 * (attempt + 1))
@@ -145,14 +195,12 @@ class WarehouseUser(HttpUser):
         """
         Проверяет наличие токена и при необходимости повторно авторизуется.
 
-        Вызывается перед каждым защищённым запросом.
-
         Returns:
             bool: True если пользователь авторизован
         """
         if not self.token:
-            self.login_with_retry()
-        return self.token is not None
+            return self.login_with_cache()
+        return True
 
     def auth_headers(self):
         """
@@ -182,14 +230,29 @@ class WarehouseUser(HttpUser):
         suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
         return f"LoadTest-{self.role}-{suffix}"
 
+    def generate_product_data(self):
+        """
+        Генерация полных данных продукта с description и category.
+
+        Returns:
+            dict: Данные продукта для POST/PUT запросов
+        """
+        return {
+            "name": self.generate_product_name(),
+            "quantity": random.randint(1, 100),
+            "price": round(random.uniform(10.0, 1000.0), 2),
+            "description": f"Тестовый товар от {self.role}",
+            "category": random.choice(CATEGORIES)
+        }
+
     # -------------------------------------------------------------------------
     # Общие задачи для всех пользователей
     # -------------------------------------------------------------------------
 
-    @task(5)  # Weight=5: самая частая операция
+    @task(5)
     def view_products(self):
         """
-        Просмотр списка всех продуктов.
+        GET /api/products - просмотр списка всех продуктов.
 
         Это самая частая операция - пользователи постоянно
         смотрят что есть на складе.
@@ -204,10 +267,26 @@ class WarehouseUser(HttpUser):
             name="/api/products (GET)"
         )
 
-    @task(1)  # Weight=1: редкая операция
+    @task(2)
+    def view_products_by_category(self):
+        """
+        GET /api/products?category=... - фильтрация по категории.
+
+        Weight: 2
+        """
+        if not self.ensure_logged_in():
+            return
+        category = random.choice(CATEGORIES)
+        self.client.get(
+            f"/api/products?category={category}",
+            headers=self.auth_headers(),
+            name="/api/products?category (GET)"
+        )
+
+    @task(1)
     def view_current_user(self):
         """
-        Просмотр информации о текущем пользователе.
+        GET /api/auth/me - информация о текущем пользователе.
 
         Редкая операция - обычно делается один раз при входе.
 
@@ -223,61 +302,33 @@ class WarehouseUser(HttpUser):
 
 
 # =============================================================================
-# Класс сотрудника склада
+# SuperUser - полный доступ
 # =============================================================================
-
-class EmployeeUser(WarehouseUser):
+class SuperUser(WarehouseUser):
     """
-    Сотрудник склада - основной тип пользователя.
+    SUPER_USER - полный доступ ко всему.
 
-    Может выполнять все операции: просмотр, создание, удаление продуктов.
-    Составляет 70% от общей нагрузки (weight=7).
-
-    Распределение задач:
-        - view_products: 5 (просмотр списка)
-        - create_product: 3 (создание продукта)
-        - delete_own_product: 2 (удаление продукта)
-        - view_current_user: 1 (информация о себе)
+    Может выполнять все операции: создание, чтение, обновление, удаление.
+    Составляет 10% от общей нагрузки (weight=1).
     """
 
-    # 70% от общего количества пользователей
-    weight = 7
-
-    # Учётные данные сотрудника (WH-177: из env)
-    username = "employee"
-    password = EMPLOYEE_PASSWORD
-    role = "employee"
-
-    # Это конкретный класс - создавать экземпляры
+    weight = 1
+    username = "superuser"
+    password = SUPERUSER_PASSWORD
+    role = "superuser"
     abstract = False
 
-    @task(3)  # Weight=3: частая операция
+    @task(3)
     def create_product(self):
-        """
-        Создание нового продукта на складе.
-
-        Генерирует случайные данные продукта и отправляет POST запрос.
-        Сохраняет ID созданного продукта для последующей очистки.
-
-        Weight: 3 (достаточно частая операция)
-        """
+        """POST /api/products - создание товара."""
         if not self.ensure_logged_in():
             return
-
-        # Генерируем случайные данные продукта
-        product_name = self.generate_product_name()
         response = self.client.post(
             "/api/products",
-            json={
-                "name": product_name,
-                "quantity": random.randint(1, 100),        # 1-100 единиц
-                "price": round(random.uniform(10.0, 500.0), 2)  # 10-500 руб
-            },
+            json=self.generate_product_data(),
             headers=self.auth_headers(),
             name="/api/products (POST)"
         )
-
-        # Сохраняем ID для последующего удаления
         if response.status_code in [200, 201]:
             try:
                 product_id = response.json().get("id")
@@ -286,20 +337,25 @@ class EmployeeUser(WarehouseUser):
             except:
                 pass
 
-    @task(2)  # Weight=2: менее частая операция
-    def delete_own_product(self):
-        """
-        Удаление ранее созданного продукта.
-
-        Удаляет один из продуктов, созданных этим же пользователем.
-        Это позволяет не засорять базу данных во время тестов.
-
-        Weight: 2 (реже чем создание, чтобы база немного росла)
-        """
+    @task(2)
+    def update_product(self):
+        """PUT /api/products/{id} - обновление товара."""
         if not self.ensure_logged_in():
             return
+        if self.created_product_ids:
+            product_id = random.choice(self.created_product_ids)
+            self.client.put(
+                f"/api/products/{product_id}",
+                json=self.generate_product_data(),
+                headers=self.auth_headers(),
+                name="/api/products/[id] (PUT)"
+            )
 
-        # Удаляем только если есть что удалять
+    @task(1)
+    def delete_product(self):
+        """DELETE /api/products/{id} - удаление товара."""
+        if not self.ensure_logged_in():
+            return
         if self.created_product_ids:
             product_id = self.created_product_ids.pop()
             self.client.delete(
@@ -310,31 +366,37 @@ class EmployeeUser(WarehouseUser):
 
 
 # =============================================================================
-# Класс менеджера
+# AdminUser - администратор
 # =============================================================================
+class AdminUser(WarehouseUser):
+    """
+    ADMIN - администратор (только просмотр в текущей конфигурации API).
 
+    Составляет 20% от общей нагрузки (weight=2).
+    """
+
+    weight = 2
+    username = "admin"
+    password = ADMIN_PASSWORD
+    role = "admin"
+    abstract = False
+
+
+# =============================================================================
+# ManagerUser - менеджер
+# =============================================================================
 class ManagerUser(WarehouseUser):
     """
-    Менеджер - пользователь только для чтения.
+    MANAGER - менеджер склада (только просмотр).
 
-    Может только просматривать данные, не может создавать/удалять.
     Составляет 30% от общей нагрузки (weight=3).
-
-    Распределение задач:
-        - view_products: 5 (просмотр списка, унаследовано)
-        - view_products_detailed: 3 (дополнительный просмотр)
-        - view_current_user: 1 (информация о себе, унаследовано)
+    Менеджеры чаще смотрят отчёты и статистику.
     """
 
-    # 30% от общего количества пользователей
     weight = 3
-
-    # Учётные данные менеджера (WH-177: из env)
     username = "manager"
     password = MANAGER_PASSWORD
     role = "manager"
-
-    # Это конкретный класс - создавать экземпляры
     abstract = False
 
     @task(3)
@@ -344,8 +406,6 @@ class ManagerUser(WarehouseUser):
 
         Менеджеры чаще смотрят отчёты, поэтому добавляем
         дополнительную задачу просмотра.
-
-        Weight: 3 (дополнительно к унаследованной view_products)
         """
         if not self.ensure_logged_in():
             return
@@ -357,7 +417,68 @@ class ManagerUser(WarehouseUser):
 
 
 # =============================================================================
-# Профиль нагрузки
+# EmployeeUser - сотрудник склада
+# =============================================================================
+class EmployeeUser(WarehouseUser):
+    """
+    EMPLOYEE - сотрудник склада (может создавать товары).
+
+    Составляет 50% от общей нагрузки (weight=5).
+    Основной тип пользователя системы.
+    """
+
+    weight = 5
+    username = "employee"
+    password = EMPLOYEE_PASSWORD
+    role = "employee"
+    abstract = False
+
+    @task(3)
+    def create_product(self):
+        """
+        POST /api/products - создание нового продукта на складе.
+
+        Сохраняет ID созданного продукта для последующей очистки.
+        """
+        if not self.ensure_logged_in():
+            return
+
+        response = self.client.post(
+            "/api/products",
+            json=self.generate_product_data(),
+            headers=self.auth_headers(),
+            name="/api/products (POST)"
+        )
+
+        if response.status_code in [200, 201]:
+            try:
+                product_id = response.json().get("id")
+                if product_id:
+                    self.created_product_ids.append(product_id)
+            except:
+                pass
+
+    @task(2)
+    def delete_own_product(self):
+        """
+        DELETE /api/products/{id} - удаление ранее созданного продукта.
+
+        Удаляет один из продуктов, созданных этим же пользователем.
+        """
+        if not self.ensure_logged_in():
+            return
+
+        if self.created_product_ids:
+            product_id = self.created_product_ids.pop()
+            self.client.delete(
+                f"/api/products/{product_id}",
+                headers=self.auth_headers(),
+                name="/api/products/[id] (DELETE)"
+            )
+
+
+# =============================================================================
+# Профили нагрузки
 # =============================================================================
 
 class LinearLoadShape(LoadTestShape):
@@ -372,41 +493,76 @@ class LinearLoadShape(LoadTestShape):
         10:00 - 15:00 -> Удержание на 100 пользователях
         15:00         -> Завершение теста
 
-    Attributes:
-        target_users: Целевое количество пользователей (100)
-        ramp_time: Время разгона в секундах (600 = 10 минут)
-        hold_time: Время удержания в секундах (300 = 5 минут)
-        spawn_rate: Скорость добавления пользователей (10/сек)
+    Использование:
+        Раскомментируйте этот класс для плавного теста.
     """
 
-    # Конфигурация профиля
     target_users = 100   # Максимум пользователей
     ramp_time = 600      # 10 минут на разгон (600 секунд)
     hold_time = 300      # 5 минут на пике (300 секунд)
     spawn_rate = 10      # Добавлять по 10 пользователей в секунду
 
     def tick(self):
-        """
-        Определяет количество пользователей в текущий момент времени.
-
-        Вызывается Locust каждую секунду для определения нагрузки.
-
-        Returns:
-            tuple: (количество_пользователей, spawn_rate) или None для остановки
-        """
+        """Определяет количество пользователей в текущий момент времени."""
         run_time = self.get_run_time()
         total_time = self.ramp_time + self.hold_time
 
-        # Тест завершён
         if run_time > total_time:
             return None
 
-        # Фаза разгона: линейный рост
         if run_time < self.ramp_time:
-            # Формула: текущие = (прошло_времени / время_разгона) * целевые
             current_users = int((run_time / self.ramp_time) * self.target_users)
             return (max(1, current_users), self.spawn_rate)
-
-        # Фаза удержания: постоянная нагрузка
         else:
             return (self.target_users, self.spawn_rate)
+
+
+class StepLoadShape(LoadTestShape):
+    """
+    Ступенчатый профиль нагрузки для стресс-тестирования.
+
+    Постепенно увеличивает нагрузку ступенями для поиска точки отказа.
+    Используется для A/B тестирования и определения максимальной нагрузки.
+
+    Фазы:
+        1. Разогрев: 10 -> 500 пользователей (плавно)
+        2. Стресс: 650 -> 2000 пользователей (агрессивно)
+
+    Использование:
+        Закомментируйте LinearLoadShape и раскомментируйте этот класс.
+    """
+
+    stages = [
+        # Фаза 1: Разогрев (0-60 минут)
+        {"duration": 300, "users": 10, "spawn_rate": 5},
+        {"duration": 600, "users": 25, "spawn_rate": 5},
+        {"duration": 900, "users": 50, "spawn_rate": 10},
+        {"duration": 1200, "users": 100, "spawn_rate": 15},
+        {"duration": 1500, "users": 150, "spawn_rate": 20},
+        {"duration": 1800, "users": 200, "spawn_rate": 20},
+        {"duration": 2100, "users": 250, "spawn_rate": 20},
+        {"duration": 2400, "users": 300, "spawn_rate": 25},
+        {"duration": 2700, "users": 350, "spawn_rate": 25},
+        {"duration": 3000, "users": 400, "spawn_rate": 25},
+        {"duration": 3300, "users": 450, "spawn_rate": 25},
+        {"duration": 3600, "users": 500, "spawn_rate": 30},
+        # Фаза 2: Стресс (60-80 минут)
+        {"duration": 3720, "users": 650, "spawn_rate": 50},
+        {"duration": 3840, "users": 800, "spawn_rate": 50},
+        {"duration": 3960, "users": 950, "spawn_rate": 50},
+        {"duration": 4080, "users": 1100, "spawn_rate": 50},
+        {"duration": 4200, "users": 1250, "spawn_rate": 50},
+        {"duration": 4320, "users": 1400, "spawn_rate": 50},
+        {"duration": 4440, "users": 1550, "spawn_rate": 50},
+        {"duration": 4560, "users": 1700, "spawn_rate": 50},
+        {"duration": 4680, "users": 1850, "spawn_rate": 50},
+        {"duration": 4800, "users": 2000, "spawn_rate": 50},
+    ]
+
+    def tick(self):
+        """Определяет количество пользователей по текущей ступени."""
+        run_time = self.get_run_time()
+        for stage in self.stages:
+            if run_time < stage["duration"]:
+                return (stage["users"], stage["spawn_rate"])
+        return None

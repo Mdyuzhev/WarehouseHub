@@ -1,9 +1,42 @@
 __pycache__/
 report-widget.zip
 
+# =============================================================================
+# WH-184: Защита секретов и чувствительных данных
+# =============================================================================
+
+# Environment files с секретами (НИКОГДА не коммитить!)
+.env
+*.env.local
+.env.*.local
+# НО .env.example - можно (это шаблоны)
+!.env.example
+!**/.env.example
+
+# Credentials files
+credentials.json
+secrets.yaml
+secrets.yml
+**/secrets/
+*.pem
+*.key
+*.crt
+!*.crt.example
+
+# K8s secrets (локальные копии)
+*-secret.yaml.local
+*-secrets.yaml.local
+
+# Java test properties с паролями
+**/test.properties
+!**/test.properties.example
+
+# =============================================================================
 # Maven build artifacts
+# =============================================================================
 ui-tests/target/
 api-tests/target/
+e2e-tests/target/
 ui-tests/target.bak.*/
 ui-tests/.mvn/
 ui-tests/mvnw
@@ -11,7 +44,13 @@ ui-tests/mvnw.cmd
 api-tests/.mvn/
 api-tests/mvnw
 api-tests/mvnw.cmd
+e2e-tests/.mvn/
+e2e-tests/mvnw
+e2e-tests/mvnw.cmd
 
+# =============================================================================
+# Test artifacts
+# =============================================================================
 # E2E test screenshots
 e2e-tests/screenshots/
 
@@ -21,7 +60,41 @@ ui-tests/screenshots/
 # Selenoid runtime logs
 selenoid/logs/
 
-# Python virtual environments
+# Allure reports (генерируются, не хранятся)
+**/allure-results/
+**/allure-report/
+
+# =============================================================================
+# Python
+# =============================================================================
+# Virtual environments
 .venv/
 venv/
+env/
+*.egg-info/
+dist/
+build/
+*.pyc
+*.pyo
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# =============================================================================
+# IDE и редакторы
+# =============================================================================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# =============================================================================
+# Misc
+# =============================================================================
 labor_cost_report.json
+*.log
+*.tmp
+*.bak
