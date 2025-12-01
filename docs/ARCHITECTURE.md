@@ -1,6 +1,6 @@
 # Warehouse Project - Architecture
 
-> Полная архитектура проекта. Обновлено: 2025-12-01 (WH-170 Улучшения и стабилизация)
+> Полная архитектура проекта. Обновлено: 2025-12-02 (WH-200 CI/CD Dual Environment)
 
 ---
 
@@ -18,6 +18,8 @@
 10. [Мониторинг и тестирование](#мониторинг-и-тестирование)
 11. [QA подсистема (WH-155)](#qa-подсистема-wh-155)
 12. [Сетевая схема](#сетевая-схема)
+13. [Dev-окружение (WH-192)](#dev-окружение-wh-192)
+14. [Dual Environment CI/CD (WH-200)](#dual-environment-cicd-wh-200)
 
 ---
 
@@ -575,6 +577,21 @@ warehouse-master/
 │  │  └──────────────────┘  └─────────────────────────┘                 │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
+│  namespace: warehouse-dev (WH-192)                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ┌──────────────┐  ┌──────────────────┐  ┌────────────────────┐    │   │
+│  │  │ postgres     │  │ warehouse-api    │  │ warehouse-frontend │    │   │
+│  │  │ Deployment   │  │ Deployment (1)   │  │ Deployment (1)     │    │   │
+│  │  │ :5432→:31432 │  │ :8080 → :31080   │  │ :80 → :31081       │    │   │
+│  │  └──────────────┘  └──────────────────┘  └────────────────────┘    │   │
+│  │                                                                     │   │
+│  │  ┌──────────────┐                                                   │   │
+│  │  │ redis        │  ResourceQuota: 4 CPU, 8Gi Memory                │   │
+│  │  │ Deployment   │  Изолировано от prod (warehouse namespace)       │   │
+│  │  │ :6379→:31379 │                                                   │   │
+│  │  └──────────────┘                                                   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -618,7 +635,7 @@ warehouse-master/
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### NodePorts Summary (Staging)
+### NodePorts Summary (Staging - Production Environment)
 
 | Service | NodePort | Internal | URL |
 |---------|----------|----------|-----|
@@ -632,6 +649,15 @@ warehouse-master/
 | telegram-bot-webhook | 30088 | 8000 | http://192.168.1.74:30088 |
 | prometheus | 30090 | 9090 | http://192.168.1.74:30090 |
 | grafana | 30300 | 3000 | http://192.168.1.74:30300 |
+
+### NodePorts Summary (Staging - Development Environment, WH-192)
+
+| Service | NodePort | Internal | URL |
+|---------|----------|----------|-----|
+| warehouse-api (dev) | 31080 | 8080 | http://192.168.1.74:31080 |
+| warehouse-frontend (dev) | 31081 | 80 | http://192.168.1.74:31081 |
+| postgres-external (dev) | 31432 | 5432 | - |
+| redis-external (dev) | 31379 | 6379 | - |
 
 ### Docker Compose сервисы (на хосте)
 
@@ -699,10 +725,19 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ## CI/CD Pipeline
 
+### Dual Environment Workflow (WH-200)
+
+С декабря 2025 настроен dual environment CI/CD:
+
+| Ветка | Окружение | Namespace | Порты | Деплой |
+|-------|-----------|-----------|-------|--------|
+| `develop` | Development | `warehouse-dev` | 31xxx | **Автоматический** |
+| `main` | Production | `warehouse` | 30xxx | **Ручной (manual)** |
+
 ### warehouse-api Pipeline
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  validate → build → test → package                                          │
+│  validate → build → test → package → deploy                                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  validate:     mvnw validate                                                │
@@ -713,13 +748,21 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 │                docker push → Yandex Registry                                │
 │                docker save → k3s ctr images import                          │
 │                                                                             │
+│  deploy-dev:   (develop branch, AUTO)                                       │
+│                kubectl rollout restart -n warehouse-dev                     │
+│                Health check: http://192.168.1.74:31080/actuator/health      │
+│                                                                             │
+│  deploy-prod:  (main branch, MANUAL)                                        │
+│                kubectl rollout restart -n warehouse                         │
+│                Health check: http://192.168.1.74:30080/actuator/health      │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### warehouse-frontend Pipeline
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  test → build → package                                                      │
+│  test → build → package → deploy                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  test:         npm ci && npm test                                          │
@@ -727,6 +770,14 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 │  package:      docker build (multi-stage: node → nginx)                     │
 │                docker push → Yandex Registry                                │
 │                docker save → k3s ctr images import                          │
+│                                                                             │
+│  deploy-dev:   (develop branch, AUTO)                                       │
+│                kubectl rollout restart -n warehouse-dev                     │
+│                Availability check: http://192.168.1.74:31081/               │
+│                                                                             │
+│  deploy-prod:  (main branch, MANUAL)                                        │
+│                kubectl rollout restart -n warehouse                         │
+│                Availability check: http://192.168.1.74:30081/               │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -955,7 +1006,9 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ---
 
-## Актуальный статус подов (2025-12-01)
+## Актуальный статус подов (2025-12-02)
+
+### Production Environment (warehouse namespace)
 
 | Namespace | Pod | Replicas | Status |
 |-----------|-----|----------|--------|
@@ -968,6 +1021,20 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 | warehouse | redis | 1 | Running |
 | warehouse | kafka | 1 | Running |
 | warehouse | selenoid | 1 | Running |
+
+### Development Environment (warehouse-dev namespace, WH-192)
+
+| Namespace | Pod | Replicas | Status |
+|-----------|-----|----------|--------|
+| warehouse-dev | warehouse-api | 1 | Running |
+| warehouse-dev | warehouse-frontend | 1 | Running |
+| warehouse-dev | postgres | 1 | Running |
+| warehouse-dev | redis | 1 | Running |
+
+### Service Namespaces
+
+| Namespace | Pod | Replicas | Status |
+|-----------|-----|----------|--------|
 | loadtest | locust-master | 1 | Running |
 | loadtest | locust-worker | 5 | Running |
 | loadtest | locust-exporter | 1 | Running |
@@ -1020,4 +1087,98 @@ Yandex Container Registry: cr.yandex/crpf5fukf1ili7kudopb
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-170 Улучшения и стабилизация - 15 задач Fixed)*
+## Dev-окружение (WH-192)
+
+### Назначение
+
+Dev-окружение создано для параллельной разработки и тестирования новых фич без влияния на production (warehouse namespace).
+
+### Компоненты
+
+| Компонент | Namespace | Port | Описание |
+|-----------|-----------|------|----------|
+| warehouse-api | warehouse-dev | 31080 | API для разработки |
+| warehouse-frontend | warehouse-dev | 31081 | Frontend для разработки |
+| postgres | warehouse-dev | 31432 | Отдельная БД |
+| redis | warehouse-dev | 31379 | Отдельный кэш |
+
+### Особенности
+
+- **ResourceQuota:** 4 CPU, 8Gi Memory (ограничение ресурсов)
+- **Изоляция:** Полная изоляция от prod (warehouse namespace)
+- **Данные:** Отдельные PostgreSQL и Redis экземпляры
+- **Секреты:** Собственные secrets (warehouse-dev-secret)
+
+### Git Flow (WH-187)
+
+```
+main (protected) ─────────────────────────────────────────────► production
+    │                                                              │
+    └── develop ─────► feature/* ─────► MR ─────► develop ────────┘
+                                                      │
+                                                      ▼
+                                              warehouse-dev (auto deploy)
+```
+
+---
+
+## Dual Environment CI/CD (WH-200)
+
+### Workflow
+
+| Действие | Ветка | Pipeline | Деплой |
+|----------|-------|----------|--------|
+| Push в develop | develop | Запускается | AUTO в warehouse-dev |
+| Push в main | main | Запускается | MANUAL в warehouse |
+| Merge Request | develop → main | После approve | MANUAL trigger |
+
+### GitLab Environments
+
+| Environment | URL API | URL Frontend | Описание |
+|-------------|---------|--------------|----------|
+| development | http://192.168.1.74:31080 | http://192.168.1.74:31081 | Для develop branch |
+| production | http://192.168.1.74:30080 | http://192.168.1.74:30081 | Для main branch |
+
+### Проверенные Pipelines
+
+| Pipeline | Branch | Status | Результат |
+|----------|--------|--------|-----------|
+| #208 (warehouse-api) | develop | SUCCESS | Auto deploy в dev |
+| #209 (warehouse-frontend) | develop | SUCCESS | Auto deploy в dev |
+| #210 (warehouse-api) | main | MANUAL | Ожидает ручного запуска |
+| #211 (warehouse-frontend) | main | MANUAL | Ожидает ручного запуска |
+
+---
+
+## WH-186 Logistics Hub Epic
+
+### Структура эпика
+
+```
+WH-186 (Epic: Logistics Hub) [Fixed]
+├── WH-187 (User Story: Настройка GitLab для параллельной разработки) [Fixed]
+│     ├── WH-188 (Task: Создать ветку develop от main) [Fixed]
+│     ├── WH-189 (Task: Настроить protected branch rules для main) [Fixed]
+│     ├── WH-190 (Task: Создать шаблон merge request) [Fixed]
+│     └── WH-191 (Task: Документировать git flow в README) [Fixed]
+│
+├── WH-192 (User Story: Создание dev-окружения в K8s) [Fixed]
+│     ├── WH-193 (Task: Создать namespace warehouse-dev с labels) [Fixed]
+│     ├── WH-194 (Task: Применить ResourceQuota для ограничения ресурсов) [Fixed]
+│     ├── WH-195 (Task: Развернуть PostgreSQL на порту 31432) [Fixed]
+│     ├── WH-196 (Task: Развернуть Redis на порту 31379) [Fixed]
+│     ├── WH-197 (Task: Скопировать deployments API и frontend с новыми портами) [Fixed]
+│     ├── WH-198 (Task: Создать secrets для dev-окружения) [Fixed]
+│     └── WH-199 (Task: Проверить изоляцию от prod) [Fixed]
+│
+└── WH-200 (User Story: CI/CD pipeline для dual environment) [Fixed]
+      ├── WH-201 (Task: Добавить стадию deploy-dev в .gitlab-ci.yml) [Fixed]
+      ├── WH-202 (Task: Модифицировать deploy-prod с manual trigger) [Fixed]
+      ├── WH-203 (Task: Настроить GitLab Environments) [Fixed]
+      ├── WH-204 (Task: Добавить переменные окружения для dev) [Fixed]
+      └── WH-205 (Task: Протестировать pipeline на обеих ветках) [Fixed]
+```
+
+---
+
+*Последнее обновление: 2025-12-02 (WH-200 CI/CD Dual Environment - Logistics Hub Epic)*

@@ -2,24 +2,26 @@
 
 Руководство по устранению типичных проблем в проекте Warehouse.
 
-> Обновлено: 2025-12-01 (WH-170 Улучшения и стабилизация)
+> Обновлено: 2025-12-02 (WH-200 Dual Environment CI/CD)
 
 ---
 
 ## Оглавление
 
 1. [Общие принципы диагностики](#общие-принципы-диагностики)
-2. [QA подсистема](#qa-подсистема-wh-155)
-3. [Warehouse Robot (WH-120)](#warehouse-robot-wh-120)
-4. [Analytics Service (WH-121)](#analytics-service-wh-121)
-5. [Telegram Bot](#telegram-bot)
-6. [K3s и образы](#k3s-и-образы)
-7. [CI/CD Pipeline](#cicd-pipeline)
-8. [Нагрузочное тестирование](#нагрузочное-тестирование)
-9. [YouTrack API](#youtrack-api)
-10. [Конфигурация приложений](#конфигурация-приложений)
-11. [Frontend](#frontend)
-12. [Best Practices](#best-practices)
+2. [Dev-окружение (WH-192)](#dev-окружение-wh-192)
+3. [Dual Environment CI/CD (WH-200)](#dual-environment-cicd-wh-200)
+4. [QA подсистема](#qa-подсистема-wh-155)
+5. [Warehouse Robot (WH-120)](#warehouse-robot-wh-120)
+6. [Analytics Service (WH-121)](#analytics-service-wh-121)
+7. [Telegram Bot](#telegram-bot)
+8. [K3s и образы](#k3s-и-образы)
+9. [CI/CD Pipeline](#cicd-pipeline)
+10. [Нагрузочное тестирование](#нагрузочное-тестирование)
+11. [YouTrack API](#youtrack-api)
+12. [Конфигурация приложений](#конфигурация-приложений)
+13. [Frontend](#frontend)
+14. [Best Practices](#best-practices)
 
 ---
 
@@ -72,6 +74,285 @@ kubectl exec -n warehouse deployment/warehouse-api -- curl -s http://redis:6379
 
 # DNS resolution
 kubectl exec -n warehouse deployment/warehouse-api -- nslookup postgres-service
+```
+
+---
+
+## Dev-окружение (WH-192)
+
+### Проблема: Сервисы dev не доступны по портам 31xxx
+
+**Симптомы:**
+```bash
+curl http://192.168.1.74:31080/actuator/health
+# Connection refused
+```
+
+**Диагностика:**
+```bash
+# Проверить namespace warehouse-dev
+kubectl get all -n warehouse-dev
+
+# Проверить сервисы
+kubectl get svc -n warehouse-dev
+
+# Проверить endpoints
+kubectl get endpoints -n warehouse-dev
+```
+
+**Причины:**
+1. Namespace warehouse-dev не создан
+2. Deployment не существует в dev namespace
+3. NodePort сервис не настроен
+
+**Решение:**
+```bash
+# Создать namespace если нет
+kubectl create namespace warehouse-dev
+
+# Применить манифесты dev окружения
+kubectl apply -k ~/warehouse-master/k8s/dev/
+
+# Проверить что сервисы используют правильные порты
+kubectl get svc -n warehouse-dev -o wide
+```
+
+**Порты dev-окружения:**
+| Сервис | NodePort |
+|--------|----------|
+| API | 31080 |
+| Frontend | 31081 |
+| Robot | 31070 |
+| Analytics | 31091 |
+
+---
+
+### Проблема: Dev и Prod используют одни и те же данные
+
+**Симптомы:**
+Изменения в dev появляются в prod и наоборот.
+
+**Причина:**
+Dev использует тот же PostgreSQL и Redis что и prod.
+
+**Диагностика:**
+```bash
+# Проверить DATABASE_URL в dev deployment
+kubectl get deployment warehouse-api -n warehouse-dev -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="DATABASE_URL")].value}'
+```
+
+**Решение:**
+Dev окружение должно использовать отдельную базу данных:
+```yaml
+# Для изоляции данных:
+# 1. Отдельная база в том же PostgreSQL
+spring.datasource.url=jdbc:postgresql://postgres-service:5432/warehouse_dev
+
+# 2. Или отдельный StatefulSet PostgreSQL в warehouse-dev namespace
+```
+
+---
+
+### Проблема: ResourceQuota превышена в dev
+
+**Симптомы:**
+```
+Error from server (Forbidden): exceeded quota: dev-quota
+```
+
+**Диагностика:**
+```bash
+kubectl describe resourcequota -n warehouse-dev
+```
+
+**Решение:**
+```bash
+# Проверить текущее использование
+kubectl get resourcequota -n warehouse-dev -o yaml
+
+# ResourceQuota для warehouse-dev:
+# - 4 CPU
+# - 8Gi Memory
+
+# Уменьшить ресурсы deployment
+kubectl set resources deployment/warehouse-api -n warehouse-dev --limits=cpu=500m,memory=512Mi
+```
+
+---
+
+## Dual Environment CI/CD (WH-200)
+
+### Проблема: Pipeline не деплоит в dev автоматически
+
+**Симптомы:**
+Push в develop branch, но deploy-dev job не запускается.
+
+**Диагностика:**
+```bash
+# Проверить что push был в develop
+git log --oneline -5
+
+# Проверить GitLab CI jobs
+# GitLab UI → CI/CD → Pipelines
+```
+
+**Причины:**
+1. Push был не в develop branch
+2. Job правило не совпадает
+3. Pipeline stage зависит от failed job
+
+**Решение:**
+Проверить `.gitlab-ci.yml`:
+```yaml
+deploy-dev:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"  # Должно быть именно develop
+  # ...
+```
+
+---
+
+### Проблема: deploy-prod не появляется для ручного запуска
+
+**Симптомы:**
+Push в main, но кнопка "Play" для deploy-prod отсутствует.
+
+**Диагностика:**
+```bash
+# Проверить branch
+git branch --show-current
+
+# Проверить CI rules
+```
+
+**Причина:**
+Job deploy-prod имеет `when: manual` только для main branch.
+
+**Решение:**
+```yaml
+deploy-prod:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual  # Обязательно для prod!
+```
+
+Убедиться что:
+1. Push именно в main
+2. package-image job завершился успешно (dependencies)
+
+---
+
+### Проблема: Health check failed в CI pipeline
+
+**Симптомы:**
+```
+Health check warning
+curl: (7) Failed to connect
+```
+
+**Диагностика:**
+```bash
+# Проверить что pod запустился
+kubectl get pods -n warehouse-dev -l app=warehouse-api
+
+# Проверить логи
+kubectl logs -n warehouse-dev deployment/warehouse-api --tail=50
+```
+
+**Причины:**
+1. Pod ещё не готов (startup time)
+2. Service не маршрутизирует на pod
+3. Неверный URL в переменной
+
+**Решение:**
+```bash
+# Увеличить sleep в pipeline (по умолчанию 10s)
+# Или добавить retry в health check
+
+# Проверить URL
+echo $DEV_API_URL  # должен быть http://192.168.1.74:31080
+echo $PROD_API_URL # должен быть http://192.168.1.74:30080
+```
+
+---
+
+### Проблема: GitLab Environment не обновляется
+
+**Симптомы:**
+В GitLab → Deployments → Environments статус устаревший.
+
+**Решение:**
+```bash
+# Environments обновляются автоматически при успешном deploy job
+# Проверить что job имеет блок environment:
+deploy-dev:
+  environment:
+    name: development
+    url: $DEV_API_URL
+
+deploy-prod:
+  environment:
+    name: production
+    url: $PROD_API_URL
+```
+
+---
+
+### Проблема: Merge Request из develop в main требует ручной деплой
+
+**Симптомы:**
+После merge develop→main, prod не обновляется автоматически.
+
+**Объяснение:**
+Это **ожидаемое поведение**! Деплой в prod всегда ручной (`when: manual`).
+
+**Workflow:**
+```
+develop → auto deploy → warehouse-dev (31xxx)
+        ↓
+    MR в main
+        ↓
+main → manual deploy → warehouse (30xxx)
+```
+
+**Запуск prod deploy:**
+1. GitLab → CI/CD → Pipelines
+2. Найти pipeline от merge в main
+3. Нажать "Play" на job deploy-prod
+
+---
+
+### Проблема: Образ latest не обновился после pipeline
+
+**Симптомы:**
+Pipeline успешен, но pod использует старый код.
+
+**Диагностика:**
+```bash
+# Проверить версию образа в containerd
+sudo k3s ctr images list | grep warehouse-api
+
+# Проверить что pod перезапустился
+kubectl get pods -n warehouse -l app=warehouse-api -o wide
+```
+
+**Причина:**
+K3s кэширует образы. `imagePullPolicy: Never` означает что K3s не перезапрашивает образ.
+
+**Решение:**
+Pipeline должен включать:
+```yaml
+# 1. Удаление старого образа из K3s
+- sudo k3s ctr images rm docker.io/library/$IMAGE_NAME:latest || true
+
+# 2. Импорт нового
+- docker save $IMAGE_NAME:latest -o /tmp/$IMAGE_NAME.tar
+- sudo k3s ctr images import /tmp/$IMAGE_NAME.tar
+
+# 3. Rollout restart (принудительный перезапуск pods)
+- kubectl rollout restart deployment/warehouse-api -n $NAMESPACE
 ```
 
 ---
@@ -966,4 +1247,4 @@ def get_cached_token(self):
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-170 Улучшения и стабилизация - 15 задач Fixed)*
+*Последнее обновление: 2025-12-02 (WH-200 Dual Environment CI/CD)*

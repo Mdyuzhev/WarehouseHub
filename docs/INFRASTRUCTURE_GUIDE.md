@@ -1,6 +1,6 @@
 # Warehouse Project - Infrastructure Guide
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-01 (WH-170 Улучшения)
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-02 (WH-200 Dual Environment CI/CD)
 
 ---
 
@@ -43,7 +43,9 @@
 │  │  K8s Namespaces                                                   │   │
 │  │  ├── warehouse:      API (2) + Frontend + PostgreSQL + Replica   │   │
 │  │  │                   + Redis + Kafka + Robot + Analytics          │   │
-│  │  │                   + Selenoid                                   │   │
+│  │  │                   + Selenoid (PROD)                            │   │
+│  │  ├── warehouse-dev:  API (1) + Frontend + PostgreSQL + Redis     │   │
+│  │  │                   (DEV environment, WH-192)                    │   │
 │  │  ├── loadtest:       Locust Master + Workers (5) + Exporter      │   │
 │  │  ├── notifications:  Telegram Bot (v5.4)                          │   │
 │  │  └── monitoring:     Prometheus + Grafana + Alertmanager          │   │
@@ -156,6 +158,19 @@ warehouse-master/
 | **Kube State Metrics** | - | - | K8s метрики |
 | **Node Exporter** | - | - | Хост метрики |
 
+### K8s Services (namespace: warehouse-dev) - WH-192
+
+Development окружение для параллельной разработки. Изолировано от prod (warehouse namespace).
+
+| Сервис | Внутренний URL | NodePort | Replicas | Описание |
+|--------|----------------|----------|----------|----------|
+| **Warehouse API (dev)** | `warehouse-api-service.warehouse-dev.svc.cluster.local:8080` | `31080` | 1 | REST API (dev) |
+| **Warehouse Frontend (dev)** | `warehouse-frontend-service.warehouse-dev.svc.cluster.local:80` | `31081` | 1 | Vue.js SPA (dev) |
+| **PostgreSQL (dev)** | `postgres.warehouse-dev.svc.cluster.local:5432` | `31432` | 1 | База данных (dev) |
+| **Redis (dev)** | `redis.warehouse-dev.svc.cluster.local:6379` | `31379` | 1 | Кэш/сессии (dev) |
+
+**ResourceQuota:** 4 CPU, 8Gi Memory
+
 ### Docker Compose сервисы (на хосте)
 
 | Сервис | URL | Порт | Описание |
@@ -195,12 +210,32 @@ services:
   frontend:
     image: cr.yandex/crpf5fukf1ili7kudopb/warehouse-frontend:latest
     ports: 80
+  analytics:
+    image: cr.yandex/crpf5fukf1ili7kudopb/warehouse-analytics:latest
+    ports: 8090
+  kafka:
+    image: bitnami/kafka:3.6
+  redis:
+    image: redis:7.4.7
   postgres:
     image: postgres:15-alpine
     ports: 5432
   nginx:
     # Reverse proxy + Let's Encrypt SSL
 ```
+
+### Текущий статус Production (2025-12-02)
+
+| Container | Status | Описание |
+|-----------|--------|----------|
+| warehouse-frontend | Up | OK |
+| warehouse-api | Up | Health UP (PostgreSQL, Redis connected) |
+| warehouse-analytics | Up | OK |
+| warehouse-kafka | Up (healthy) | OK |
+| warehouse-db | Up (healthy) | PostgreSQL |
+| warehouse-redis | Up (healthy) | Redis 7.4.7 |
+| nginx | Up | Reverse proxy |
+| certbot | Up | Let's Encrypt auto-renewal |
 
 ### Yandex Container Registry
 
@@ -732,4 +767,4 @@ secrets.yaml
 
 ---
 
-*Последнее обновление: 2025-12-01 (WH-200 CI/CD pipeline для dual environment)*
+*Последнее обновление: 2025-12-02 (Ревизия после WH-200 CI/CD Dual Environment)*
