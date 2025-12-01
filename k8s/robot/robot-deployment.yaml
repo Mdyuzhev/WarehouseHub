@@ -24,21 +24,14 @@ spec:
           ports:
             - containerPort: 8070
               name: http
+          envFrom:
+            # WH-174: Все credentials из secret (ROBOT_ prefix)
+            - secretRef:
+                name: warehouse-robot-secrets
           env:
             # Warehouse API
             - name: ROBOT_API_URL
               value: "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
-            # Учётные данные сотрудника
-            - name: ROBOT_EMPLOYEE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: warehouse-robot-secrets
-                  key: employee-username
-            - name: ROBOT_EMPLOYEE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: warehouse-robot-secrets
-                  key: employee-password
             # Telegram Bot URL (notifications namespace)
             - name: ROBOT_TELEGRAM_BOT_URL
               value: "http://gitlab-telegram-bot.notifications.svc.cluster.local:8000"

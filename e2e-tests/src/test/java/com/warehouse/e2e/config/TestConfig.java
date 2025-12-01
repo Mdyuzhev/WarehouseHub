@@ -5,7 +5,10 @@ import org.aeonbits.owner.ConfigFactory;
 
 /**
  * Конфигурация E2E тестов.
- * Значения можно переопределить через системные свойства или переменные окружения.
+ * WH-176: Credentials можно переопределить через:
+ * 1. test.properties (см. test.properties.example)
+ * 2. Системные переменные окружения
+ * 3. -D параметры JVM (system:properties)
  */
 @Config.Sources({
     "system:properties",

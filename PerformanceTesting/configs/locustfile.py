@@ -1,16 +1,26 @@
 """
 Сценарий нагрузочного тестирования для warehouse-api.
 WH-103: A/B тестирование Redis + Kafka
+WH-178: Credentials вынесены в переменные окружения
 
 Оптимизировано: добавлен кэш токенов для снижения нагрузки BCrypt
 """
 
+import os
 import random
 import string
 import time
 import threading
 from locust import HttpUser, task, between
 from locust import LoadTestShape
+
+# =============================================================================
+# WH-178: Конфигурация из переменных окружения
+# =============================================================================
+SUPERUSER_PASSWORD = os.getenv("LOCUST_SUPERUSER_PASSWORD", "password123")
+ADMIN_PASSWORD = os.getenv("LOCUST_ADMIN_PASSWORD", "password123")
+MANAGER_PASSWORD = os.getenv("LOCUST_MANAGER_PASSWORD", "password123")
+EMPLOYEE_PASSWORD = os.getenv("LOCUST_EMPLOYEE_PASSWORD", "password123")
 
 
 # ============== ГЛОБАЛЬНЫЙ КЭШ ТОКЕНОВ ==============
@@ -141,7 +151,7 @@ class SuperUser(WarehouseUser):
     """SUPER_USER - полный доступ ко всему."""
     weight = 1
     username = "superuser"
-    password = "password123"
+    password = SUPERUSER_PASSWORD  # WH-178
     role = "superuser"
     abstract = False
 
@@ -196,7 +206,7 @@ class AdminUser(WarehouseUser):
     """ADMIN - администратор (только просмотр в текущей конфигурации API)."""
     weight = 2
     username = "admin"
-    password = "password123"
+    password = ADMIN_PASSWORD  # WH-178
     role = "admin"
     abstract = False
 
@@ -205,7 +215,7 @@ class ManagerUser(WarehouseUser):
     """MANAGER - менеджер склада (только просмотр в текущей конфигурации API)."""
     weight = 3
     username = "manager"
-    password = "password123"
+    password = MANAGER_PASSWORD  # WH-178
     role = "manager"
     abstract = False
 
@@ -214,7 +224,7 @@ class EmployeeUser(WarehouseUser):
     """EMPLOYEE - сотрудник склада (может создавать товары)."""
     weight = 5
     username = "employee"
-    password = "password123"
+    password = EMPLOYEE_PASSWORD  # WH-178
     role = "employee"
     abstract = False
 

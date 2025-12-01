@@ -2,6 +2,13 @@ package com.warehouse.ui.config;
 
 import org.aeonbits.owner.Config;
 
+/**
+ * Конфигурация UI тестов.
+ * WH-175: Credentials можно переопределить через:
+ * 1. test.properties (см. test.properties.example)
+ * 2. Системные переменные окружения
+ * 3. -D параметры JVM
+ */
 @Config.Sources({
         "classpath:test.properties",
         "system:env"

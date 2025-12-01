@@ -31,14 +31,26 @@ spec:
             - secretRef:
                 name: telegram-bot-secrets
           env:
-            - name: CLAUDE_PROXY_URL
-              value: "http://192.168.1.74:8765"
+            # Logging
             - name: LOG_FORMAT
               value: "json"
             - name: LOG_LEVEL
               value: "INFO"
+            # WH-173: URLs вынесены в env для возможности переопределения
+            - name: GITLAB_URL
+              value: "http://192.168.1.74:8080"
+            - name: ALLURE_SERVER_URL
+              value: "http://192.168.1.74:5050"
+            - name: ALLURE_PUBLIC_URL
+              value: "https://advertiser-dark-remaining-sail.trycloudflare.com"
+            - name: CLAUDE_PROXY_URL
+              value: "http://192.168.1.74:8765"
+            - name: YOUTRACK_URL
+              value: "http://192.168.1.74:8088"
             - name: ROBOT_API_URL
               value: "http://warehouse-robot-service.warehouse.svc.cluster.local:8070"
+            - name: PROD_HOST
+              value: "130.193.44.34"
           resources:
             requests:
               memory: "64Mi"

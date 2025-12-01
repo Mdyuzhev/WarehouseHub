@@ -99,10 +99,11 @@ CLAUDE_PROXY_URL = os.getenv("CLAUDE_PROXY_URL", "http://192.168.1.74:8765")
 
 # =============================================================================
 # Passwords (для авторизации деплоя, НТ и Claude)
+# WH-172: Пароли перенесены в K8s Secret, здесь только os.getenv()
 # =============================================================================
-DEPLOY_PASSWORD = os.getenv("DEPLOY_PASSWORD", "Misha2021@1@")
-LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD", "Misha2021@1@")
-LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")
+DEPLOY_PASSWORD = os.getenv("DEPLOY_PASSWORD")
+LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD")
+LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")  # Guest - не секрет
 
 # Guest limits
 GUEST_MAX_USERS = 20
@@ -118,10 +119,11 @@ PROMETHEUS_URL = os.getenv(
 
 # =============================================================================
 # YouTrack
+# WH-172: Пароль перенесён в K8s Secret
 # =============================================================================
 YOUTRACK_URL = os.getenv("YOUTRACK_URL", "http://192.168.1.74:8088")
 YOUTRACK_USER = os.getenv("YOUTRACK_USER", "admin")
-YOUTRACK_PASSWORD = os.getenv("YOUTRACK_PASSWORD", "Misha2021@1@")
+YOUTRACK_PASSWORD = os.getenv("YOUTRACK_PASSWORD")  # WH-172: в K8s Secret
 YOUTRACK_PROJECT = os.getenv("YOUTRACK_PROJECT", "WH")
 
 # =============================================================================

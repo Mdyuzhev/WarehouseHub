@@ -20,12 +20,13 @@ class Settings(BaseSettings):
     default_environment: str = "staging"
 
     # Учётные данные пользователей
+    # WH-174: Пароли читаются из env (K8s Secret), defaults для локальной разработки
     employee_username: str = "employee"
-    employee_password: str = "password123"
+    employee_password: str = "password123"  # ROBOT_EMPLOYEE_PASSWORD в prod
     manager_username: str = "manager"
-    manager_password: str = "password123"
+    manager_password: str = "password123"   # ROBOT_MANAGER_PASSWORD в prod
     superuser_username: str = "superuser"
-    superuser_password: str = "password123"
+    superuser_password: str = "password123" # ROBOT_SUPERUSER_PASSWORD в prod
 
     # Скорости выполнения сценариев (min, max секунд между действиями)
     speed_slow: Tuple[float, float] = (5.0, 10.0)

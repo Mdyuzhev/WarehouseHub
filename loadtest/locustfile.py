@@ -26,14 +26,22 @@
 Веб-интерфейс:
     После запуска открыть http://localhost:8089
 
+WH-177: Credentials вынесены в переменные окружения
 =============================================================================
 """
 
+import os
 import random
 import string
 import time
 from locust import HttpUser, task, between
 from locust import LoadTestShape
+
+# =============================================================================
+# WH-177: Конфигурация из переменных окружения
+# =============================================================================
+EMPLOYEE_PASSWORD = os.getenv("LOCUST_EMPLOYEE_PASSWORD", "employee123")
+MANAGER_PASSWORD = os.getenv("LOCUST_MANAGER_PASSWORD", "manager123")
 
 
 # =============================================================================
@@ -235,9 +243,9 @@ class EmployeeUser(WarehouseUser):
     # 70% от общего количества пользователей
     weight = 7
 
-    # Учётные данные сотрудника
+    # Учётные данные сотрудника (WH-177: из env)
     username = "employee"
-    password = "employee123"
+    password = EMPLOYEE_PASSWORD
     role = "employee"
 
     # Это конкретный класс - создавать экземпляры
@@ -321,9 +329,9 @@ class ManagerUser(WarehouseUser):
     # 30% от общего количества пользователей
     weight = 3
 
-    # Учётные данные менеджера
+    # Учётные данные менеджера (WH-177: из env)
     username = "manager"
-    password = "manager123"
+    password = MANAGER_PASSWORD
     role = "manager"
 
     # Это конкретный класс - создавать экземпляры
