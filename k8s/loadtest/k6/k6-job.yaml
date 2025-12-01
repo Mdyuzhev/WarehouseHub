@@ -1,0 +1,57 @@
+# Job template для запуска k6 тестов
+# WH-209
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-kafka-test
+  namespace: loadtest
+  labels:
+    app: k6
+    test-type: kafka
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600  # Автоудаление через час
+  template:
+    metadata:
+      labels:
+        app: k6
+    spec:
+      serviceAccountName: k6-runner
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: k6-kafka:latest
+          imagePullPolicy: Never  # Используем локальный образ из K3s containerd
+          args:
+            - run
+            - --out
+            - experimental-prometheus-rw
+            - /scripts/producer-test.js
+          env:
+            # Prometheus Remote Write endpoint
+            - name: K6_PROMETHEUS_RW_SERVER_URL
+              value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+            - name: K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM
+              value: "true"
+            # Kafka connection
+            - name: KAFKA_BROKERS
+              value: "kafka.warehouse.svc.cluster.local:9092"
+            # Тестовые параметры (можно переопределять при запуске)
+            - name: K6_VUS
+              value: "10"
+            - name: K6_DURATION
+              value: "1m"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: scripts
+          configMap:
+            name: k6-scripts
