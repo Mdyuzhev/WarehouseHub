@@ -37,7 +37,7 @@ public interface TestConfig extends Config {
     String adminUsername();
 
     @Key("test.user.admin.password")
-    @DefaultValue("admin123")
+    @DefaultValue("password123")
     String adminPassword();
 
     @Key("test.user.manager")
@@ -45,14 +45,22 @@ public interface TestConfig extends Config {
     String managerUsername();
 
     @Key("test.user.manager.password")
-    @DefaultValue("manager123")
+    @DefaultValue("password123")
     String managerPassword();
 
     @Key("test.user.employee")
-    @DefaultValue("user")
+    @DefaultValue("employee")
     String employeeUsername();
 
     @Key("test.user.employee.password")
-    @DefaultValue("user123")
+    @DefaultValue("password123")
     String employeePassword();
+
+    @Key("test.user.analyst")
+    @DefaultValue("analyst")
+    String analystUsername();
+
+    @Key("test.user.analyst.password")
+    @DefaultValue("password123")
+    String analystPassword();
 }

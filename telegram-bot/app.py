@@ -39,11 +39,12 @@ from bot.handlers import (
     # Deploy
     handle_deploy_menu, request_deploy_password, handle_deploy_password_input,
     is_pending_deploy_password,
-    # Testing
-    handle_e2e_run, handle_e2e_report, handle_load_menu, handle_load_target,
+    # QA / Testing
+    handle_qa_menu, handle_qa_env, handle_qa_test_type, handle_qa_run, handle_qa_report,
+    handle_load_menu, handle_load_target,
     handle_load_users, handle_load_duration, request_password,
     handle_password_input, handle_stop_load_test, handle_load_status,
-    is_pending_password, is_pending_wizard,
+    is_pending_password,
     # Claude (код сохранён, но не используется в меню)
     handle_claude_menu, handle_claude_input, is_pending_claude,
     # PM
@@ -263,10 +264,8 @@ async def process_command(chat_id: int, text: str):
         await handle_metrics(chat_id)
     elif text == "🚀 Деплой":
         await handle_deploy_menu(chat_id)
-    elif text == "🧪 E2E":
-        await handle_e2e_run(chat_id)
-    elif text == "🔥 Нагрузка":
-        await handle_load_menu(chat_id)
+    elif text == "🔬 QA":
+        await handle_qa_menu(chat_id)
     elif text == "🛑 Стоп":
         await handle_stop_load_test(chat_id)
     elif text == "📋 PM":
@@ -312,8 +311,10 @@ async def process_command(chat_id: int, text: str):
         await request_deploy_password(chat_id, "deploy_all_prod", "API + Frontend", "prod")
 
     # Test команды
+    elif text == "/qa":
+        await handle_qa_menu(chat_id)
     elif text == "/e2e":
-        await handle_e2e_run(chat_id)
+        await handle_qa_menu(chat_id)
     elif text == "/load":
         await handle_load_menu(chat_id)
     elif text == "/stop":
@@ -406,11 +407,32 @@ async def process_callback(callback_query: dict):
     elif data == "deploy_all_prod":
         await request_deploy_password(chat_id, "deploy_all_prod", "API + Frontend", "prod")
 
-    # E2E
-    elif data == "e2e_run":
-        await handle_e2e_run(chat_id)
-    elif data == "e2e_report":
-        await handle_e2e_report(chat_id)
+    # QA Menu
+    elif data == "qa_menu":
+        await handle_qa_menu(chat_id)
+    elif data == "qa_staging":
+        await handle_qa_env(chat_id, "staging")
+    elif data == "qa_prod":
+        await handle_qa_env(chat_id, "prod")
+    elif data.startswith("qa_e2e_") or data.startswith("qa_ui_") or data.startswith("qa_load_"):
+        # qa_e2e_staging, qa_ui_prod, qa_load_staging
+        parts = data.split("_")
+        if len(parts) == 3:
+            test_type = parts[1]  # e2e, ui, load
+            env = parts[2]  # staging, prod
+            await handle_qa_test_type(chat_id, test_type, env)
+    elif data.startswith("qa_run_"):
+        # qa_run_e2e_staging, qa_run_ui_prod
+        parts = data.replace("qa_run_", "").split("_")
+        if len(parts) == 2:
+            test_type, env = parts
+            await handle_qa_run(chat_id, test_type, env)
+    elif data.startswith("qa_report_"):
+        # qa_report_e2e_staging, qa_report_ui_prod
+        parts = data.replace("qa_report_", "").split("_")
+        if len(parts) == 2:
+            test_type, env = parts
+            await handle_qa_report(chat_id, test_type, env)
 
     # Load testing
     elif data == "load_staging":

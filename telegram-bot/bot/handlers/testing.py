@@ -1,13 +1,16 @@
 """
-Обработчики команд тестирования.
-E2E тесты и нагрузочное тестирование! 🧪🔥
+Обработчики QA команд.
+E2E тесты, UI тесты и нагрузочное тестирование! 🔬
 """
 
 import asyncio
 from datetime import datetime
 from bot.telegram import send_message_with_reply_keyboard, send_message_with_inline_keyboard, send_message, send_chat_action
-from bot.keyboards import get_reply_keyboard, get_load_test_keyboard, get_duration_keyboard, get_rampup_keyboard, get_e2e_keyboard
-from bot.messages import get_random_joke, format_load_test_stats, format_e2e_report
+from bot.keyboards import (
+    get_reply_keyboard, get_qa_menu_keyboard, get_qa_type_keyboard, get_qa_action_keyboard,
+    get_load_test_keyboard, get_duration_keyboard, get_rampup_keyboard
+)
+from bot.messages import get_random_joke, format_load_test_stats, format_test_report
 from services import (
     trigger_gitlab_job, get_job_status,
     start_load_test, stop_load_test, get_load_test_stats, calculate_spawn_rate,
@@ -18,6 +21,16 @@ from config import (
     LOAD_TEST_PASSWORD, LOAD_TEST_GUEST_PASSWORD,
     GUEST_MAX_USERS, GUEST_MAX_DURATION
 )
+
+# =============================================================================
+# Allure Project IDs
+# =============================================================================
+ALLURE_PROJECTS = {
+    "e2e_staging": "e2e-staging",
+    "e2e_prod": "e2e-prod",
+    "ui_staging": "ui-staging",
+    "ui_prod": "ui-prod",
+}
 
 # =============================================================================
 # State - состояния для тестирования
@@ -37,33 +50,85 @@ load_test_status = {
 # Ожидание пароля
 pending_load_auth = {}
 
-# Wizard настройки НТ
-load_test_wizard = {}
-
 
 # =============================================================================
-# E2E Testing
+# QA Menu
 # =============================================================================
 
-async def handle_e2e_menu(chat_id: int):
-    """Показывает меню E2E тестов."""
+async def handle_qa_menu(chat_id: int):
+    """Показывает главное меню QA — выбор среды."""
     msg = """
-<b>🧪 E2E Тестирование</b>
+<b>🔬 QA — Тестирование</b>
 
-Запуск E2E тестов через GitLab CI.
-Результаты будут в Allure отчёте.
+Выбери среду для тестирования:
     """
-    await send_message_with_inline_keyboard(msg.strip(), get_e2e_keyboard(), chat_id=chat_id)
+    await send_message_with_inline_keyboard(msg.strip(), get_qa_menu_keyboard(), chat_id=chat_id)
 
 
-async def handle_e2e_run(chat_id: int):
-    """Запускает E2E тесты через GitLab CI."""
-    job_config = GITLAB_JOBS.get("run_e2e")
+async def handle_qa_env(chat_id: int, env: str):
+    """Показывает меню выбора типа теста для среды."""
+    env_emoji = "🧪" if env == "staging" else "🚀"
+    env_name = "STAGING" if env == "staging" else "PRODUCTION"
+    warning = "\n\n⚠️ <b>Внимание!</b> Это боевой сервер!" if env == "prod" else ""
+
+    msg = f"""
+<b>{env_emoji} {env_name}</b>{warning}
+
+Выбери тип тестирования:
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_qa_type_keyboard(env), chat_id=chat_id)
+
+
+async def handle_qa_test_type(chat_id: int, test_type: str, env: str):
+    """Показывает меню действий для выбранного теста."""
+    type_names = {"e2e": "📝 E2E тесты", "ui": "🎭 UI тесты", "load": "🔥 Нагрузка"}
+    env_names = {"staging": "🧪 STAGING", "prod": "🚀 PROD"}
+
+    type_name = type_names.get(test_type, test_type)
+    env_name = env_names.get(env, env)
+
+    msg = f"""
+<b>{type_name}</b>
+<i>Среда: {env_name}</i>
+
+Выбери действие:
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_qa_action_keyboard(test_type, env), chat_id=chat_id)
+
+
+# =============================================================================
+# E2E & UI Tests
+# =============================================================================
+
+async def handle_qa_run(chat_id: int, test_type: str, env: str):
+    """Запускает тесты через GitLab CI."""
+    # Если это нагрузка — переходим к wizard нагрузки
+    if test_type == "load":
+        await handle_load_target(chat_id, env)
+        return
+
+    # Определяем job для запуска
+    job_key = f"run_{test_type}_tests_{env}"
+    job_config = GITLAB_JOBS.get(job_key)
+
+    if not job_config:
+        await send_message_with_reply_keyboard(
+            f"❌ Job не найден: {job_key}",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+        return
+
+    type_names = {"e2e": "E2E", "ui": "UI"}
+    env_names = {"staging": "STAGING", "prod": "PRODUCTION"}
+    test_name = type_names.get(test_type, test_type.upper())
+    env_name = env_names.get(env, env.upper())
+
     joke = get_random_joke("e2e_start")
 
     await send_message_with_reply_keyboard(
         f"{joke}\n\n"
-        f"<b>🧪 Запускаю E2E тесты...</b>\n\n"
+        f"<b>🧪 Запускаю {test_name} тесты на {env_name}...</b>\n\n"
         f"<i>⏳ Это может занять 2-5 минут</i>",
         get_reply_keyboard(),
         chat_id=chat_id
@@ -74,19 +139,20 @@ async def handle_e2e_run(chat_id: int):
     if result.get("success"):
         job_url = result.get("web_url", "")
         job_id = result.get("job_id")
+        project_id = ALLURE_PROJECTS.get(f"{test_type}_{env}", f"{test_type}-{env}")
 
         await send_message_with_reply_keyboard(
             f"✅ <b>Тесты запущены!</b>\n\n"
             f"<b>Job ID:</b> #{job_id}\n\n"
             f"🔗 <a href=\"{job_url}\">Смотреть в GitLab</a>\n"
-            f"📊 <a href=\"{get_allure_report_url()}\">Allure отчёт</a>\n\n"
+            f"📊 <a href=\"{get_allure_report_url(project_id)}\">Allure отчёт</a>\n\n"
             f"<i>Пришлю результат по завершению...</i>",
             get_reply_keyboard(),
             chat_id=chat_id
         )
 
         # Мониторим тесты
-        asyncio.create_task(monitor_e2e_job(chat_id, job_config["project"], job_id))
+        asyncio.create_task(monitor_test_job(chat_id, job_config["project"], job_id, test_type, env))
     else:
         error = result.get("error", "Unknown error")
         await send_message_with_reply_keyboard(
@@ -97,11 +163,15 @@ async def handle_e2e_run(chat_id: int):
         )
 
 
-async def monitor_e2e_job(chat_id: int, project: str, job_id: int):
-    """Мониторит E2E тесты и отправляет результат."""
+async def monitor_test_job(chat_id: int, project: str, job_id: int, test_type: str, env: str):
+    """Мониторит тесты и отправляет результат."""
     max_wait = 600
     check_interval = 20
     elapsed = 0
+
+    project_id = ALLURE_PROJECTS.get(f"{test_type}_{env}", f"{test_type}-{env}")
+    type_names = {"e2e": "E2E", "ui": "UI"}
+    test_name = type_names.get(test_type, test_type.upper())
 
     while elapsed < max_wait:
         await asyncio.sleep(check_interval)
@@ -118,17 +188,17 @@ async def monitor_e2e_job(chat_id: int, project: str, job_id: int):
             duration = result.get("duration", 0)
 
             # Пробуем получить детали из Allure
-            allure_details = await get_allure_report_details()
+            allure_details = await get_allure_report_details(project_id)
             if allure_details and allure_details.get("statistic"):
                 stats = allure_details["statistic"]
-                msg = format_e2e_report(stats, int(duration))
-                msg = f"{joke}\n\n{msg}\n\n📊 <a href=\"{get_allure_report_url()}\">Открыть Allure отчёт</a>"
+                msg = format_test_report(stats, int(duration), test_name, env.upper())
+                msg = f"{joke}\n\n{msg}\n\n📊 <a href=\"{get_allure_report_url(project_id)}\">Открыть Allure отчёт</a>"
             else:
                 msg = (
                     f"{joke}\n\n"
-                    f"<b>✅ E2E тесты завершены!</b>\n\n"
+                    f"<b>✅ {test_name} тесты завершены!</b>\n\n"
                     f"⏱ <b>Время:</b> {int(duration)}с\n\n"
-                    f"📊 <a href=\"{get_allure_report_url()}\">Открыть Allure отчёт</a>"
+                    f"📊 <a href=\"{get_allure_report_url(project_id)}\">Открыть Allure отчёт</a>"
                 )
 
             await send_message_with_reply_keyboard(msg, get_reply_keyboard(), chat_id=chat_id)
@@ -138,24 +208,29 @@ async def monitor_e2e_job(chat_id: int, project: str, job_id: int):
             joke = get_random_joke("e2e_failure")
             await send_message_with_reply_keyboard(
                 f"{joke}\n\n"
-                f"<b>❌ E2E тесты упали!</b>\n\n"
+                f"<b>❌ {test_name} тесты упали!</b>\n\n"
                 f"🔗 <a href=\"{result.get('web_url', '')}\">Смотри логи</a>\n"
-                f"📊 <a href=\"{get_allure_report_url()}\">Allure отчёт</a>",
+                f"📊 <a href=\"{get_allure_report_url(project_id)}\">Allure отчёт</a>",
                 get_reply_keyboard(),
                 chat_id=chat_id
             )
             return
 
 
-async def handle_e2e_report(chat_id: int):
-    """Показывает последний отчёт E2E тестов."""
+async def handle_qa_report(chat_id: int, test_type: str, env: str):
+    """Показывает последний отчёт тестов."""
     await send_chat_action(chat_id, "typing")
 
-    details = await get_allure_report_details()
+    project_id = ALLURE_PROJECTS.get(f"{test_type}_{env}", f"{test_type}-{env}")
+    type_names = {"e2e": "E2E", "ui": "UI", "load": "Нагрузка"}
+    test_name = type_names.get(test_type, test_type.upper())
+
+    details = await get_allure_report_details(project_id)
 
     if not details or not details.get("statistic"):
         await send_message_with_reply_keyboard(
-            "⚠️ <b>Не удалось получить отчёт</b>\n\n<i>Allure Server недоступен или нет данных.</i>",
+            f"⚠️ <b>Не удалось получить отчёт</b>\n\n"
+            f"<i>Allure Server недоступен или нет данных для {test_name} ({env.upper()}).</i>",
             get_reply_keyboard(),
             chat_id=chat_id
         )
@@ -164,8 +239,8 @@ async def handle_e2e_report(chat_id: int):
     stats = details["statistic"]
     duration = details.get("duration", 0) // 1000  # ms to sec
 
-    msg = format_e2e_report(stats, duration)
-    msg += f"\n\n📊 <a href=\"{get_allure_report_url()}\">Открыть полный отчёт</a>"
+    msg = format_test_report(stats, duration, test_name, env.upper())
+    msg += f"\n\n📊 <a href=\"{get_allure_report_url(project_id)}\">Открыть полный отчёт</a>"
 
     await send_message_with_reply_keyboard(msg, get_reply_keyboard(), chat_id=chat_id)
 
@@ -175,24 +250,8 @@ async def handle_e2e_report(chat_id: int):
 # =============================================================================
 
 async def handle_load_menu(chat_id: int):
-    """Показывает меню выбора цели для нагрузки."""
-    msg = """
-<b>🔥 Нагрузочное тестирование</b>
-
-⚠️ <b>Внимание:</b> Для запуска потребуется пароль!
-
-Выбери цель для тестирования:
-    """
-    keyboard = {
-        "inline_keyboard": [
-            [
-                {"text": "🧪 STAGING", "callback_data": "load_staging"},
-                {"text": "🚀 PRODUCTION", "callback_data": "load_prod"},
-            ],
-            [{"text": "⬅️ Назад в меню", "callback_data": "menu"}],
-        ]
-    }
-    await send_message_with_inline_keyboard(msg.strip(), keyboard, chat_id=chat_id)
+    """Показывает меню выбора цели для нагрузки (через QA меню)."""
+    await handle_qa_menu(chat_id)
 
 
 async def handle_load_target(chat_id: int, target: str):
@@ -515,7 +574,7 @@ async def handle_load_status(chat_id: int):
     """Показывает текущий статус НТ."""
     if not load_test_status["running"]:
         await send_message_with_reply_keyboard(
-            "ℹ️ <b>Нет активного теста</b>\n\nНажми 🔥 чтобы запустить нагрузочное тестирование.",
+            "ℹ️ <b>Нет активного теста</b>\n\nНажми 🔬 QA чтобы запустить тестирование.",
             get_reply_keyboard(),
             chat_id=chat_id
         )
@@ -552,8 +611,3 @@ async def handle_load_status(chat_id: int):
 def is_pending_password(chat_id: int) -> bool:
     """Проверяет, ожидается ли пароль от пользователя."""
     return chat_id in pending_load_auth
-
-
-def is_pending_wizard(chat_id: int) -> bool:
-    """Проверяет, в wizard ли пользователь."""
-    return chat_id in load_test_wizard

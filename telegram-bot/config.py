@@ -65,13 +65,20 @@ GITLAB_PROJECTS = {
 
 # Job mappings for triggers
 GITLAB_JOBS = {
+    # Deploy jobs
     "deploy_api_staging": {"project": "warehouse-master", "job": "deploy-api-staging"},
     "deploy_frontend_staging": {"project": "warehouse-master", "job": "deploy-frontend-staging"},
     "deploy_all_staging": {"project": "warehouse-master", "job": "deploy-all-staging"},
     "deploy_api_prod": {"project": "warehouse-master", "job": "deploy-api-prod"},
     "deploy_frontend_prod": {"project": "warehouse-master", "job": "deploy-frontend-prod"},
     "deploy_all_prod": {"project": "warehouse-master", "job": "deploy-all-prod"},
-    "run_e2e": {"project": "warehouse-master", "job": "run-e2e-tests"},
+    # E2E tests (API tests via RestAssured)
+    "run_e2e_tests_staging": {"project": "warehouse-master", "job": "run-e2e-tests-staging"},
+    "run_e2e_tests_prod": {"project": "warehouse-master", "job": "run-e2e-tests-prod"},
+    # UI tests (Selenide)
+    "run_ui_tests_staging": {"project": "warehouse-master", "job": "run-ui-tests-staging"},
+    "run_ui_tests_prod": {"project": "warehouse-master", "job": "run-ui-tests-prod"},
+    # Load tests
     "run_load": {"project": "warehouse-master", "job": "run-load-tests"},
 }
 

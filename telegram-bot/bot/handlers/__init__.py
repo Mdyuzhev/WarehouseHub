@@ -24,9 +24,13 @@ from .deploy import (
 )
 
 from .testing import (
-    handle_e2e_menu,
-    handle_e2e_run,
-    handle_e2e_report,
+    # QA Menu
+    handle_qa_menu,
+    handle_qa_env,
+    handle_qa_test_type,
+    handle_qa_run,
+    handle_qa_report,
+    # Load Testing
     handle_load_menu,
     handle_load_target,
     handle_load_users,
@@ -36,7 +40,6 @@ from .testing import (
     handle_stop_load_test,
     handle_load_status,
     is_pending_password,
-    is_pending_wizard,
 )
 
 from .claude import (
@@ -99,10 +102,12 @@ __all__ = [
     "request_deploy_password",
     "handle_deploy_password_input",
     "is_pending_deploy_password",
-    # Testing
-    "handle_e2e_menu",
-    "handle_e2e_run",
-    "handle_e2e_report",
+    # QA / Testing
+    "handle_qa_menu",
+    "handle_qa_env",
+    "handle_qa_test_type",
+    "handle_qa_run",
+    "handle_qa_report",
     "handle_load_menu",
     "handle_load_target",
     "handle_load_users",
@@ -112,7 +117,6 @@ __all__ = [
     "handle_stop_load_test",
     "handle_load_status",
     "is_pending_password",
-    "is_pending_wizard",
     # Claude
     "handle_claude_menu",
     "handle_claude_input",

@@ -185,33 +185,67 @@ deploy-all-prod:
 # TESTING
 # =============================================================================
 
-run-e2e-tests:
+# E2E Tests for Staging environment
+run-e2e-tests-staging:
   stage: test
   variables:
-    PROJECT_ID: "warehouse-api"
+    BASE_URL: "http://192.168.1.74:30080"
+    PROJECT_ID: "e2e-staging"
   script:
-    - echo "🧪 Running API E2E tests..."
-    - cd /home/flomaster/warehouse-api
-    # Удаляем target с sudo чтобы избежать Permission denied
+    - echo "🧪 Running E2E Tests on STAGING..."
+    - echo "Target URL - $BASE_URL"
+    - cd /home/flomaster/warehouse-master/e2e-tests
     - sudo rm -rf target/ || true
-    - LD_PRELOAD= bash ./mvnw test --batch-mode -Dspring.profiles.active=test || true
-    # Очистка предыдущих результатов
+    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    # Upload to Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    # Загрузка результатов в Allure
-    - bash -c 'cd /home/flomaster/warehouse-api/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - bash -c 'cd /home/flomaster/warehouse-master/e2e-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
     - sleep 2
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 E2E ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - echo "📊 E2E STAGING ALLURE REPORT:"
+    - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
-    # Исправление прав для локального запуска
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-api/target/ || true
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/e2e-tests/target/ || true
   tags:
     - shell
   when: manual
+  environment:
+    name: e2e-test-staging
+    url: http://192.168.1.74:30080
+
+# E2E Tests for Production environment
+run-e2e-tests-prod:
+  stage: test
+  variables:
+    BASE_URL: "https://api.wh-lab.ru"
+    PROJECT_ID: "e2e-prod"
+  script:
+    - echo "🧪 Running E2E Tests on PRODUCTION..."
+    - echo "Target URL - $BASE_URL"
+    - cd /home/flomaster/warehouse-master/e2e-tests
+    - sudo rm -rf target/ || true
+    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    # Upload to Allure
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd /home/flomaster/warehouse-master/e2e-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 E2E PROD ALLURE REPORT:"
+    - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "═══════════════════════════════════════════════════════════"
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/e2e-tests/target/ || true
+  tags:
+    - shell
+  when: manual
+  environment:
+    name: e2e-test-production
+    url: https://api.wh-lab.ru
 
 # UI Tests for Staging environment
 run-ui-tests-staging:
@@ -219,7 +253,7 @@ run-ui-tests-staging:
   variables:
     BASE_URL: "http://192.168.1.74:30081"
     SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
-    PROJECT_ID: "warehouse-ui-staging"
+    PROJECT_ID: "ui-staging"
   script:
     - echo "🎭 Running UI Tests on STAGING..."
     - echo "Target URL - $BASE_URL"
@@ -258,7 +292,7 @@ run-ui-tests-prod:
   variables:
     BASE_URL: "https://wh-lab.ru"
     SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
-    PROJECT_ID: "warehouse-ui-prod"
+    PROJECT_ID: "ui-prod"
   script:
     - echo "🎭 Running UI Tests on PRODUCTION..."
     - echo "Target URL - $BASE_URL"
@@ -318,62 +352,6 @@ run-load-tests:
   tags:
     - shell
   when: manual
-
-# API Tests for Staging environment
-run-api-tests-staging:
-  stage: test
-  variables:
-    BASE_URL: "http://192.168.1.74:30080"
-    PROJECT_ID: "warehouse-api-staging"
-  script:
-    - echo "Running API Tests on STAGING..."
-    - echo "Target URL - $BASE_URL"
-    - cd /home/flomaster/warehouse-master/api-tests
-    - sudo rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
-    # Upload to Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/api-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "API STAGING ALLURE REPORT - http://192.168.1.74:5252/#/projects/$PROJECT_ID"
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/api-tests/target/ || true
-  tags:
-    - shell
-  when: manual
-  environment:
-    name: api-test-staging
-    url: http://192.168.1.74:30080
-
-# API Tests for Production environment
-run-api-tests-prod:
-  stage: test
-  variables:
-    BASE_URL: "https://api.wh-lab.ru"
-    PROJECT_ID: "warehouse-api-prod"
-  script:
-    - echo "Running API Tests on PRODUCTION..."
-    - echo "Target URL - $BASE_URL"
-    - cd /home/flomaster/warehouse-master/api-tests
-    - sudo rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
-    # Upload to Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/api-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "API PROD ALLURE REPORT - http://192.168.1.74:5252/#/projects/$PROJECT_ID"
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/api-tests/target/ || true
-  tags:
-    - shell
-  when: manual
-  environment:
-    name: api-test-production
-    url: https://api.wh-lab.ru
 
 # =============================================================================
 # TELEGRAM BOT

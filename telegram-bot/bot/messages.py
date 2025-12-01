@@ -272,6 +272,19 @@ def format_load_test_stats(stats: dict, target: str, users: int, duration: int, 
 
 def format_e2e_report(stats: dict, duration_sec: int) -> str:
     """Форматирует отчёт E2E тестирования."""
+    return format_test_report(stats, duration_sec, "E2E", "")
+
+
+def format_test_report(stats: dict, duration_sec: int, test_type: str = "E2E", env: str = "") -> str:
+    """
+    Форматирует отчёт тестирования (E2E, UI).
+
+    Args:
+        stats: Статистика из Allure (passed, failed, broken, skipped, total)
+        duration_sec: Длительность в секундах
+        test_type: Тип теста (E2E, UI)
+        env: Среда (STAGING, PROD) или пустая строка
+    """
     passed = stats.get("passed", 0)
     failed = stats.get("failed", 0)
     broken = stats.get("broken", 0)
@@ -295,8 +308,12 @@ def format_e2e_report(stats: dict, duration_sec: int) -> str:
     status_emoji = "✅" if all_passed else "❌"
     verdict = "ВСЁ ЗЕЛЁНОЕ!" if all_passed else "ЕСТЬ ПРОБЛЕМЫ!"
 
+    # Тип теста с emoji
+    type_emoji = {"E2E": "📝", "UI": "🎭"}.get(test_type, "🧪")
+    env_str = f" ({env})" if env else ""
+
     msg = f"""
-<b>🧪 ОТЧЁТ E2E ТЕСТИРОВАНИЯ</b>
+<b>{type_emoji} ОТЧЁТ {test_type} ТЕСТИРОВАНИЯ{env_str}</b>
 <i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
 
 <b>━━━ Результат ━━━</b>

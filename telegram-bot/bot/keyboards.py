@@ -9,9 +9,8 @@ def get_reply_keyboard() -> dict:
     return {
         "keyboard": [
             [{"text": "🏥 Статус"}, {"text": "📊 Метрики"}, {"text": "🚀 Деплой"}],
-            [{"text": "🧪 E2E"}, {"text": "🔥 Нагрузка"}, {"text": "🛑 Стоп"}],
-            [{"text": "📋 PM"}, {"text": "🤖 Robot"}, {"text": "🎰 Шутка"}],
-            [{"text": "❓"}],
+            [{"text": "🔬 QA"}, {"text": "🛑 Стоп"}, {"text": "🤖 Robot"}],
+            [{"text": "📋 PM"}, {"text": "🎰 Шутка"}, {"text": "❓"}],
         ],
         "resize_keyboard": True,
         "is_persistent": True,
@@ -29,15 +28,7 @@ def get_main_menu_keyboard() -> dict:
             ],
             [
                 {"text": "🚀 Деплой", "callback_data": "deploy_menu"},
-                {"text": "🧪 E2E тесты", "callback_data": "e2e_run"},
-            ],
-            [
-                {"text": "🔥 Нагрузка: STAGING", "callback_data": "load_staging"},
-                {"text": "⚠️ Нагрузка: PROD", "callback_data": "load_prod"},
-            ],
-            [
-                {"text": "🛑 Остановить тест", "callback_data": "load_stop"},
-                {"text": "📈 Статус теста", "callback_data": "load_status"},
+                {"text": "🔬 QA", "callback_data": "qa_menu"},
             ],
             [
                 {"text": "📋 PM Dashboard", "callback_data": "pm_menu"},
@@ -144,13 +135,42 @@ def get_rampup_keyboard(target: str, users: int, duration: int) -> dict:
     }
 
 
-def get_e2e_keyboard() -> dict:
-    """Возвращает клавиатуру для E2E тестов."""
+def get_qa_menu_keyboard() -> dict:
+    """Возвращает главное меню QA — выбор среды."""
     return {
         "inline_keyboard": [
-            [{"text": "▶️ Запустить тесты", "callback_data": "e2e_run"}],
-            [{"text": "📊 Последний отчёт", "callback_data": "e2e_report"}],
-            [{"text": "⬅️ Назад", "callback_data": "menu"}],
+            [{"text": "🧪 STAGING", "callback_data": "qa_staging"}],
+            [{"text": "🚀 PRODUCTION", "callback_data": "qa_prod"}],
+            [{"text": "⬅️ Назад в меню", "callback_data": "menu"}],
+        ]
+    }
+
+
+def get_qa_type_keyboard(env: str) -> dict:
+    """Возвращает меню выбора типа теста для среды."""
+    env_emoji = "🧪" if env == "staging" else "🚀"
+    env_name = "STAGING" if env == "staging" else "PROD"
+    return {
+        "inline_keyboard": [
+            [{"text": f"📝 E2E тесты ({env_name})", "callback_data": f"qa_e2e_{env}"}],
+            [{"text": f"🎭 UI тесты ({env_name})", "callback_data": f"qa_ui_{env}"}],
+            [{"text": f"🔥 Нагрузка ({env_name})", "callback_data": f"qa_load_{env}"}],
+            [{"text": "⬅️ Назад", "callback_data": "qa_menu"}],
+        ]
+    }
+
+
+def get_qa_action_keyboard(test_type: str, env: str) -> dict:
+    """Возвращает меню действий для выбранного теста."""
+    type_names = {"e2e": "E2E", "ui": "UI", "load": "Нагрузка"}
+    type_name = type_names.get(test_type, test_type.upper())
+    env_name = "STAGING" if env == "staging" else "PROD"
+
+    return {
+        "inline_keyboard": [
+            [{"text": "▶️ Запустить", "callback_data": f"qa_run_{test_type}_{env}"}],
+            [{"text": "📊 Последний отчёт", "callback_data": f"qa_report_{test_type}_{env}"}],
+            [{"text": "⬅️ Назад", "callback_data": f"qa_{env}"}],
         ]
     }
 
