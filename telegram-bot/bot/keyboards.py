@@ -10,7 +10,8 @@ def get_reply_keyboard() -> dict:
         "keyboard": [
             [{"text": "🏥 Статус"}, {"text": "📊 Метрики"}, {"text": "🚀 Деплой"}],
             [{"text": "🧪 E2E"}, {"text": "🔥 Нагрузка"}, {"text": "🛑 Стоп"}],
-            [{"text": "🤖 Claude"}, {"text": "🎰 Шутка"}, {"text": "❓"}],
+            [{"text": "📋 PM"}, {"text": "🤖 Robot"}, {"text": "🎰 Шутка"}],
+            [{"text": "❓"}],
         ],
         "resize_keyboard": True,
         "is_persistent": True,
@@ -37,6 +38,10 @@ def get_main_menu_keyboard() -> dict:
             [
                 {"text": "🛑 Остановить тест", "callback_data": "load_stop"},
                 {"text": "📈 Статус теста", "callback_data": "load_status"},
+            ],
+            [
+                {"text": "📋 PM Dashboard", "callback_data": "pm_menu"},
+                {"text": "🤖 Robot", "callback_data": "robot_menu"},
             ],
             [
                 {"text": "🎰 Анекдот", "callback_data": "joke"},
@@ -148,3 +153,145 @@ def get_e2e_keyboard() -> dict:
             [{"text": "⬅️ Назад", "callback_data": "menu"}],
         ]
     }
+
+
+def get_pm_menu_keyboard() -> dict:
+    """Возвращает клавиатуру PM Dashboard."""
+    return {
+        "inline_keyboard": [
+            [{"text": "🔄 Сейчас в работе", "callback_data": "pm_in_progress"}],
+            [{"text": "📋 Аудит сторей", "callback_data": "pm_audit"}],
+            [
+                {"text": "📈 За день", "callback_data": "pm_report_day"},
+                {"text": "📅 За неделю", "callback_data": "pm_report_week"},
+            ],
+            [{"text": "⬅️ Назад", "callback_data": "menu"}],
+        ]
+    }
+
+
+def get_robot_menu_keyboard() -> dict:
+    """Возвращает клавиатуру меню робота."""
+    return {
+        "inline_keyboard": [
+            [{"text": "▶️ Запустить сценарий", "callback_data": "robot_scenarios"}],
+            [{"text": "⏰ Запланировать", "callback_data": "robot_schedule"}],
+            [{"text": "🛑 Остановить", "callback_data": "robot_stop"}],
+            [
+                {"text": "📊 Статус", "callback_data": "robot_status"},
+                {"text": "📈 Статистика", "callback_data": "robot_stats"},
+            ],
+            [{"text": "📅 Расписание", "callback_data": "robot_scheduled"}],
+            [{"text": "⬅️ Назад", "callback_data": "menu"}],
+        ]
+    }
+
+
+def get_robot_scenario_keyboard() -> dict:
+    """Возвращает клавиатуру выбора сценария."""
+    return {
+        "inline_keyboard": [
+            [{"text": "📦 Приёмка", "callback_data": "robot_run_receiving"}],
+            [{"text": "🚚 Отгрузка", "callback_data": "robot_run_shipping"}],
+            [{"text": "📋 Инвентаризация", "callback_data": "robot_run_inventory"}],
+            [{"text": "🎲 Все сценарии", "callback_data": "robot_run_all"}],
+            [{"text": "⬅️ Назад", "callback_data": "robot_menu"}],
+        ]
+    }
+
+
+def get_robot_duration_keyboard(scenario: str) -> dict:
+    """Возвращает клавиатуру выбора продолжительности повторения сценария."""
+    return {
+        "inline_keyboard": [
+            [{"text": "⚡ 5 минут", "callback_data": f"robot_dur_{scenario}_5"}],
+            [{"text": "⏱ 30 минут", "callback_data": f"robot_dur_{scenario}_30"}],
+            [{"text": "🕐 1 час", "callback_data": f"robot_dur_{scenario}_60"}],
+            [{"text": "🔂 Один раз", "callback_data": f"robot_dur_{scenario}_0"}],
+            [{"text": "⬅️ Назад", "callback_data": "robot_scenarios"}],
+        ]
+    }
+
+
+def get_robot_environment_keyboard(scenario: str, duration: int = 0) -> dict:
+    """Возвращает клавиатуру выбора окружения."""
+    return {
+        "inline_keyboard": [
+            [{"text": "🔧 STAGING (тест)", "callback_data": f"robot_env_{scenario}_{duration}_staging"}],
+            [{"text": "🚀 PROD (боевой)", "callback_data": f"robot_env_{scenario}_{duration}_prod"}],
+            [{"text": "⬅️ Назад", "callback_data": f"robot_run_{scenario}"}],
+        ]
+    }
+
+
+def get_robot_speed_keyboard(scenario: str, duration: int, environment: str = "staging") -> dict:
+    """
+    Возвращает клавиатуру выбора скорости (паузы между повторениями).
+
+    - Медленно: пауза 15 секунд
+    - Нормально: пауза 5 секунд (по умолчанию)
+    - Быстро: пауза 1 секунда
+    """
+    return {
+        "inline_keyboard": [
+            [{"text": "🐢 Медленно (15с)", "callback_data": f"robot_speed_{scenario}_{duration}_{environment}_slow"}],
+            [{"text": "🚶 Нормально (5с)", "callback_data": f"robot_speed_{scenario}_{duration}_{environment}_normal"}],
+            [{"text": "🚀 Быстро (1с)", "callback_data": f"robot_speed_{scenario}_{duration}_{environment}_fast"}],
+            [{"text": "⬅️ Назад", "callback_data": f"robot_env_{scenario}_{duration}_{environment}"}],
+        ]
+    }
+
+
+def get_robot_schedule_scenario_keyboard() -> dict:
+    """Возвращает клавиатуру выбора сценария для расписания."""
+    return {
+        "inline_keyboard": [
+            [{"text": "📦 Приёмка", "callback_data": "robot_sched_receiving"}],
+            [{"text": "🚚 Отгрузка", "callback_data": "robot_sched_shipping"}],
+            [{"text": "📋 Инвентаризация", "callback_data": "robot_sched_inventory"}],
+            [{"text": "⬅️ Назад", "callback_data": "robot_menu"}],
+        ]
+    }
+
+
+def get_robot_schedule_env_keyboard(scenario: str) -> dict:
+    """Возвращает клавиатуру выбора окружения для расписания."""
+    return {
+        "inline_keyboard": [
+            [{"text": "🔧 STAGING (тест)", "callback_data": f"robot_schedenv_{scenario}_staging"}],
+            [{"text": "🚀 PROD (боевой)", "callback_data": f"robot_schedenv_{scenario}_prod"}],
+            [{"text": "⬅️ Назад", "callback_data": "robot_schedule"}],
+        ]
+    }
+
+
+def get_robot_schedule_time_keyboard(scenario: str, environment: str = "staging") -> dict:
+    """Возвращает клавиатуру выбора времени для расписания."""
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "⏰ +5 мин", "callback_data": f"robot_time_{scenario}_{environment}_5"},
+                {"text": "⏰ +15 мин", "callback_data": f"robot_time_{scenario}_{environment}_15"},
+                {"text": "⏰ +30 мин", "callback_data": f"robot_time_{scenario}_{environment}_30"},
+            ],
+            [
+                {"text": "🕐 +1 час", "callback_data": f"robot_time_{scenario}_{environment}_60"},
+                {"text": "🕑 +2 часа", "callback_data": f"robot_time_{scenario}_{environment}_120"},
+                {"text": "🕕 +6 часов", "callback_data": f"robot_time_{scenario}_{environment}_360"},
+            ],
+            [{"text": "✏️ Ввести время (HH:MM)", "callback_data": f"robot_time_{scenario}_{environment}_custom"}],
+            [{"text": "⬅️ Назад", "callback_data": f"robot_sched_{scenario}"}],
+        ]
+    }
+
+
+def get_robot_scheduled_keyboard(tasks: list) -> dict:
+    """Возвращает клавиатуру списка запланированных задач."""
+    buttons = []
+    for task in tasks[:5]:  # Максимум 5 задач
+        task_id = task.get("task_id", "")
+        scenario = task.get("scenario", "")
+        emoji = {"receiving": "📦", "shipping": "🚚", "inventory": "📋"}.get(scenario, "🤖")
+        buttons.append([{"text": f"❌ {emoji} {scenario} ({task_id})", "callback_data": f"robot_cancel_{task_id}"}])
+    buttons.append([{"text": "⬅️ Назад", "callback_data": "robot_menu"}])
+    return {"inline_keyboard": buttons}

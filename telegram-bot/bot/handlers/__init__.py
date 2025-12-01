@@ -12,6 +12,7 @@ from .commands import (
     handle_joke,
     handle_metrics,
     handle_pods,
+    handle_release,
 )
 
 from .deploy import (
@@ -44,8 +45,42 @@ from .claude import (
     is_pending_claude,
 )
 
+from .pm import (
+    handle_pm_menu,
+    handle_in_progress,
+    handle_stories_audit,
+    handle_daily_report,
+    handle_weekly_report,
+    handle_issue_lookup,
+)
+
 from .gitlab_webhook import (
     handle_gitlab_webhook,
+)
+
+from .robot import (
+    handle_robot_menu,
+    handle_robot_status,
+    handle_robot_stats,
+    handle_robot_scenarios,
+    handle_robot_duration_select,
+    handle_robot_start,
+    handle_robot_stop,
+    handle_robot_speed_select,
+    handle_robot_environment_select,
+    request_robot_password,
+    handle_robot_password_input,
+    is_pending_robot_password,
+    # Расписание
+    handle_robot_schedule_menu,
+    handle_robot_schedule_env,
+    handle_robot_schedule_time,
+    handle_robot_schedule_create,
+    handle_robot_scheduled_list,
+    handle_robot_cancel_scheduled,
+    request_schedule_time_input,
+    handle_schedule_time_input,
+    is_pending_schedule_time,
 )
 
 __all__ = [
@@ -57,6 +92,7 @@ __all__ = [
     "handle_joke",
     "handle_metrics",
     "handle_pods",
+    "handle_release",
     # Deploy
     "handle_deploy_menu",
     "handle_deploy_command",
@@ -81,6 +117,36 @@ __all__ = [
     "handle_claude_menu",
     "handle_claude_input",
     "is_pending_claude",
+    # PM
+    "handle_pm_menu",
+    "handle_in_progress",
+    "handle_stories_audit",
+    "handle_daily_report",
+    "handle_weekly_report",
+    "handle_issue_lookup",
     # GitLab Webhooks
     "handle_gitlab_webhook",
+    # Robot
+    "handle_robot_menu",
+    "handle_robot_status",
+    "handle_robot_stats",
+    "handle_robot_scenarios",
+    "handle_robot_duration_select",
+    "handle_robot_start",
+    "handle_robot_stop",
+    "handle_robot_speed_select",
+    "handle_robot_environment_select",
+    "request_robot_password",
+    "handle_robot_password_input",
+    "is_pending_robot_password",
+    # Robot Schedule
+    "handle_robot_schedule_menu",
+    "handle_robot_schedule_env",
+    "handle_robot_schedule_time",
+    "handle_robot_schedule_create",
+    "handle_robot_scheduled_list",
+    "handle_robot_cancel_scheduled",
+    "request_schedule_time_input",
+    "handle_schedule_time_input",
+    "is_pending_schedule_time",
 ]

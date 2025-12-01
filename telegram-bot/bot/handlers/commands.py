@@ -16,12 +16,12 @@ async def handle_start(chat_id: int):
     welcome_msg = f"""
 {joke}
 
-<b>🤖 Warehouse Bot v5.0</b>
+<b>🤖 Warehouse Bot v5.2</b>
 
 <b>Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
 🧪 E2E | 🔥 нагрузка | 🛑 стоп
-🤖 Claude | 🎰 шутка | ❓ помощь
+📋 PM | 🤖 робот | ❓ помощь
 
 <b>🔐 Деплой и тесты через GitLab CI!</b>
     """
@@ -31,29 +31,40 @@ async def handle_start(chat_id: int):
 async def handle_help(chat_id: int):
     """Обработка команды /help."""
     help_msg = """
-<b>❓ Справка - Warehouse Bot v5.0</b>
+<b>❓ Справка — Warehouse Bot v5.2</b>
 
 <b>📱 Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
 🧪 E2E | 🔥 нагрузка | 🛑 стоп
-🤖 Claude | 🎰 шутка | ❓ помощь
+📋 PM | 🤖 робот | ❓ помощь
 
-<b>🚀 Команды деплоя:</b>
-/deploy - меню деплоя
-/deploy_api_staging - API на staging
-/deploy_frontend_staging - Frontend на staging
-/deploy_all_staging - Всё на staging
-/deploy_api_prod - API на production
-/deploy_frontend_prod - Frontend на production
-/deploy_all_prod - Всё на production
+<b>🤖 Warehouse Robot:</b>
+• Запуск сценариев — Приёмка/Отгрузка/Инвентаризация
+• Продолжительность — 5мин/30мин/1час/однократно
+• Скорость — пауза между повторами (1с/5с/15с)
+• Планирование — запуск по расписанию (МСК)
+• Статус и статистика робота
+
+<b>📋 PM Dashboard:</b>
+• 🔄 Сейчас в работе — последние задачи агента
+• 📋 Аудит сторей — открытые User Stories
+• 📈 Отчёт за день/неделю — активность
+
+<b>🚀 Деплой:</b>
+/deploy — меню деплоя
+Staging: API | Frontend | Всё
+Production: API | Frontend | Всё
 
 <b>🧪 Тестирование:</b>
-/e2e - Запуск E2E тестов
-/load - Нагрузочное тестирование
+/e2e — E2E тесты (RestAssured)
+/load — нагрузочное тестирование (Locust)
 
 <b>📊 Мониторинг:</b>
-/status - Статус серверов
-/pods - Поды K8s
+/status — статус серверов
+/pods — поды K8s
+
+<b>ℹ️ Инфо:</b>
+/release — версия и что нового
 
 <i>Бот 24/7, в отличие от разрабов...</i> 😏
     """
@@ -136,4 +147,31 @@ async def handle_pods(chat_id: int):
     else:
         msg += "<i>Не удалось получить информацию о подах</i>"
 
+    await send_message_with_reply_keyboard(msg.strip(), get_reply_keyboard(), chat_id=chat_id)
+
+
+async def handle_release(chat_id: int):
+    """Показывает версию бота и последние релиз ноутс."""
+    msg = """
+<b>🚀 Warehouse Bot v5.2.0</b>
+<i>Release: 2025-12-01</i>
+
+<b>Что нового в v5.2:</b>
+
+🤖 <b>Warehouse Robot</b> — эмуляция складских операций
+• Сценарии: Приёмка, Отгрузка, Инвентаризация
+• Продолжительность: 5мин / 30мин / 1час / однократно
+• Скорость: пауза между повторами (1с/5с/15с)
+• Планирование запуска по расписанию (МСК)
+• Уведомления с детализацией товаров
+
+📋 <b>PM Dashboard</b>
+• 🔄 Сейчас в работе — последние задачи агента
+• 📋 Аудит сторей — открытые User Stories
+• 📈 Отчёты за день/неделю — активность
+
+<b>Предыдущие версии:</b>
+• v5.1.0 — PM Dashboard, YouTrack интеграция
+• v5.0.0 — GitLab CI/CD, Locust, E2E, K8s
+    """
     await send_message_with_reply_keyboard(msg.strip(), get_reply_keyboard(), chat_id=chat_id)

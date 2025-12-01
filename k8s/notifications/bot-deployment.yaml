@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 15
       containers:
         - name: bot
-          image: gitlab-telegram-bot:latest
+          image: gitlab-telegram-bot:v5.4
           imagePullPolicy: Never
           ports:
             - containerPort: 8000
@@ -37,6 +37,8 @@ spec:
               value: "json"
             - name: LOG_LEVEL
               value: "INFO"
+            - name: ROBOT_API_URL
+              value: "http://warehouse-robot-service.warehouse.svc.cluster.local:8070"
           resources:
             requests:
               memory: "64Mi"

@@ -1,6 +1,6 @@
 # Warehouse Project - Infrastructure Guide
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-11-30
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-01
 
 ---
 
@@ -25,10 +25,11 @@
 2. [Репозитории](#репозитории)
 3. [Staging окружение](#staging-окружение-local-k3s)
 4. [Production окружение](#production-окружение-yandex-cloud)
-5. [Инфраструктурные сервисы](#инфраструктурные-сервисы)
-6. [Учётные данные](#учётные-данные)
-7. [CI/CD](#cicd)
-8. [Полезные команды](#полезные-команды)
+5. [Новые компоненты (WH-120, WH-121)](#новые-компоненты-wh-120-wh-121)
+6. [Инфраструктурные сервисы](#инфраструктурные-сервисы)
+7. [Учётные данные](#учётные-данные)
+8. [CI/CD](#cicd)
+9. [Полезные команды](#полезные-команды)
 
 ---
 
@@ -41,16 +42,18 @@
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  K8s Namespaces                                                   │   │
 │  │  ├── warehouse:      API (2) + Frontend + PostgreSQL + Replica   │   │
-│  │  │                   + Redis + Kafka + Selenoid                  │   │
-│  │  ├── loadtest:       Locust Master + Workers                     │   │
-│  │  ├── notifications:  Telegram Bot                                │   │
-│  │  └── monitoring:     Prometheus + Grafana                        │   │
+│  │  │                   + Redis + Kafka + Robot + Analytics          │   │
+│  │  │                   + Selenoid                                   │   │
+│  │  ├── loadtest:       Locust Master + Workers (5)                  │   │
+│  │  ├── notifications:  Telegram Bot (v5.4)                          │   │
+│  │  └── monitoring:     Prometheus + Grafana + Alertmanager          │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │  Docker Compose (не в K8s)                                        │   │
 │  │  ├── GitLab CE                                                   │   │
 │  │  ├── YouTrack                                                    │   │
 │  │  ├── Allure Server + UI                                          │   │
+│  │  ├── Selenoid + Selenoid UI                                      │   │
 │  │  ├── Claude Proxy                                                │   │
 │  │  └── Orchestrator UI                                             │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
@@ -82,20 +85,24 @@
 ### Структура warehouse-master
 ```
 warehouse-master/
-├── .claude/           # Claude Code настройки
-├── docs/              # Документация
-├── e2e-tests/         # API E2E тесты (RestAssured)
-├── ui-tests/          # UI тесты (Selenide + Allure)
-├── selenoid/          # Selenoid Docker Compose
-├── k8s/               # Kubernetes манифесты
-│   ├── warehouse/     # API + Frontend + Redis + Kafka
-│   ├── loadtest/      # Locust
-│   ├── notifications/ # Telegram Bot
-│   └── monitoring/    # Prometheus + Grafana
-├── loadtest/          # Locust скрипты
-├── orchestrator-ui/   # 8-bit консоль управления
-├── scripts/           # Bash скрипты деплоя
-└── telegram-bot/      # Уведомления в Telegram
+├── .claude/                # Claude Code настройки + audit
+├── docs/                   # Документация
+├── e2e-tests/              # API E2E тесты (RestAssured)
+├── ui-tests/               # UI тесты (Selenide + Allure)
+├── selenoid/               # Selenoid Docker Compose
+├── k8s/                    # Kubernetes манифесты
+│   ├── warehouse/          # API + Frontend + Redis + Kafka
+│   ├── robot/              # Warehouse Robot (WH-120)
+│   ├── analytics/          # Analytics Service (WH-121)
+│   ├── loadtest/           # Locust
+│   ├── notifications/      # Telegram Bot
+│   └── monitoring/         # Prometheus + Grafana
+├── warehouse-robot/        # Симулятор складских операций (WH-120)
+├── analytics-service/      # Real-time Kafka аналитика (WH-121)
+├── telegram-bot/           # Уведомления в Telegram (v5.4)
+├── orchestrator-ui/        # 8-bit консоль управления
+├── loadtest/               # Locust скрипты
+└── scripts/                # Bash скрипты деплоя
 ```
 
 ---
@@ -110,6 +117,8 @@ warehouse-master/
 |--------|----------------|----------|----------|
 | **warehouse-api** | `warehouse-api-service.warehouse.svc.cluster.local:8080` | `30080` | Spring Boot API (2 replicas) |
 | **warehouse-frontend** | `warehouse-frontend-service.warehouse.svc.cluster.local:80` | `30081` | Vue.js Frontend |
+| **warehouse-robot** | `warehouse-robot-service.warehouse.svc.cluster.local:8070` | `30070` | Robot симулятор (WH-120) |
+| **analytics-service** | `analytics-service.warehouse.svc.cluster.local:8090` | `30091` | Kafka аналитика (WH-121) |
 | **PostgreSQL** | `postgres-service.warehouse.svc.cluster.local:5432` | `30432` | Database (primary) |
 | **PostgreSQL Replica** | `postgres-replica-service.warehouse.svc.cluster.local:5432` | - | Database (read replica) |
 | **Redis** | `redis.warehouse.svc.cluster.local:6379` | - | Кэширование |
@@ -121,12 +130,14 @@ warehouse-master/
 | Сервис | Внутренний URL | NodePort | Описание |
 |--------|----------------|----------|----------|
 | **Locust Master** | `locust-master-service.loadtest.svc.cluster.local:8089` | `30089` | Load testing UI |
+| **Locust Workers** | - | - | 5 реплик |
+| **Locust Exporter** | `locust-exporter.loadtest.svc.cluster.local:9646` | - | Prometheus метрики |
 
 ### K8s Services (namespace: notifications)
 
 | Сервис | Внутренний URL | NodePort | Описание |
 |--------|----------------|----------|----------|
-| **Telegram Bot** | `gitlab-telegram-bot.notifications.svc.cluster.local:8000` | `30088` | GitLab webhooks |
+| **Telegram Bot** | `gitlab-telegram-bot.notifications.svc.cluster.local:8000` | `30088` | Bot v5.4, GitLab webhooks |
 
 ### K8s Services (namespace: monitoring)
 
@@ -134,6 +145,7 @@ warehouse-master/
 |--------|----------------|----------|----------|
 | **Prometheus** | `prometheus-service.monitoring.svc.cluster.local:9090` | `30090` | Metrics |
 | **Grafana** | `grafana.monitoring.svc.cluster.local:3000` | `30300` | Визуализация |
+| **Alertmanager** | `alertmanager.monitoring.svc.cluster.local:9093` | - | Алертинг |
 
 ### Docker Compose сервисы (на хосте)
 
@@ -143,10 +155,10 @@ warehouse-master/
 | **YouTrack** | http://192.168.1.74:8088 | 8088 | Issue tracker |
 | **Allure Server** | http://192.168.1.74:5050 | 5050 | Test reports API |
 | **Allure UI** | http://192.168.1.74:5252 | 5252 | Test reports UI |
+| **Selenoid** | http://192.168.1.74:4444/wd/hub | 4444 | Selenium Hub |
+| **Selenoid UI** | http://192.168.1.74:8090 | 8090 | Просмотр сессий |
 | **Claude Proxy** | http://192.168.1.74:8765 | 8765 | Anthropic API proxy |
 | **Orchestrator UI** | http://192.168.1.74:8000 | 8000 | 8-bit консоль |
-| **Selenoid** | http://192.168.1.74:4444 | 4444 | Selenium Hub |
-| **Selenoid UI** | http://192.168.1.74:8090 | 8090 | Просмотр сессий |
 
 ---
 
@@ -179,6 +191,94 @@ services:
   nginx:
     # Reverse proxy + Let's Encrypt SSL
 ```
+
+---
+
+## Новые компоненты (WH-120, WH-121)
+
+### Warehouse Robot (WH-120)
+
+**Описание:** Симулятор складских операций
+
+| Параметр | Значение |
+|----------|----------|
+| **Расположение** | `/warehouse-robot/` |
+| **Port** | 30070 |
+| **Namespace** | warehouse |
+| **Image** | warehouse-robot:latest |
+
+**Сценарии:**
+- `receiving` — Приёмка товара
+- `shipping` — Отгрузка
+- `inventory` — Инвентаризация
+
+**API Endpoints:**
+- `GET /health` — Health check
+- `GET /status` — Текущий статус
+- `GET /stats` — Статистика
+- `POST /start` — Запуск сценария
+- `POST /stop` — Остановка
+- `POST /schedule` — Запланировать запуск
+- `GET /scheduled` — Список запланированных
+- `DELETE /scheduled/{id}` — Отменить
+
+**Деплой:**
+```bash
+cd ~/warehouse-master/warehouse-robot
+docker build --no-cache -t warehouse-robot:latest .
+sudo k3s ctr images rm docker.io/library/warehouse-robot:latest 2>/dev/null || true
+docker save warehouse-robot:latest | sudo k3s ctr images import -
+kubectl apply -k ~/warehouse-master/k8s/robot/
+```
+
+### Analytics Service (WH-121)
+
+**Описание:** Real-time Kafka аналитика с WebSocket
+
+| Параметр | Значение |
+|----------|----------|
+| **Расположение** | `/analytics-service/` |
+| **Port** | 30091 |
+| **Namespace** | warehouse |
+| **Image** | analytics-service:latest |
+
+**Kafka Topics:**
+- `warehouse.audit` — События аудита
+- `warehouse.notifications` — Уведомления о низких остатках
+
+**API Endpoints:**
+- `GET /health` — Health check
+- `GET /api/stats` — Агрегированная статистика
+- `GET /api/events` — Последние события
+- `GET /api/hourly` — Почасовая статистика
+- `GET /api/daily` — Дневная статистика
+- `WS /ws` — Real-time события
+
+**Деплой:**
+```bash
+cd ~/warehouse-master/analytics-service
+docker build --no-cache -t analytics-service:latest .
+sudo k3s ctr images rm docker.io/library/analytics-service:latest 2>/dev/null || true
+docker save analytics-service:latest | sudo k3s ctr images import -
+kubectl apply -k ~/warehouse-master/k8s/analytics/
+```
+
+### Telegram Bot (v5.4)
+
+**Обновления:**
+- Robot control + schedule
+- PM Dashboard (YouTrack)
+- Claude AI интеграция
+- GitLab webhooks с WH-xxx парсингом
+
+**Handlers:**
+- `commands` — /start, /help, /status, /health, /metrics, /pods, /release
+- `deploy` — Деплой staging/production
+- `testing` — E2E тесты, Load testing
+- `claude` — AI интеграция
+- `pm` — PM Dashboard (YouTrack)
+- `robot` — Robot control + schedule
+- `gitlab_webhook` — GitLab webhooks
 
 ---
 
@@ -240,6 +340,8 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 | Параметр | Значение |
 |----------|----------|
 | **URL** | http://192.168.1.74:8080 |
+| **User** | root |
+| **Password** | Misha2021@1@ |
 | **Personal Access Token** | `glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3` |
 
 ### YouTrack
@@ -251,6 +353,7 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 | **Project Short** | `WH` |
 | **User** | `admin` |
 | **Password** | `Misha2021@1@` |
+| **Auth** | **ТОЛЬКО Basic Auth!** |
 
 ### Deploy Passwords (Telegram Bot)
 
@@ -258,6 +361,7 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 |----------|----------|
 | **Deploy Password** | `Misha2021@1@` |
 | **Load Test Password** | `Misha2021@1@` |
+| **Robot Password** | (в secrets) |
 | **Guest Password** | `Guest` |
 
 ### Grafana
@@ -266,7 +370,7 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 |----------|----------|
 | **URL** | http://192.168.1.74:30300 |
 | **User** | `admin` |
-| **Password** | `warehouse2025` |
+| **Password** | `admin123` |
 
 ### Yandex Cloud Registry Auth
 
@@ -281,19 +385,17 @@ BcxfC7EDiXdnfjCdjdIRrntE7heN1RcvA/3pnHCT1kw=
 
 > Пароль для всех: `password123`
 
-| Username | Full Name | Role |
-|----------|-----------|------|
-| `superuser` | Суперпользователь | SUPER_USER |
-| `admin` | Администратор | ADMIN |
-| `manager` | Менеджер склада | MANAGER |
-| `employee` | Сотрудник склада | EMPLOYEE |
-| `ivanov` | Иванов Алексей Петрович | SUPER_USER |
-| `petrova` | Петрова Мария Сергеевна | ADMIN |
-| `sidorov` | Сидоров Дмитрий Андреевич | MANAGER |
-| `kozlova` | Козлова Анна Викторовна | EMPLOYEE |
-
-> **Примечание:** В коде DataInitializer.java указаны другие пароли (admin123 и т.д.) -
-> это для начальной инициализации пустой базы. В рабочих окружениях пароли `password123`.
+| Username | Full Name | Role | Права |
+|----------|-----------|------|-------|
+| `superuser` | Суперпользователь | SUPER_USER | Все |
+| `admin` | Администратор | ADMIN | Управление пользователями |
+| `manager` | Менеджер склада | MANAGER | Просмотр товаров |
+| `employee` | Сотрудник склада | EMPLOYEE | CRUD товаров |
+| `analyst` | Аналитик | ANALYST | Только аналитика (WH-121) |
+| `ivanov` | Иванов Алексей Петрович | SUPER_USER | Все |
+| `petrova` | Петрова Мария Сергеевна | ADMIN | Управление пользователями |
+| `sidorov` | Сидоров Дмитрий Андреевич | MANAGER | Просмотр товаров |
+| `kozlova` | Козлова Анна Викторовна | EMPLOYEE | CRUD товаров |
 
 ---
 
@@ -320,21 +422,24 @@ warehouse-master (оркестрация):
     - deploy-api-staging
     - deploy-frontend-staging
     - deploy-all-staging
+    - deploy-telegram-bot
+    - deploy-orchestrator-ui
+    - deploy-robot
+    - deploy-analytics
   deploy-prod (manual):
     - deploy-api-prod
     - deploy-frontend-prod
     - deploy-all-prod
   test (manual):
     - run-e2e-tests
+    - run-ui-tests
     - run-load-tests
-  extras:
-    - deploy-telegram-bot
-    - deploy-orchestrator-ui
 ```
 
 ### Артефакты
 
-- **Allure Reports:** http://192.168.1.74:5050/allure-docker-service/projects/warehouse-api/reports/latest
+- **Allure API Reports:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-api/reports/latest
+- **Allure UI Reports:** http://192.168.1.74:5252/allure-docker-service/projects/warehouse-ui/reports/latest
 - **JUnit Reports:** сохраняются в GitLab
 
 ---
@@ -350,8 +455,20 @@ kubectl get pods -A
 # Логи API
 kubectl logs -n warehouse -l app=warehouse-api -f
 
+# Логи Robot
+kubectl logs -n warehouse -l app=warehouse-robot -f
+
+# Логи Analytics
+kubectl logs -n warehouse -l app=analytics-service -f
+
+# Логи Telegram Bot
+kubectl logs -n notifications -l app=gitlab-telegram-bot -f
+
 # Перезапуск API
 kubectl rollout restart deployment/warehouse-api -n warehouse
+
+# Перезапуск Robot
+kubectl delete pod -n warehouse -l app=warehouse-robot
 
 # Секреты
 kubectl get secrets -n warehouse -o yaml
@@ -364,7 +481,7 @@ kubectl get secrets -n warehouse -o yaml
 docker ps
 
 # Логи GitLab
-docker logs gitlab-ce -f
+docker logs gitlab -f
 
 # Логи YouTrack
 docker logs youtrack -f
@@ -383,11 +500,27 @@ sudo docker compose up -d
 sudo docker image prune -f
 ```
 
+### Health checks
+
+```bash
+# API
+curl -s http://192.168.1.74:30080/actuator/health | jq
+
+# Robot
+curl -s http://192.168.1.74:30070/health | jq
+
+# Analytics
+curl -s http://192.168.1.74:30091/health | jq
+
+# Frontend
+curl -s http://192.168.1.74:30081/ -o /dev/null -w "%{http_code}"
+```
+
 ### Нагрузочное тестирование
 
 ```bash
-# Запуск теста
-./scripts/load-test.sh
+# Через Telegram Bot
+# Кнопка "Тестирование" → "Нагрузочное тестирование"
 
 # Или через Locust UI
 # http://192.168.1.74:30089
@@ -401,6 +534,8 @@ sudo docker image prune -f
 |-----|------|
 | **Staging API** | http://192.168.1.74:30080/swagger-ui.html |
 | **Staging Frontend** | http://192.168.1.74:30081 |
+| **Staging Analytics** | http://192.168.1.74:30081/analytics |
+| **Staging Robot** | http://192.168.1.74:30070 |
 | **Production API** | https://api.wh-lab.ru/swagger-ui.html |
 | **Production Frontend** | https://wh-lab.ru |
 | **GitLab** | http://192.168.1.74:8080 |
@@ -415,4 +550,4 @@ sudo docker image prune -f
 
 ---
 
-*Последнее обновление: 2025-11-30 (НТ WH-103 завершено)*
+*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule)*

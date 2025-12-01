@@ -1,0 +1,82 @@
+# =============================================================================
+# Analytics Service Deployment
+# WH-121: Real-time Kafka Analytics Dashboard
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: warehouse
+  labels:
+    app: analytics-service
+    component: analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+        component: analytics
+    spec:
+      containers:
+        - name: analytics-service
+          image: analytics-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8090
+              name: http
+          env:
+            # Redis (используем существующий в namespace warehouse)
+            - name: REDIS_HOST
+              value: "redis.warehouse.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DB
+              value: "1"  # Отдельная DB для аналитики
+
+            # Kafka
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka.warehouse.svc.cluster.local:9092"
+            - name: KAFKA_GROUP_ID
+              value: "analytics-service"
+            - name: KAFKA_AUDIT_TOPIC
+              value: "warehouse.audit"
+            - name: KAFKA_NOTIFICATIONS_TOPIC
+              value: "warehouse.notifications"
+
+            # API Settings
+            - name: API_HOST
+              value: "0.0.0.0"
+            - name: API_PORT
+              value: "8090"
+
+            # Feed settings
+            - name: MAX_EVENTS_IN_FEED
+              value: "100"
+            - name: STATS_TTL_SECONDS
+              value: "604800"  # 7 days
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3

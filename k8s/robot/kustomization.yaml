@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: warehouse
+
+resources:
+  - robot-secrets.yaml
+  - robot-deployment.yaml
+  - robot-service.yaml
+
+commonLabels:
+  app.kubernetes.io/name: warehouse-robot
+  app.kubernetes.io/part-of: warehouse
+  app.kubernetes.io/managed-by: kustomize

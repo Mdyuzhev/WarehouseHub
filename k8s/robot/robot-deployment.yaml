@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warehouse-robot
+  namespace: warehouse
+  labels:
+    app: warehouse-robot
+    component: robot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warehouse-robot
+  template:
+    metadata:
+      labels:
+        app: warehouse-robot
+        component: robot
+    spec:
+      containers:
+        - name: warehouse-robot
+          image: warehouse-robot:latest
+          imagePullPolicy: Never  # Используем локальный образ
+          ports:
+            - containerPort: 8070
+              name: http
+          env:
+            # Warehouse API
+            - name: ROBOT_API_URL
+              value: "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
+            # Учётные данные сотрудника
+            - name: ROBOT_EMPLOYEE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: warehouse-robot-secrets
+                  key: employee-username
+            - name: ROBOT_EMPLOYEE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: warehouse-robot-secrets
+                  key: employee-password
+            # Telegram Bot URL (notifications namespace)
+            - name: ROBOT_TELEGRAM_BOT_URL
+              value: "http://gitlab-telegram-bot.notifications.svc.cluster.local:8000"
+            # Скорость выполнения
+            - name: ROBOT_SPEED_SLOW_MIN
+              value: "3.0"
+            - name: ROBOT_SPEED_SLOW_MAX
+              value: "5.0"
+            - name: ROBOT_SPEED_NORMAL_MIN
+              value: "1.0"
+            - name: ROBOT_SPEED_NORMAL_MAX
+              value: "3.0"
+            - name: ROBOT_SPEED_FAST_MIN
+              value: "0.3"
+            - name: ROBOT_SPEED_FAST_MAX
+              value: "1.0"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+      restartPolicy: Always

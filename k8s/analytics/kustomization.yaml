@@ -1,0 +1,17 @@
+# =============================================================================
+# Kustomization for Analytics Service
+# WH-121: Real-time Kafka Analytics Dashboard
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: warehouse
+
+resources:
+  - analytics-deployment.yaml
+  - analytics-service.yaml
+
+commonLabels:
+  project: warehouse
+  tier: backend

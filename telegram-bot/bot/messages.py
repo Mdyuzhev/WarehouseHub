@@ -6,6 +6,20 @@
 import random
 from datetime import datetime
 
+
+def format_money(value: float) -> str:
+    """
+    Форматирует денежную сумму с разделителями тысяч.
+
+    Примеры:
+        7553018.76 -> "7 553 018.76 ₽"
+        1234.50 -> "1 234.50 ₽"
+        500.00 -> "500.00 ₽"
+    """
+    # Форматируем число с разделителями тысяч (пробелами)
+    formatted = f"{value:,.2f}".replace(",", " ")
+    return f"{formatted} ₽"
+
 # =============================================================================
 # JOKES - Юмористические фразы 🎭
 # =============================================================================
@@ -92,6 +106,35 @@ JOKES = {
         "Упс, что-то пошло не так... 😅",
         "Хьюстон, у нас проблема! 🚨",
         "Не получилось, но я старался! 😬",
+    ],
+    # PM функции
+    "pm_menu": [
+        "PM Dashboard! Где мы сейчас и куда идём... 📊",
+        "Время проверить статус проекта! 🎯",
+        "Добро пожаловать в PM-панель! Тут всё серьёзно. Ну почти. 📋",
+        "PM mode activated! Давай посмотрим что творится... 🔍",
+    ],
+    "pm_audit": [
+        "Сейчас посмотрим, что там накопилось... 📋",
+        "Аудит time! Кто тут без задач ходит? 🔍",
+        "Проверяем беклог... Надеюсь, там не 100500 сторей! 😅",
+        "Загружаю список дел... Держись крепче! 📝",
+    ],
+    "pm_report": [
+        "Отчёт готов! Как на планёрке, только без кофе. ☕",
+        "Вот что мы наработали! (или не наработали...) 📈",
+        "Статистика подъехала! 📊",
+        "Смотрим активность... Кто молодец, а кто — ну такое. 🤔",
+    ],
+    "pm_agent_busy": [
+        "Агент трудится! Не мешай гению! 🤖💪",
+        "Claude занят делом. В отличие от некоторых... 😏",
+        "Работа кипит! Скоро будет результат! ⚙️",
+    ],
+    "pm_agent_idle": [
+        "Агент скучает... Дай ему задачу! 😴",
+        "Claude свободен и готов к подвигам! 🦸",
+        "Никого нет дома... То есть агент свободен! 🏠",
     ],
 }
 
@@ -344,14 +387,15 @@ def get_humor_for_status(status: str, event_type: str) -> str:
 
 def format_pipeline_message(data: dict) -> str:
     """
-    Форматирует сообщение о pipeline событии.
+    Форматирует компактное сообщение о pipeline событии.
+
+    Редизайн WH-120: более компактный и информативный формат.
 
     Args:
         data: Webhook payload от GitLab
     """
     status = data.get("object_attributes", {}).get("status", "unknown")
     emoji = get_status_emoji(status)
-    humor = get_humor_for_status(status, "pipeline")
 
     pipeline = data.get("object_attributes", {})
     project = data.get("project", {})
@@ -359,36 +403,53 @@ def format_pipeline_message(data: dict) -> str:
 
     project_name = project.get("name", "Unknown")
     ref = pipeline.get("ref", "unknown")
-    pipeline_id = pipeline.get("id", "?")
     pipeline_url = pipeline.get("url", "")
     username = user.get("name", "Ghost")
 
-    # Длительность
+    # Длительность (только для завершённых)
     duration = pipeline.get("duration")
     duration_str = ""
-    if duration:
+    if duration and status in ["success", "failed", "canceled"]:
         minutes = int(duration) // 60
         seconds = int(duration) % 60
-        duration_str = f"\n⏱ Время: {minutes}м {seconds}с"
+        duration_str = f" • {minutes}м {seconds}с"
 
-    msg = f"""
-{emoji} <b>Pipeline {status.upper()}</b>
+    # Компактный статус-бар
+    status_text = {
+        "success": "PASSED",
+        "failed": "FAILED",
+        "running": "RUNNING",
+        "pending": "PENDING",
+        "canceled": "CANCELED"
+    }.get(status, status.upper())
 
-📦 <b>Проект:</b> {project_name}
-🌿 <b>Ветка:</b> {ref}
-🆔 <b>Pipeline:</b> #{pipeline_id}
-👤 <b>Автор:</b> {username}{duration_str}
+    # Краткий формат для running - одна строка
+    if status == "running":
+        return f"{emoji} <b>{project_name}</b> • <code>{ref}</code> • {username}\n<i>Pipeline запущен...</i>"
+
+    # Для завершённых - полный формат
+    humor = get_humor_for_status(status, "pipeline")
+
+    msg = f"""{emoji} <b>{status_text}</b>{duration_str}
+
+<b>{project_name}</b> • <code>{ref}</code>
+👤 {username}
 
 {humor}
 
-<a href="{pipeline_url}">🔗 Открыть в GitLab</a>
-"""
+<a href="{pipeline_url}">→ GitLab</a>"""
+
     return msg.strip()
 
 
 def format_job_message(data: dict) -> str:
     """
-    Форматирует сообщение о job событии.
+    Форматирует компактное сообщение о job событии.
+
+    Редизайн WH-120: более компактный формат.
+    - Для running: не отправляем (слишком много шума)
+    - Для success: только если это deploy job
+    - Для failed: полная информация
 
     Args:
         data: Webhook payload от GitLab
@@ -396,52 +457,38 @@ def format_job_message(data: dict) -> str:
     status = data.get("build_status", "unknown")
     emoji = get_status_emoji(status)
 
-    build = data
     project = data.get("project_name", "Unknown")
     ref = data.get("ref", "unknown")
     job_name = data.get("build_name", "unknown-job")
-    job_id = data.get("build_id", "?")
     stage = data.get("build_stage", "?")
     username = data.get("user", {}).get("name", "Ghost") if isinstance(data.get("user"), dict) else "Ghost"
 
-    # Длительность
+    # Длительность (только для завершённых)
     duration = data.get("build_duration")
     duration_str = ""
-    if duration:
+    if duration and status in ["success", "failed"]:
         minutes = int(duration) // 60
         seconds = int(duration) % 60
-        duration_str = f"\n⏱ Время: {minutes}м {seconds}с"
+        duration_str = f" • {minutes}м {seconds}с"
 
-    # Для running показываем другой текст
+    # Для running - минимальный формат
     if status == "running":
-        humor = get_humor_for_status(status, "job")
-        msg = f"""
-{emoji} <b>Job Started: {job_name}</b>
+        return f"{emoji} <code>{job_name}</code> • {stage}\n<i>Выполняется...</i>"
 
-📦 <b>Проект:</b> {project}
-🌿 <b>Ветка:</b> {ref}
-🏗 <b>Stage:</b> {stage}
-🆔 <b>Job ID:</b> #{job_id}
-👤 <b>Автор:</b> {username}
+    # Для success
+    if status == "success":
+        return f"{emoji} <b>{job_name}</b>{duration_str}\n<code>{ref}</code> • {stage}"
 
-{humor}
-"""
-        return msg.strip()
-
-    # Для завершённых jobs
+    # Для failed - полный формат
     humor = get_humor_for_status(status, "job")
 
-    msg = f"""
-{emoji} <b>Job {status.upper()}: {job_name}</b>
+    msg = f"""{emoji} <b>FAILED: {job_name}</b>{duration_str}
 
-📦 <b>Проект:</b> {project}
-🌿 <b>Ветка:</b> {ref}
-🏗 <b>Stage:</b> {stage}
-🆔 <b>Job ID:</b> #{job_id}
-👤 <b>Автор:</b> {username}{duration_str}
+<b>{project}</b> • <code>{ref}</code>
+🏗 Stage: {stage}
+👤 {username}
 
-{humor}
-"""
+{humor}"""
 
     return msg.strip()
 
@@ -450,20 +497,301 @@ def format_job_failed_with_log(data: dict, log: str) -> str:
     """
     Форматирует сообщение о падении job с логом.
 
+    Редизайн WH-120: компактный лог.
+
     Args:
         data: Webhook payload от GitLab
         log: Последние строки лога
     """
     basic_msg = format_job_message(data)
 
-    # Добавляем лог
-    log_preview = log[:800] if len(log) > 800 else log  # Ограничиваем размер
-    msg = f"""
-{basic_msg}
+    # Добавляем лог (ограничиваем и очищаем ANSI коды)
+    import re
+    clean_log = re.sub(r'\x1b\[[0-9;]*m', '', log)  # Убираем ANSI escape коды
+    log_preview = clean_log[-600:] if len(clean_log) > 600 else clean_log  # Последние 600 символов
 
-<b>📜 Лог (последние строки):</b>
-<code>{log_preview}</code>
+    msg = f"""{basic_msg}
 
-<i>Время дебажить! 🔍</i>
+<pre>{log_preview.strip()}</pre>"""
+
+    return msg.strip()
+
+
+# =============================================================================
+# Robot Formatters
+# =============================================================================
+
+ROBOT_JOKES = {
+    "started": [
+        "Робот поехал! Держите кофе! ☕",
+        "Сценарий запущен! Скоро склад оживёт! 🏭",
+        "Поехали! Робот на работе! 🤖",
+        "Запуск! Товары начинают двигаться! 📦",
+    ],
+    "stopped": [
+        "Робот остановлен. Передохнёт! 😴",
+        "Стоп машина! 🛑",
+        "Перерыв на обслуживание! 🔧",
+    ],
+    "error": [
+        "Упс! Что-то пошло не так! 🙈",
+        "Робот споткнулся... 🤖💥",
+        "Ошибочка вышла! 😅",
+    ],
+}
+
+
+def format_robot_menu(status: dict) -> str:
+    """Форматирует главное меню робота."""
+    state = status.get("state", "unknown")
+    current_scenario = status.get("current_scenario")
+
+    state_emoji = {
+        "idle": "😴",
+        "running": "🏃",
+        "stopping": "🛑",
+        "error": "❌",
+    }
+
+    state_text = {
+        "idle": "Ожидание",
+        "running": "Работает",
+        "stopping": "Останавливается",
+        "error": "Ошибка",
+    }
+
+    emoji = state_emoji.get(state, "❓")
+    text = state_text.get(state, state)
+
+    msg = f"""🤖 *Warehouse Robot*
+
+{emoji} *Статус:* {text}
 """
+
+    if current_scenario:
+        scenario_names = {
+            "receiving": "📦 Приёмка",
+            "shipping": "🚚 Отгрузка",
+            "inventory": "📋 Инвентаризация",
+            "все сценарии": "🎲 Все сценарии",
+        }
+        msg += f"🎬 *Сценарий:* {scenario_names.get(current_scenario, current_scenario)}\n"
+
+    if status.get("last_scenario"):
+        msg += f"\n📜 *Последний:* {status.get('last_scenario')}"
+
+    return msg.strip()
+
+
+def format_robot_status(status: dict, health: dict) -> str:
+    """Форматирует детальный статус робота."""
+    state = status.get("state", "unknown")
+    api_available = health.get("api_available", False)
+
+    msg = f"""🤖 *Статус Warehouse Robot*
+
+*Робот:*
+• Состояние: {state}
+• Текущий сценарий: {status.get('current_scenario', '-')}
+• Uptime: {status.get('uptime_seconds', 0):.0f}с
+
+*Warehouse API:*
+• Доступен: {'✅ Да' if api_available else '❌ Нет'}
+"""
+    return msg.strip()
+
+
+def format_robot_stats(stats: dict) -> str:
+    """Форматирует статистику робота."""
+    total = stats.get("total_runs", 0)
+    success = stats.get("successful_runs", 0)
+    failed = stats.get("failed_runs", 0)
+    last_run = stats.get("last_run", "-")
+    last_scenario = stats.get("last_scenario", "-")
+
+    # Последний результат
+    last_result = stats.get("last_result", {})
+    result_details = ""
+
+    if last_result:
+        scenario = last_result.get("scenario", "")
+        if scenario == "receiving":
+            result_details = f"""
+📦 *Последняя приёмка:*
+• Создано товаров: {last_result.get('products_created', 0)}
+• Всего единиц: {last_result.get('total_quantity', 0):,}
+• На сумму: {format_money(last_result.get('total_value', 0))}
+"""
+        elif scenario == "shipping":
+            result_details = f"""
+🚚 *Последняя отгрузка:*
+• Позиций: {last_result.get('positions', 0)}
+• Отгружено: {last_result.get('total_shipped', 0):,} ед.
+• На сумму: {format_money(last_result.get('total_value', 0))}
+"""
+        elif scenario == "inventory":
+            result_details = f"""
+📋 *Последняя инвентаризация:*
+• Корректировок: {last_result.get('adjusted', 0)}
+• Излишки: {last_result.get('surplus_count', 0)}
+• Недостачи: {last_result.get('shortage_count', 0)}
+• Списано: {last_result.get('deleted', 0)}
+"""
+
+    msg = f"""📊 *Статистика Warehouse Robot*
+
+*Общая статистика:*
+• Всего запусков: {total}
+• Успешных: ✅ {success}
+• С ошибками: ❌ {failed}
+
+*Последний запуск:*
+• Сценарий: {last_scenario}
+• Время: {last_run}
+{result_details}
+"""
+    return msg.strip()
+
+
+def format_robot_started(scenario: str, speed: str, environment: str = "staging", duration: int = 0) -> str:
+    """Форматирует сообщение о запуске сценария."""
+    import random
+
+    scenario_names = {
+        "receiving": "📦 Приёмка товара",
+        "shipping": "🚚 Отгрузка",
+        "inventory": "📋 Инвентаризация",
+        "all": "🎲 Все сценарии (случайный порядок)",
+    }
+
+    speed_names = {
+        "slow": "🐢 Медленно (пауза 15с)",
+        "normal": "🚶 Нормально (пауза 5с)",
+        "fast": "🚀 Быстро (пауза 1с)",
+    }
+
+    env_names = {
+        "staging": "🔧 STAGING (тест)",
+        "prod": "🚀 PROD (боевой)",
+    }
+
+    duration_names = {
+        0: "один раз",
+        5: "5 минут",
+        30: "30 минут",
+        60: "1 час",
+    }
+
+    joke = random.choice(ROBOT_JOKES["started"])
+
+    duration_text = duration_names.get(duration, f"{duration} мин")
+
+    return f"""✅ *Сценарий запущен!*
+
+🎬 *Сценарий:* {scenario_names.get(scenario, scenario)}
+⏱ *Продолжительность:* {duration_text}
+🌍 *Окружение:* {env_names.get(environment, environment)}
+⚡ *Скорость:* {speed_names.get(speed, speed)}
+
+{joke}
+"""
+
+
+def format_robot_stopped() -> str:
+    """Форматирует сообщение об остановке робота."""
+    import random
+    joke = random.choice(ROBOT_JOKES["stopped"])
+    return f"🛑 *Робот останавливается...*\n\n{joke}"
+
+
+def format_robot_error(error: str) -> str:
+    """Форматирует сообщение об ошибке."""
+    import random
+    joke = random.choice(ROBOT_JOKES["error"])
+    return f"❌ *Ошибка:* {error}\n\n{joke}"
+
+
+def format_robot_notification(scenario: str, result: dict) -> str:
+    """
+    Форматирует уведомление о завершении сценария.
+
+    Показывает детали по каждому товару:
+    - Приёмка: список добавленных товаров с количеством и суммой
+    - Отгрузка: список отгруженных товаров с количеством и остатком
+    - Инвентаризация: список корректировок и списаний
+    """
+    scenario_names = {
+        "receiving": "📦 Приёмка",
+        "shipping": "🚚 Отгрузка",
+        "inventory": "📋 Инвентаризация",
+    }
+
+    emoji = "✅" if not result.get("error") else "❌"
+
+    msg = f"""{emoji} *{scenario_names.get(scenario, scenario)} завершена*
+
+"""
+
+    if scenario == "receiving":
+        products = result.get("products", [])
+        if products:
+            msg += "*Добавленные товары:*\n"
+            for p in products:
+                name = p.get("name", "Товар")
+                qty = p.get("quantity", 0)
+                price = p.get("price", 0)
+                total = qty * price
+                msg += f"  • {name}: {qty} шт. × {format_money(price).replace(' ₽', '')} = {format_money(total)}\n"
+            msg += "\n"
+
+        msg += f"""*Итого:*
+• Создано товаров: {result.get('products_created', 0)}
+• Всего единиц: {result.get('total_quantity', 0):,}
+• На сумму: {format_money(result.get('total_value', 0))}"""
+
+    elif scenario == "shipping":
+        details = result.get("details", [])
+        if details:
+            msg += "*Отгруженные товары:*\n"
+            for d in details:
+                name = d.get("product_name", "Товар")
+                shipped = d.get("shipped_qty", 0)
+                remaining = d.get("remaining_qty", 0)
+                price = d.get("unit_price", 0)
+                total = shipped * price
+                msg += f"  • {name}: -{shipped} шт. (остаток: {remaining}) = {format_money(total)}\n"
+            msg += "\n"
+
+        msg += f"""*Итого:*
+• Позиций: {result.get('positions', 0)}
+• Отгружено: {result.get('total_shipped', 0):,} ед.
+• На сумму: {format_money(result.get('total_value', 0))}"""
+
+    elif scenario == "inventory":
+        adjustments = result.get("adjustments", [])
+        deleted_products = result.get("deleted_products", [])
+
+        if adjustments:
+            msg += "*Корректировки:*\n"
+            for a in adjustments:
+                name = a.get("product_name", "Товар")
+                was = a.get("was", 0)
+                now = a.get("now", 0)
+                diff = a.get("diff", 0)
+                sign = "+" if diff > 0 else ""
+                emoji_adj = "📈" if diff > 0 else "📉"
+                msg += f"  {emoji_adj} {name}: {was} → {now} ({sign}{diff})\n"
+            msg += "\n"
+
+        if deleted_products:
+            msg += "*Списано:*\n"
+            for name in deleted_products:
+                msg += f"  🗑️ {name}\n"
+            msg += "\n"
+
+        msg += f"""*Итого:*
+• Корректировок: {result.get('adjusted', 0)}
+• Излишки: {result.get('surplus_count', 0)}, недостачи: {result.get('shortage_count', 0)}
+• Списано: {result.get('deleted', 0)}"""
+
     return msg.strip()

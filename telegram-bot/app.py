@@ -1,5 +1,5 @@
 """
-Warehouse Telegram Bot v5.0
+Warehouse Telegram Bot v5.4
 Главная точка входа - теперь чистая и красивая! 🎯
 
 Архитектура:
@@ -19,19 +19,23 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 
 # Наши модули
 from config import (
     TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITLAB_WEBHOOK_SECRET, GITLAB_JOBS,
     LOG_FORMAT, LOG_LEVEL
 )
-from bot.telegram import get_updates, send_message_with_reply_keyboard, answer_callback_query
+from bot.telegram import (
+    get_updates, send_message_with_reply_keyboard, answer_callback_query,
+    send_message_with_inline_keyboard, edit_message_text, send_message
+)
 from bot.keyboards import get_reply_keyboard, get_main_menu_keyboard
+from bot.messages import format_robot_notification
 from bot.handlers import (
     # Commands
     handle_start, handle_help, handle_menu, handle_health, handle_joke,
-    handle_metrics, handle_pods,
+    handle_metrics, handle_pods, handle_release,
     # Deploy
     handle_deploy_menu, request_deploy_password, handle_deploy_password_input,
     is_pending_deploy_password,
@@ -40,10 +44,23 @@ from bot.handlers import (
     handle_load_users, handle_load_duration, request_password,
     handle_password_input, handle_stop_load_test, handle_load_status,
     is_pending_password, is_pending_wizard,
-    # Claude
+    # Claude (код сохранён, но не используется в меню)
     handle_claude_menu, handle_claude_input, is_pending_claude,
+    # PM
+    handle_pm_menu, handle_in_progress, handle_stories_audit,
+    handle_daily_report, handle_weekly_report, handle_issue_lookup,
     # GitLab Webhooks
     handle_gitlab_webhook,
+    # Robot
+    handle_robot_menu, handle_robot_status, handle_robot_stats,
+    handle_robot_scenarios, handle_robot_duration_select, handle_robot_start, handle_robot_stop,
+    handle_robot_speed_select, handle_robot_environment_select,
+    request_robot_password, handle_robot_password_input,
+    is_pending_robot_password,
+    # Robot Schedule
+    handle_robot_schedule_menu, handle_robot_schedule_env, handle_robot_schedule_time,
+    handle_robot_schedule_create, handle_robot_scheduled_list, handle_robot_cancel_scheduled,
+    request_schedule_time_input, handle_schedule_time_input, is_pending_schedule_time,
 )
 
 # =============================================================================
@@ -63,7 +80,7 @@ def setup_logging():
                 "logger": record.name,
                 "message": record.getMessage(),
                 "service": "telegram-bot",
-                "version": "5.0.0"
+                "version": "5.4.0"
             }
             if record.exc_info:
                 log_obj["exception"] = self.formatException(record.exc_info)
@@ -149,8 +166,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Warehouse Telegram Bot",
-    description="CI/CD notifications and orchestration",
-    version="5.0.0",
+    description="CI/CD notifications, PM orchestration and robot control",
+    version="5.4.0",
     lifespan=lifespan
 )
 
@@ -215,7 +232,7 @@ async def telegram_polling():
 async def process_command(chat_id: int, text: str):
     """Главный роутер команд."""
     # Логируем входящую команду (без паролей!)
-    log_text = "[HIDDEN]" if is_pending_password(chat_id) or is_pending_deploy_password(chat_id) else text
+    log_text = "[HIDDEN]" if is_pending_password(chat_id) or is_pending_deploy_password(chat_id) or is_pending_robot_password(chat_id) else text
     logger.info(f"Command received: chat_id={chat_id}, text='{log_text}'")
 
     # Проверяем ожидание ввода
@@ -225,6 +242,14 @@ async def process_command(chat_id: int, text: str):
 
     if is_pending_password(chat_id):
         await handle_password_input(chat_id, text)
+        return
+
+    if is_pending_robot_password(chat_id):
+        await handle_robot_password_input(send_message_async, chat_id, text)
+        return
+
+    if is_pending_schedule_time(chat_id):
+        await handle_schedule_time_input(send_message_async, chat_id, text)
         return
 
     if is_pending_claude(chat_id):
@@ -244,7 +269,10 @@ async def process_command(chat_id: int, text: str):
         await handle_load_menu(chat_id)
     elif text == "🛑 Стоп":
         await handle_stop_load_test(chat_id)
+    elif text == "📋 PM":
+        await handle_pm_menu(chat_id)
     elif text == "🤖 Claude":
+        # Claude код сохранён, но скрыт из меню (WH-88)
         await handle_claude_menu(chat_id)
     elif text == "🎰 Шутка":
         await handle_joke(chat_id)
@@ -264,6 +292,8 @@ async def process_command(chat_id: int, text: str):
         await handle_pods(chat_id)
     elif text == "/joke":
         await handle_joke(chat_id)
+    elif text == "/release":
+        await handle_release(chat_id)
 
     # Deploy команды (требуют пароль)
     elif text == "/deploy":
@@ -289,12 +319,58 @@ async def process_command(chat_id: int, text: str):
     elif text == "/stop":
         await handle_stop_load_test(chat_id)
 
+    # Robot команды
+    elif text == "🤖 Robot" or text == "/robot":
+        await handle_robot_menu(send_message_async, chat_id)
+
+
+async def send_message_async(
+    chat_id: int,
+    text: str,
+    parse_mode: str = "Markdown",
+    reply_markup: dict = None,
+    edit_message_id: int = None
+):
+    """
+    Универсальная функция отправки сообщения для handlers.
+
+    Args:
+        chat_id: ID чата
+        text: Текст сообщения
+        parse_mode: Формат (Markdown или HTML)
+        reply_markup: Inline keyboard
+        edit_message_id: ID сообщения для редактирования
+    """
+    if edit_message_id:
+        return await edit_message_text(
+            chat_id=chat_id,
+            message_id=edit_message_id,
+            text=text,
+            keyboard=reply_markup,
+            parse_mode=parse_mode
+        )
+    elif reply_markup:
+        return await send_message_with_inline_keyboard(
+            chat_id=chat_id,
+            text=text,
+            keyboard=reply_markup,
+            parse_mode=parse_mode
+        )
+    else:
+        return await send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode=parse_mode
+        )
+
 
 async def process_callback(callback_query: dict):
     """Обработчик inline кнопок."""
     callback_id = callback_query.get("id")
     data = callback_query.get("data", "")
-    chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
+    message = callback_query.get("message", {})
+    chat_id = message.get("chat", {}).get("id")
+    message_id = message.get("message_id")
 
     if not chat_id:
         return
@@ -373,6 +449,94 @@ async def process_callback(callback_query: dict):
             ramp_up = parts[5]
             await request_password(chat_id, target, users, duration, ramp_up)
 
+    # PM
+    elif data == "pm_menu":
+        await handle_pm_menu(chat_id)
+    elif data == "pm_in_progress":
+        await handle_in_progress(chat_id)
+    elif data == "pm_audit":
+        await handle_stories_audit(chat_id)
+    elif data == "pm_report_day":
+        await handle_daily_report(chat_id)
+    elif data == "pm_report_week":
+        await handle_weekly_report(chat_id)
+
+    # Robot
+    # Flow: Сценарий → Продолжительность → Окружение → Пароль → Скорость → Запуск
+    elif data == "robot_menu":
+        await handle_robot_menu(send_message_async, chat_id, message_id)
+    elif data == "robot_status":
+        await handle_robot_status(send_message_async, chat_id, message_id)
+    elif data == "robot_stats":
+        await handle_robot_stats(send_message_async, chat_id, message_id)
+    elif data == "robot_scenarios":
+        await handle_robot_scenarios(send_message_async, chat_id, message_id)
+    elif data == "robot_stop":
+        await handle_robot_stop(send_message_async, chat_id, message_id)
+    elif data.startswith("robot_run_"):
+        # robot_run_receiving, robot_run_shipping, robot_run_inventory
+        # После выбора сценария показываем выбор продолжительности
+        scenario = data.replace("robot_run_", "")
+        await handle_robot_duration_select(send_message_async, chat_id, scenario, message_id)
+    elif data.startswith("robot_dur_"):
+        # robot_dur_receiving_5, robot_dur_shipping_30, etc.
+        # После выбора продолжительности показываем выбор окружения
+        parts = data.replace("robot_dur_", "").rsplit("_", 1)
+        if len(parts) == 2:
+            scenario, duration_str = parts
+            duration = int(duration_str)
+            await handle_robot_environment_select(send_message_async, chat_id, scenario, duration, message_id)
+    elif data.startswith("robot_env_"):
+        # robot_env_receiving_5_staging, robot_env_shipping_30_prod, etc.
+        # После выбора окружения запрашиваем пароль
+        parts = data.replace("robot_env_", "").rsplit("_", 2)
+        if len(parts) == 3:
+            scenario, duration_str, environment = parts
+            duration = int(duration_str)
+            await request_robot_password(send_message_async, chat_id, scenario, duration, environment)
+    elif data.startswith("robot_speed_"):
+        # robot_speed_receiving_5_staging_fast, robot_speed_shipping_30_prod_normal, etc.
+        parts = data.replace("robot_speed_", "").rsplit("_", 3)
+        if len(parts) == 4:
+            scenario, duration_str, environment, speed = parts
+            duration = int(duration_str)
+            await handle_robot_start(send_message_async, chat_id, scenario, duration, speed, environment, message_id)
+
+    # === Robot Schedule ===
+    elif data == "robot_schedule":
+        await handle_robot_schedule_menu(send_message_async, chat_id, message_id)
+    elif data == "robot_scheduled":
+        await handle_robot_scheduled_list(send_message_async, chat_id, message_id)
+    elif data.startswith("robot_sched_"):
+        # robot_sched_receiving, robot_sched_shipping, robot_sched_inventory
+        # После выбора сценария показываем выбор окружения
+        scenario = data.replace("robot_sched_", "")
+        await handle_robot_schedule_env(send_message_async, chat_id, scenario, message_id)
+    elif data.startswith("robot_schedenv_"):
+        # robot_schedenv_receiving_staging, robot_schedenv_shipping_prod
+        # После выбора окружения показываем выбор времени
+        parts = data.replace("robot_schedenv_", "").rsplit("_", 1)
+        if len(parts) == 2:
+            scenario, environment = parts
+            await handle_robot_schedule_time(send_message_async, chat_id, scenario, environment, message_id)
+    elif data.startswith("robot_time_"):
+        # robot_time_receiving_staging_5, robot_time_shipping_prod_custom, etc.
+        parts = data.replace("robot_time_", "").rsplit("_", 2)
+        if len(parts) == 3:
+            scenario, environment, minutes_str = parts
+            if minutes_str == "custom":
+                await request_schedule_time_input(send_message_async, chat_id, scenario, environment)
+            else:
+                try:
+                    minutes = int(minutes_str)
+                    await handle_robot_schedule_create(send_message_async, chat_id, scenario, minutes, environment, message_id)
+                except ValueError:
+                    pass
+    elif data.startswith("robot_cancel_"):
+        # robot_cancel_abc12345
+        task_id = data.replace("robot_cancel_", "")
+        await handle_robot_cancel_scheduled(send_message_async, chat_id, task_id, message_id)
+
     elif data == "noop":
         pass  # Разделитель
 
@@ -386,7 +550,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "5.0.0",
+        "version": "5.4.0",
         "timestamp": datetime.now().isoformat()
     }
 
@@ -396,8 +560,8 @@ async def root():
     """Root endpoint."""
     return {
         "name": "Warehouse Telegram Bot",
-        "version": "5.0.0",
-        "description": "CI/CD notifications and full orchestration control 🚀"
+        "version": "5.4.0",
+        "description": "CI/CD notifications, PM dashboard, robot control and full orchestration 🚀"
     }
 
 
@@ -444,4 +608,45 @@ async def gitlab_webhook(request: Request):
 
     except Exception as e:
         logger.error(f"Webhook processing error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Robot Notifications (уведомления от Warehouse Robot)
+# =============================================================================
+
+class RobotNotification(BaseModel):
+    """Модель уведомления от робота."""
+    scenario: str
+    result: Dict[str, Any]
+
+
+@app.post("/robot/notify")
+async def robot_notify(notification: RobotNotification):
+    """
+    Обработка уведомлений от Warehouse Robot.
+
+    Робот отправляет уведомления о завершении сценариев:
+    - receiving: приёмка товара
+    - shipping: отгрузка
+    - inventory: инвентаризация
+    """
+    try:
+        logger.info(f"Received robot notification: scenario={notification.scenario}")
+
+        # Форматируем сообщение
+        message = format_robot_notification(notification.scenario, notification.result)
+
+        # Отправляем в Telegram
+        await send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=message,
+            parse_mode="Markdown"
+        )
+
+        logger.info(f"Robot notification sent successfully")
+        return {"status": "ok", "message": "Notification sent"}
+
+    except Exception as e:
+        logger.error(f"Robot notification error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

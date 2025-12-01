@@ -20,6 +20,9 @@ claude_task_status = {
     "task": None,
 }
 
+# История выполненных задач (последние 10)
+claude_task_history = []
+
 
 async def handle_claude_menu(chat_id: int):
     """Показывает меню Claude и запрашивает пароль."""
@@ -113,7 +116,7 @@ async def handle_claude_input(chat_id: int, text: str) -> bool:
 
 async def execute_claude_task(chat_id: int, task: str):
     """Выполняет задачу через Claude Proxy API."""
-    global claude_task_status
+    global claude_task_status, claude_task_history
 
     joke = get_random_joke("claude_start")
 
@@ -152,6 +155,16 @@ async def execute_claude_task(chat_id: int, task: str):
                 if data.get("success"):
                     result = data.get("stdout", "").strip()
                     joke_done = get_random_joke("claude_done")
+
+                    # Сохраняем в историю
+                    claude_task_history.insert(0, {
+                        "task": task[:100],
+                        "time": datetime.now(),
+                        "duration": elapsed_sec,
+                        "success": True,
+                    })
+                    # Храним только последние 10
+                    claude_task_history[:] = claude_task_history[:10]
 
                     if len(result) > 3500:
                         result = result[:3500] + "\n\n<i>... (обрезано)</i>"
@@ -211,3 +224,8 @@ async def execute_claude_task(chat_id: int, task: str):
 def is_pending_claude(chat_id: int) -> bool:
     """Проверяет, ожидается ли ввод для Claude."""
     return chat_id in pending_claude_task
+
+
+def get_task_history(limit: int = 5) -> list:
+    """Возвращает последние N выполненных задач."""
+    return claude_task_history[:limit]

@@ -1,6 +1,241 @@
 # Troubleshooting Guide
 
-Руководство по устранению типичных проблем в проекте warehouse-api.
+Руководство по устранению типичных проблем в проекте Warehouse.
+
+---
+
+# Обновление от 1 декабря 2025
+
+## Новые компоненты (WH-120, WH-121, WH-122)
+
+### Warehouse Robot — Проблемы и решения
+
+#### Проблема: Robot Service недоступен снаружи кластера
+
+**Симптомы:**
+```bash
+curl http://192.168.1.74:30070/health
+# Пустой ответ или connection refused
+```
+
+**Причина:**
+Рассогласование меток между Pod и Service selector. Service был применён через Kustomize с `commonLabels`, а Deployment напрямую.
+
+**Решение:**
+```bash
+# Удалить и переприменить через Kustomize
+kubectl delete deployment warehouse-robot -n warehouse
+kubectl delete svc warehouse-robot-service -n warehouse
+kubectl apply -k ~/warehouse-master/k8s/robot/
+
+# Проверить
+kubectl get pods -n warehouse -l app=warehouse-robot
+curl http://192.168.1.74:30070/health
+```
+
+**Best Practice:**
+При использовании `commonLabels` в kustomization.yaml ВСЕ ресурсы должны применяться через `kubectl apply -k`, а не напрямую.
+
+---
+
+#### Проблема: Robot не может подключиться к Warehouse API
+
+**Симптомы:**
+```
+HTTPError: 401 Unauthorized
+Connection refused to warehouse-api-service:8080
+```
+
+**Диагностика:**
+```bash
+# Проверить секреты
+kubectl get secret warehouse-robot-secrets -n warehouse -o yaml
+
+# Проверить подключение
+kubectl exec -n warehouse deployment/warehouse-robot -- curl -s http://warehouse-api-service:8080/actuator/health
+```
+
+**Решение:**
+1. Проверить, что секреты созданы:
+```bash
+kubectl apply -f ~/warehouse-master/k8s/robot/robot-secrets.yaml
+```
+
+2. Проверить credentials:
+```bash
+kubectl get secret warehouse-robot-secrets -n warehouse -o jsonpath='{.data.employee-username}' | base64 -d
+```
+
+---
+
+#### Проблема: Уведомления от Robot не приходят в Telegram
+
+**Симптомы:**
+Сценарий выполняется, но уведомление в чат не приходит.
+
+**Диагностика:**
+```bash
+# Логи Robot
+kubectl logs -n warehouse deployment/warehouse-robot --tail=50
+
+# Проверить URL Telegram бота
+kubectl get deployment warehouse-robot -n warehouse -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ROBOT_TELEGRAM_BOT_URL")].value}'
+```
+
+**Решение:**
+URL должен быть: `http://gitlab-telegram-bot.notifications.svc.cluster.local:8000`
+
+---
+
+### Analytics Service — Проблемы и решения
+
+#### Проблема: WebSocket не подключается
+
+**Симптомы:**
+Frontend показывает "Отключено", WebSocket не устанавливается.
+
+**Диагностика:**
+```bash
+# Health check
+curl http://192.168.1.74:30091/health
+
+# Проверить WebSocket (wscat)
+wscat -c ws://192.168.1.74:30091/ws
+```
+
+**Причина:**
+1. Analytics Service не запущен
+2. Kafka не доступен
+3. Redis не доступен
+
+**Решение:**
+```bash
+# Проверить поды
+kubectl get pods -n warehouse -l app=analytics-service
+
+# Логи
+kubectl logs -n warehouse deployment/analytics-service --tail=100
+
+# Проверить Kafka и Redis
+kubectl exec -n warehouse deployment/analytics-service -- curl -s redis:6379
+kubectl exec -n warehouse deployment/kafka -- kafka-topics.sh --list --bootstrap-server localhost:9092
+```
+
+---
+
+#### Проблема: Analytics не получает события из Kafka
+
+**Симптомы:**
+Analytics Service работает, но события не появляются в feed.
+
+**Диагностика:**
+```bash
+# Проверить топики
+kubectl exec -n warehouse deployment/kafka -- kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Проверить consumer groups
+kubectl exec -n warehouse deployment/kafka -- kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+
+# Просмотреть сообщения
+kubectl exec -n warehouse deployment/kafka -- kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic warehouse.audit --from-beginning --max-messages 5
+```
+
+**Решение:**
+1. Убедиться, что топики созданы:
+```bash
+kubectl exec -n warehouse deployment/kafka -- kafka-topics.sh --create --topic warehouse.audit --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
+kubectl exec -n warehouse deployment/kafka -- kafka-topics.sh --create --topic warehouse.notifications --bootstrap-server localhost:9092 --partitions 3 --replication-factor 1
+```
+
+2. Проверить, что API отправляет события (в логах API):
+```bash
+kubectl logs -n warehouse deployment/warehouse-api --tail=100 | grep -i kafka
+```
+
+---
+
+### Telegram Bot Robot — Проблемы и решения
+
+#### Проблема: Кнопки Robot не работают
+
+**Симптомы:**
+При нажатии на кнопку ничего не происходит или ошибка "Не удалось подключиться к Robot API".
+
+**Диагностика:**
+```bash
+# Логи бота
+kubectl logs -n notifications deployment/gitlab-telegram-bot --tail=100
+
+# Проверить ROBOT_API_URL
+kubectl get deployment gitlab-telegram-bot -n notifications -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ROBOT_API_URL")].value}'
+```
+
+**Решение:**
+```bash
+# Проверить, что Robot доступен из namespace notifications
+kubectl exec -n notifications deployment/gitlab-telegram-bot -- curl -s http://warehouse-robot-service.warehouse.svc.cluster.local:8070/health
+```
+
+---
+
+### K3s Image Update — Проблемы и решения
+
+#### Проблема: K3s использует старый образ после пересборки
+
+**Симптомы:**
+После `docker build` и перезапуска pod, pod запускается со старым кодом.
+
+**Причина:**
+K3s использует containerd, а не Docker. `imagePullPolicy: Never` означает, что K3s берёт образ из containerd, а не из Docker cache.
+
+**Решение (ОБЯЗАТЕЛЬНЫЙ процесс):**
+```bash
+# 1. Удалить старый Docker образ
+docker rmi IMAGE:TAG 2>/dev/null || true
+
+# 2. Собрать без кэша
+docker build --no-cache -t IMAGE:TAG .
+
+# 3. Удалить из K3s containerd
+sudo k3s ctr images rm docker.io/library/IMAGE:TAG
+
+# 4. Импортировать в K3s
+docker save IMAGE:TAG | sudo k3s ctr images import -
+
+# 5. Перезапустить pod
+kubectl delete pod -n NAMESPACE -l app=APP_LABEL
+
+# 6. ПРОВЕРИТЬ (обязательно!)
+kubectl exec -n NAMESPACE deployment/DEPLOY -- grep 'PATTERN' FILE
+```
+
+**One-liner:**
+```bash
+docker rmi IMAGE:TAG; docker build --no-cache -t IMAGE:TAG . && sudo k3s ctr images rm docker.io/library/IMAGE:TAG; docker save IMAGE:TAG | sudo k3s ctr images import - && kubectl delete pod -n NAMESPACE -l app=APP_LABEL
+```
+
+---
+
+### YouTrack API — Проблемы и решения
+
+#### Проблема: OAuth и /api/users/login не работают
+
+**Симптомы:**
+```json
+{"error": "invalid_grant"}
+```
+
+**Причина:**
+В текущей конфигурации YouTrack OAuth отключен или не настроен.
+
+**Решение:**
+**ИСПОЛЬЗОВАТЬ ТОЛЬКО Basic Auth!**
+```bash
+curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-120'
+```
+
+**Best Practice:**
+Все запросы к YouTrack API делать через Basic Auth с `-u 'user:password'`.
 
 ---
 
@@ -419,6 +654,11 @@ spring.datasource.password=warehouse_secret_2025
 4. Хранить чувствительные данные в переменных окружения
 
 ### YouTrack интеграция
-1. Хранить токен в $YOUTRACK_TOKEN
+1. Хранить токен в $YOUTRACK_TOKEN или использовать Basic Auth
 2. Использовать правильный project ID (0-1 для warehouse)
 3. Привязывать коммиты к задачам через #WH-XX в сообщении
+4. **ТОЛЬКО Basic Auth!** OAuth не работает
+
+---
+
+*Последнее обновление: 2025-12-01 (WH-120 Robot, WH-121 Analytics, WH-122 Schedule)*

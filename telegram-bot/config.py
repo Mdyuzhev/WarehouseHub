@@ -103,3 +103,20 @@ PROMETHEUS_URL = os.getenv(
     "PROMETHEUS_URL",
     "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
 )
+
+# =============================================================================
+# YouTrack
+# =============================================================================
+YOUTRACK_URL = os.getenv("YOUTRACK_URL", "http://192.168.1.74:8088")
+YOUTRACK_USER = os.getenv("YOUTRACK_USER", "admin")
+YOUTRACK_PASSWORD = os.getenv("YOUTRACK_PASSWORD", "Misha2021@1@")
+YOUTRACK_PROJECT = os.getenv("YOUTRACK_PROJECT", "WH")
+
+# =============================================================================
+# Warehouse Robot
+# =============================================================================
+ROBOT_API_URL = os.getenv(
+    "ROBOT_API_URL",
+    "http://warehouse-robot-service.warehouse.svc.cluster.local:8070"
+)
+ROBOT_PASSWORD = os.getenv("ROBOT_PASSWORD", "1")

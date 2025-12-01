@@ -19,57 +19,176 @@
   },
   "preferences": {
     "communication_style": "humorous_russian",
-    "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация - наше всё!"
-  },
-  "environment": {
-    "description": "Мастер-репозиторий для оркестрации всего проекта Warehouse",
-    "docker_services": {
-      "youtrack": "http://192.168.1.74:8088",
-      "gitlab": "http://192.168.1.74:8080",
-      "allure_server": "http://192.168.1.74:5050",
-      "allure_ui": "http://192.168.1.74:5252",
-      "claude_proxy": "http://192.168.1.74:8765"
+    "language": "russian",
+    "humor": {
+      "enabled": true,
+      "style": "добрый сарказм, айтишные шутки, мемы про разработку",
+      "frequency": "умеренно — в начале, в конце, при успехе/ошибке"
     },
-    "k8s_namespaces": {
-      "warehouse": "API + Frontend + PostgreSQL",
-      "loadtest": "Locust master + workers",
-      "notifications": "Telegram Bot",
-      "monitoring": "Prometheus + Grafana"
+    "response_format": {
+      "use_emoji": true,
+      "use_tables": true,
+      "code_comments": "на русском",
+      "commit_messages": "на русском с номером задачи #WH-XXX"
     },
-    "production": {
-      "api": "https://api.wh-lab.ru",
-      "frontend": "https://wh-lab.ru",
-      "host": "130.193.44.34"
-    }
+    "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация — наше всё! Если что-то сломалось — не паникуем, чиним с шутками."
   },
   "workflow": {
+    "before_start": {
+      "description": "⚠️ ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ ПЕРЕД НАЧАЛОМ РАБОТЫ!",
+      "required_docs": [
+        {
+          "path": "docs/CREDENTIALS.md",
+          "description": "Все секреты, учётки, пароли, доступы к серверам и сервисам"
+        },
+        {
+          "path": "docs/DEPLOY_GUIDE.md",
+          "description": "Процедуры деплоя в K3s (КРИТИЧНО: K3s ≠ Docker!)"
+        },
+        {
+          "path": "docs/YOUTRACK_API.md",
+          "description": "YouTrack API референс, ID полей, workflow создания задач"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "description": "Архитектура системы, компоненты, связи"
+        },
+        {
+          "path": "docs/INFRASTRUCTURE_GUIDE.md",
+          "description": "K8s инфраструктура, namespaces, сервисы"
+        },
+        {
+          "path": "docs/TROUBLESHOOTING_GUIDE.md",
+          "description": "Типичные проблемы и их решения"
+        }
+      ],
+      "confirmation": {
+        "required": true,
+        "message": "✅ Документация изучена, готов к работе!",
+        "include_summary": {
+          "description": "После изучения документов отправь краткую справку по сетапу",
+          "template": [
+            "## 📋 Краткая справка по сетапу",
+            "",
+            "**Сервер:** 192.168.1.74 (staging) | 130.193.44.34 (prod)",
+            "",
+            "**Основные сервисы:**",
+            "| Сервис | Порт | Статус |",
+            "|--------|------|--------|",
+            "| Warehouse API | 30080 | ? |",
+            "| Frontend | 30081 | ? |",
+            "| Robot | 30070 | ? |",
+            "| Analytics | 30091 | ? |",
+            "| Telegram Bot | 30088 | ? |",
+            "",
+            "**K8s namespaces:** warehouse, notifications, loadtest, monitoring",
+            "",
+            "**Критичные напоминания:**",
+            "- 🚨 K3s использует containerd, НЕ Docker!",
+            "- 🔐 YouTrack: ТОЛЬКО Basic Auth",
+            "- 📦 Деплой: 7 шагов обязательно (см. DEPLOY_GUIDE.md)",
+            "",
+            "Готов к задаче!"
+          ]
+        }
+      },
+      "rule": "Прочитай документы → Отправь справку → Начинай работу!"
+    },
     "task_tracking": {
       "enabled": true,
       "tracker": "YouTrack",
       "tracker_url": "http://192.168.1.74:8088",
       "project_id": "0-1",
       "project_short": "WH",
-      "auth": {
-        "method": "Basic Auth (-u user:password)",
-        "user": "admin",
-        "password": "Misha2021@1@",
-        "example": "curl -s -u 'admin:Misha2021@1@' http://192.168.1.74:8088/api/issues/WH-112"
-      },
-      "api_notes": "НЕ использовать /api/users/login или OAuth - они не работают. Только Basic Auth!"
+      "auth_note": "ТОЛЬКО Basic Auth! Подробности в docs/YOUTRACK_API.md"
     },
     "session_start": {
-      "actions": [
-        "Прочитать .claude/settings.local.json для получения актуальной конфигурации",
-        "Проверить git status для понимания текущего состояния репозитория"
+      "description": "Выполнить при каждом старте работы",
+      "steps": [
+        "cd ~/warehouse-master && git pull origin main",
+        "cat .claude/settings.local.json",
+        "git status"
       ]
     },
-    "user_story_completion": {
-      "actions": [
-        "Убедиться что все файлы отслеживаются (нет untracked файлов)",
-        "Закоммитить все изменения связанные с user story",
-        "Обновить документацию если требуется"
-      ],
-      "rule": "Все файлы в репозитории должны быть отслеживаемыми. Неотслеживаемые файлы должны быть либо добавлены в git, либо в .gitignore"
-    }
+    "task_start": {
+      "description": "Выполнить перед началом задачи",
+      "steps": [
+        "Проверить что задача существует в YouTrack",
+        "Создать ветку если нужно: git checkout -b feature/WH-XXX",
+        "Прочитать описание задачи"
+      ]
+    },
+    "task_end": {
+      "description": "Выполнить после завершения задачи",
+      "steps": [
+        "git add .",
+        "git commit -m '#WH-XXX Краткое описание на русском'",
+        "git push origin main (или feature branch)",
+        "Добавить комментарий в YouTrack с результатами",
+        "Обновить документацию если нужно"
+      ]
+    },
+    "deploy_note": "⚠️ Полные инструкции деплоя в docs/DEPLOY_GUIDE.md. K3s использует containerd, НЕ Docker!"
+  },
+  "environment": {
+    "description": "Мастер-репозиторий для оркестрации проекта Warehouse",
+    "server": {
+      "host": "192.168.1.74",
+      "host_vpn": "100.81.243.12",
+      "user": "flomaster"
+    },
+    "quick_links": {
+      "warehouse_api": "http://192.168.1.74:30080",
+      "warehouse_frontend": "http://192.168.1.74:30081",
+      "warehouse_robot": "http://192.168.1.74:30070",
+      "analytics_service": "http://192.168.1.74:30091",
+      "gitlab": "http://192.168.1.74:8080",
+      "youtrack": "http://192.168.1.74:8088",
+      "grafana": "http://192.168.1.74:30300",
+      "telegram_bot": "http://192.168.1.74:30088"
+    },
+    "k8s_namespaces": ["warehouse", "notifications", "loadtest", "monitoring"],
+    "credentials_note": "Все учётки и секреты в docs/CREDENTIALS.md"
+  },
+  "templates": {
+    "youtrack_get_issue": "curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-XXX'",
+    "youtrack_add_comment": "curl -s -u 'admin:Misha2021@1@' -X POST 'http://192.168.1.74:8088/api/issues/WH-XXX/comments' -H 'Content-Type: application/json' -d '{\"text\":\"COMMENT\"}'",
+    "k8s_restart": "kubectl rollout restart deployment/NAME -n NAMESPACE",
+    "k8s_logs": "kubectl logs -n NAMESPACE deployment/NAME --tail=100"
+  },
+  "audit": {
+    "description": "Краткая сводка по инфраструктуре (детали в docs/)",
+    "last_audit": "2025-12-01",
+    "components": {
+      "warehouse-api": "Java Spring Boot, 2 replicas, port 30080",
+      "warehouse-frontend": "Vue.js, port 30081",
+      "warehouse-robot": "Python FastAPI (WH-120), port 30070",
+      "analytics-service": "Python FastAPI (WH-121), port 30091",
+      "telegram-bot": "Python aiogram v5.4, port 30088",
+      "databases": "PostgreSQL (StatefulSet), Redis, Kafka"
+    },
+    "new_since_wh120": [
+      "warehouse-robot — симулятор складских операций",
+      "analytics-service — real-time Kafka аналитика",
+      "ANALYST role в API",
+      "/analytics страница во frontend"
+    ]
+  },
+  "humor_phrases": {
+    "task_start": [
+      "Ну что, погнали! 🚀",
+      "Окей, держи пиво, смотри как надо 🍺",
+      "Сейчас всё сделаем, не переживай 💪"
+    ],
+    "task_success": [
+      "Готово! Можешь нести печеньки 🍪",
+      "Сделано! Я же говорил, что справлюсь 😎",
+      "Всё работает! Пора на обед 🍕"
+    ],
+    "task_error": [
+      "Упс, что-то пошло не так... Но мы разберёмся! 🔧",
+      "Хьюстон, у нас проблемы 🚀 Сейчас починим",
+      "Не паникуем! Это всего лишь баг, а не конец света 🌍"
+    ]
   }
 }
