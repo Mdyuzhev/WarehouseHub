@@ -24,7 +24,9 @@ from typing import Optional, Dict, Any
 # Наши модули
 from config import (
     TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITLAB_WEBHOOK_SECRET, GITLAB_JOBS,
-    LOG_FORMAT, LOG_LEVEL
+    LOG_FORMAT, LOG_LEVEL,
+    # WH-181: константы вместо магических чисел
+    GRACEFUL_SHUTDOWN_TIMEOUT, MAX_BACKOFF_SECONDS, INITIAL_BACKOFF_SECONDS
 )
 from bot.telegram import (
     get_updates, send_message_with_reply_keyboard, answer_callback_query,
@@ -154,10 +156,10 @@ async def lifespan(app: FastAPI):
     logger.info("Initiating graceful shutdown...")
     shutdown_event.set()
 
-    # Ждём завершения polling task
+    # Ждём завершения polling task (WH-181: таймаут из конфига)
     if polling_task:
         try:
-            await asyncio.wait_for(polling_task, timeout=5.0)
+            await asyncio.wait_for(polling_task, timeout=GRACEFUL_SHUTDOWN_TIMEOUT)
         except asyncio.TimeoutError:
             logger.warning("Polling task did not stop in time, cancelling...")
             polling_task.cancel()
@@ -181,7 +183,7 @@ async def telegram_polling():
     """Основной цикл polling с graceful shutdown и retry backoff."""
     global last_update_id
     consecutive_errors = 0
-    max_backoff = 60  # Максимальная задержка при ошибках
+    # WH-181: константы из конфига
 
     while not shutdown_event.is_set():
         try:
@@ -215,8 +217,8 @@ async def telegram_polling():
             break
         except Exception as e:
             consecutive_errors += 1
-            # Экспоненциальный backoff: 5, 10, 20, 40, 60 секунд
-            backoff = min(5 * (2 ** (consecutive_errors - 1)), max_backoff)
+            # WH-181: экспоненциальный backoff с константами из конфига
+            backoff = min(INITIAL_BACKOFF_SECONDS * (2 ** (consecutive_errors - 1)), MAX_BACKOFF_SECONDS)
             logger.error(f"Polling error (attempt {consecutive_errors}): {e}")
             logger.info(f"Retrying in {backoff} seconds...")
 

@@ -105,9 +105,26 @@ DEPLOY_PASSWORD = os.getenv("DEPLOY_PASSWORD")
 LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD")
 LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")  # Guest - не секрет
 
-# Guest limits
-GUEST_MAX_USERS = 20
-GUEST_MAX_DURATION = 300  # 5 минут
+# =============================================================================
+# WH-180: Health Check таймауты (секунды)
+# =============================================================================
+HEALTH_CHECK_TIMEOUT = float(os.getenv("HEALTH_CHECK_TIMEOUT", "5.0"))
+PROMETHEUS_TIMEOUT = float(os.getenv("PROMETHEUS_TIMEOUT", "3.0"))
+
+# =============================================================================
+# WH-181: Лимиты и константы (вместо магических чисел)
+# =============================================================================
+# Guest mode limits
+GUEST_MAX_USERS = int(os.getenv("GUEST_MAX_USERS", "20"))
+GUEST_MAX_DURATION = int(os.getenv("GUEST_MAX_DURATION", "300"))  # 5 минут
+
+# App lifecycle
+GRACEFUL_SHUTDOWN_TIMEOUT = float(os.getenv("GRACEFUL_SHUTDOWN_TIMEOUT", "5.0"))
+MAX_BACKOFF_SECONDS = int(os.getenv("MAX_BACKOFF_SECONDS", "60"))
+INITIAL_BACKOFF_SECONDS = int(os.getenv("INITIAL_BACKOFF_SECONDS", "5"))
+
+# Prometheus query window
+PROMETHEUS_QUERY_WINDOW = os.getenv("PROMETHEUS_QUERY_WINDOW", "5m")
 
 # =============================================================================
 # Prometheus (внутри K8s)

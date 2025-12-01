@@ -8,14 +8,18 @@ from datetime import datetime
 from config import (
     STAGING_API_URL, STAGING_FRONTEND_URL,
     PROD_API_URL, PROD_FRONTEND_URL,
-    PROMETHEUS_URL
+    PROMETHEUS_URL,
+    # WH-180: таймауты из конфига
+    HEALTH_CHECK_TIMEOUT, PROMETHEUS_TIMEOUT,
+    # WH-181: константы
+    PROMETHEUS_QUERY_WINDOW
 )
 
 
 async def check_service_health(url: str, name: str) -> dict:
     """Проверяет здоровье сервиса по URL."""
     try:
-        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT, verify=False) as client:
             start = datetime.now()
             # Для API проверяем /actuator/health, для frontend - просто корень
             if "api" in url.lower():
@@ -53,7 +57,7 @@ async def get_k8s_resources() -> dict:
 
     # Проверяем API и получаем статус БД
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT) as client:
             response = await client.get(f"{STAGING_API_URL}/actuator/health")
             if response.status_code == 200:
                 data = response.json()
@@ -74,7 +78,7 @@ async def get_k8s_resources() -> dict:
 
     # Проверяем Frontend
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT) as client:
             response = await client.get(f"{STAGING_FRONTEND_URL}")
             status = "Running" if response.status_code == 200 else "Error"
             pods.append({"name": "warehouse-frontend", "status": status, "restarts": "0"})
@@ -84,11 +88,12 @@ async def get_k8s_resources() -> dict:
     # Prometheus метрики для ресурсов
     node_info = {}
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            # CPU метрики
+        async with httpx.AsyncClient(timeout=PROMETHEUS_TIMEOUT) as client:
+            # CPU метрики (WH-181: используем константу для window)
+            cpu_query = f'100 - (avg(rate(node_cpu_seconds_total{{mode="idle"}}[{PROMETHEUS_QUERY_WINDOW}])) * 100)'
             response = await client.get(
                 f"{PROMETHEUS_URL}/api/v1/query",
-                params={"query": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"}
+                params={"query": cpu_query}
             )
             if response.status_code == 200:
                 data = response.json()
@@ -118,7 +123,7 @@ async def get_prod_resources() -> dict:
 
     # Проверяем API
     try:
-        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT, verify=False) as client:
             response = await client.get(f"{PROD_API_URL}/actuator/health")
             if response.status_code == 200:
                 data = response.json()
@@ -132,7 +137,7 @@ async def get_prod_resources() -> dict:
 
     # Проверяем Frontend
     try:
-        async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT, verify=False) as client:
             response = await client.get(f"{PROD_FRONTEND_URL}")
             containers.append({
                 "name": "warehouse-frontend",

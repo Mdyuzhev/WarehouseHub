@@ -24,7 +24,8 @@ class WarehouseAPIClient:
         self.base_url = base_url or settings.api_url
         self.token: Optional[str] = None
         self.username: Optional[str] = None
-        self.client = httpx.Client(timeout=30.0)
+        # WH-179: таймаут из конфига
+        self.client = httpx.Client(timeout=settings.api_timeout)
 
     def login(self, username: str = None, password: str = None) -> bool:
         """
@@ -222,7 +223,8 @@ class WarehouseAPIClient:
             True если API доступен, False иначе
         """
         try:
-            response = self.client.get(f"{self.base_url}/actuator/health", timeout=5.0)
+            # WH-179: таймаут из конфига
+            response = self.client.get(f"{self.base_url}/actuator/health", timeout=settings.health_timeout)
             return response.status_code == 200
 
         except Exception:

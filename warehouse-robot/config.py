@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Порт API робота
     api_port: int = 8070
 
+    # WH-179: Таймауты HTTP запросов (секунды)
+    api_timeout: float = 30.0       # Таймаут для CRUD операций
+    health_timeout: float = 5.0     # Таймаут для health check
+
     class Config:
         env_prefix = "ROBOT_"
         env_file = ".env"
