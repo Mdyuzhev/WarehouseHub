@@ -50,10 +50,12 @@ LOCUST_MASTER_URL = os.getenv(
 # GitLab
 # =============================================================================
 GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
-GITLAB_TOKEN = os.getenv(
-    "GITLAB_TOKEN",
-    "glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3"
-)
+# ⚠️ КРИТИЧНО: Токен должен быть в K8s Secret, НЕ в коде!
+# Старый токен был скомпрометирован и отозван (WH-171)
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
+if not GITLAB_TOKEN:
+    import logging
+    logging.warning("GITLAB_TOKEN not set! GitLab integrations will fail.")
 GITLAB_TRIGGER_TOKEN = os.getenv("GITLAB_TRIGGER_TOKEN", "")
 
 # Project IDs
