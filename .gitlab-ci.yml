@@ -127,20 +127,14 @@ package-image:
 deploy-dev:
   stage: deploy
   script:
-    - echo "🚀 Deploying API to DEV environment..."
-    - echo "Namespace: $DEV_NAMESPACE"
+    - echo "Deploying API to DEV environment..."
+    - echo "Namespace - $DEV_NAMESPACE"
     - kubectl rollout restart deployment/warehouse-api -n $DEV_NAMESPACE
     - kubectl rollout status deployment/warehouse-api -n $DEV_NAMESPACE --timeout=120s
-    - echo "🔍 Checking health..."
+    - echo "Checking health..."
     - sleep 10
-    - |
-      HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEV_API_URL/actuator/health")
-      if [ "$HEALTH_STATUS" = "200" ]; then
-        echo "✅ API deployed to DEV! Health check passed"
-      else
-        echo "⚠️ Health check returned $HEALTH_STATUS"
-      fi
-    - echo "🌐 DEV URL: $DEV_API_URL"
+    - curl -sf "$DEV_API_URL/actuator/health" && echo "Health check passed" || echo "Health check warning"
+    - echo "DEV URL - $DEV_API_URL"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
   environment:
@@ -155,20 +149,14 @@ deploy-dev:
 deploy-prod:
   stage: deploy
   script:
-    - echo "🚀 Deploying API to PRODUCTION environment..."
-    - echo "Namespace: $PROD_NAMESPACE"
+    - echo "Deploying API to PRODUCTION environment..."
+    - echo "Namespace - $PROD_NAMESPACE"
     - kubectl rollout restart deployment/warehouse-api -n $PROD_NAMESPACE
     - kubectl rollout status deployment/warehouse-api -n $PROD_NAMESPACE --timeout=120s
-    - echo "🔍 Checking health..."
+    - echo "Checking health..."
     - sleep 10
-    - |
-      HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_API_URL/actuator/health")
-      if [ "$HEALTH_STATUS" = "200" ]; then
-        echo "✅ API deployed to PRODUCTION! Health check passed"
-      else
-        echo "⚠️ Health check returned $HEALTH_STATUS"
-      fi
-    - echo "🌐 PROD URL: $PROD_API_URL"
+    - curl -sf "$PROD_API_URL/actuator/health" && echo "Health check passed" || echo "Health check warning"
+    - echo "PROD URL - $PROD_API_URL"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
