@@ -195,8 +195,8 @@ run-e2e-tests-staging:
     - echo "🧪 Running E2E Tests on STAGING..."
     - echo "Target URL - $BASE_URL"
     - cd /home/flomaster/warehouse-master/e2e-tests
-    - sudo rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    - rm -rf target/ || true
+    - mvn test -Dbase.url=$BASE_URL --batch-mode || true
     # Upload to Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
@@ -208,7 +208,6 @@ run-e2e-tests-staging:
     - echo "📊 E2E STAGING ALLURE REPORT:"
     - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/e2e-tests/target/ || true
   tags:
     - shell
   when: manual
@@ -226,8 +225,8 @@ run-e2e-tests-prod:
     - echo "🧪 Running E2E Tests on PRODUCTION..."
     - echo "Target URL - $BASE_URL"
     - cd /home/flomaster/warehouse-master/e2e-tests
-    - sudo rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    - rm -rf target/ || true
+    - mvn test -Dbase.url=$BASE_URL --batch-mode || true
     # Upload to Allure
     - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
     - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
@@ -239,7 +238,6 @@ run-e2e-tests-prod:
     - echo "📊 E2E PROD ALLURE REPORT:"
     - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/e2e-tests/target/ || true
   tags:
     - shell
   when: manual
