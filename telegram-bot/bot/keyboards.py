@@ -7,13 +7,13 @@
 def get_reply_keyboard() -> dict:
     """
     Возвращает постоянную клавиатуру снизу экрана.
-    WH-227: обновлена раскладка - добавлены Нагрузка и Очистка.
+    WH-218: Нагрузка и Очистка перенесены внутрь QA меню.
     """
     return {
         "keyboard": [
             [{"text": "🏥 Статус"}, {"text": "📊 Метрики"}, {"text": "🚀 Деплой"}],
-            [{"text": "🔬 QA"}, {"text": "🔥 Нагрузка"}, {"text": "🤖 Robot"}],  # WH-227: Нагрузка
-            [{"text": "📋 PM"}, {"text": "🧹 Очистка"}, {"text": "❓"}],  # WH-227: Очистка
+            [{"text": "🔬 QA"}, {"text": "🤖 Robot"}, {"text": "📋 PM"}],
+            [{"text": "❓ Помощь"}],
         ],
         "resize_keyboard": True,
         "is_persistent": True,
@@ -150,7 +150,10 @@ def get_qa_menu_keyboard() -> dict:
 
 
 def get_qa_type_keyboard(env: str) -> dict:
-    """Возвращает меню выбора типа теста для среды."""
+    """
+    Возвращает меню выбора типа теста для среды.
+    WH-218: Добавлена Очистка, Нагрузка ведёт на wizard.
+    """
     env_emoji = "🧪" if env == "staging" else "🚀"
     env_name = "STAGING" if env == "staging" else "PROD"
     return {
@@ -158,6 +161,7 @@ def get_qa_type_keyboard(env: str) -> dict:
             [{"text": f"📝 E2E тесты ({env_name})", "callback_data": f"qa_e2e_{env}"}],
             [{"text": f"🎭 UI тесты ({env_name})", "callback_data": f"qa_ui_{env}"}],
             [{"text": f"🔥 Нагрузка ({env_name})", "callback_data": f"qa_load_{env}"}],
+            [{"text": f"🧹 Очистка ({env_name})", "callback_data": f"qa_cleanup_{env}"}],
             [{"text": "⬅️ Назад", "callback_data": "qa_menu"}],
         ]
     }

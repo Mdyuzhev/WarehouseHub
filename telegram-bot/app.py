@@ -1,5 +1,5 @@
 """
-Warehouse Telegram Bot v5.5
+Warehouse Telegram Bot v5.6
 Главная точка входа - теперь чистая и красивая! 🎯
 
 Архитектура:
@@ -91,7 +91,7 @@ def setup_logging():
                 "logger": record.name,
                 "message": record.getMessage(),
                 "service": "telegram-bot",
-                "version": "5.5.0"
+                "version": "5.6.0"
             }
             if record.exc_info:
                 log_obj["exception"] = self.formatException(record.exc_info)
@@ -178,7 +178,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Warehouse Telegram Bot",
     description="CI/CD notifications, PM orchestration, robot control and load testing",
-    version="5.5.0",
+    version="5.6.0",
     lifespan=lifespan
 )
 
@@ -283,12 +283,7 @@ async def process_command(chat_id: int, text: str):
         await handle_deploy_menu(chat_id)
     elif text == "🔬 QA":
         await handle_qa_menu(chat_id)
-    elif text == "🔥 Нагрузка":  # WH-217: новая кнопка
-        await handle_load_wizard_menu(chat_id)
-    elif text == "🧹 Очистка":  # WH-217: новая кнопка
-        await handle_cleanup_menu(chat_id)
-    elif text == "🛑 Стоп":
-        await handle_load_wizard_stop(chat_id)  # WH-217: новый handler
+    # WH-218: кнопки Нагрузка и Очистка убраны — теперь внутри QA меню
     elif text == "📋 PM":
         await handle_pm_menu(chat_id)
     elif text == "🤖 Claude":
@@ -296,7 +291,7 @@ async def process_command(chat_id: int, text: str):
         await handle_claude_menu(chat_id)
     elif text == "🎰 Шутка":
         await handle_joke(chat_id)
-    elif text == "❓":
+    elif text in ["❓", "❓ Помощь"]:  # WH-218: обновлённая кнопка
         await handle_help(chat_id)
 
     # Slash команды
@@ -435,11 +430,12 @@ async def process_callback(callback_query: dict):
         await handle_qa_env(chat_id, "staging")
     elif data == "qa_prod":
         await handle_qa_env(chat_id, "prod")
-    elif data.startswith("qa_e2e_") or data.startswith("qa_ui_") or data.startswith("qa_load_"):
-        # qa_e2e_staging, qa_ui_prod, qa_load_staging
+    elif data.startswith("qa_e2e_") or data.startswith("qa_ui_") or data.startswith("qa_load_") or data.startswith("qa_cleanup_"):
+        # qa_e2e_staging, qa_ui_prod, qa_load_staging, qa_cleanup_prod
+        # WH-218: добавлена очистка в QA меню
         parts = data.split("_")
         if len(parts) == 3:
-            test_type = parts[1]  # e2e, ui, load
+            test_type = parts[1]  # e2e, ui, load, cleanup
             env = parts[2]  # staging, prod
             await handle_qa_test_type(chat_id, test_type, env)
     elif data.startswith("qa_run_"):
@@ -659,7 +655,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "5.5.0",
+        "version": "5.6.0",
         "timestamp": datetime.now().isoformat(),
         "features": ["load-testing-wizard", "cleanup-service"]  # WH-217
     }
@@ -670,7 +666,7 @@ async def root():
     """Root endpoint."""
     return {
         "name": "Warehouse Telegram Bot",
-        "version": "5.5.0",
+        "version": "5.6.0",
         "description": "CI/CD notifications, PM dashboard, robot control, load testing and cleanup 🚀",
         "changelog": "WH-217: Load Testing Workflow + Cleanup Service"
     }

@@ -16,16 +16,17 @@ async def handle_start(chat_id: int):
     welcome_msg = f"""
 {joke}
 
-<b>🤖 Warehouse Bot v5.5</b>
+<b>🤖 Warehouse Bot v5.6</b>
 
 <b>Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🔬 QA | 🔥 нагрузка | 🤖 робот
-📋 PM | 🧹 очистка | ❓ помощь
+🔬 QA | 🤖 робот | 📋 PM
+❓ помощь
 
-<b>🆕 WH-217:</b>
-• 🔥 Нагрузка — wizard 7 шагов (Locust/k6)
-• 🧹 Очистка — Redis/Kafka/PostgreSQL
+<b>🔬 QA меню (WH-218):</b>
+• Среда → E2E / UI / Нагрузка / Очистка
+• Wizard для нагрузочного тестирования
+• Очистка Redis/Kafka/PostgreSQL
 
 <b>🔐 Деплой и тесты через GitLab CI!</b>
     """
@@ -35,27 +36,26 @@ async def handle_start(chat_id: int):
 async def handle_help(chat_id: int):
     """Обработка команды /help."""
     help_msg = """
-<b>❓ Справка — Warehouse Bot v5.5</b>
+<b>❓ Справка — Warehouse Bot v5.6</b>
 
 <b>📱 Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🔬 QA | 🔥 нагрузка | 🤖 робот
-📋 PM | 🧹 очистка | ❓ помощь
+🔬 QA | 🤖 робот | 📋 PM
+❓ помощь
 
-<b>🔥 Нагрузочное тестирование (WH-217):</b>
-• Wizard 7 шагов — среда → пароль → сценарий → VU → время → паттерн → подтверждение
-• Сценарии — Locust (HTTP API), k6 (Kafka)
-• Cooldown 30 минут между тестами
+<b>🔬 QA (всё тестирование в одном месте):</b>
+• Среда → E2E / UI / Нагрузка / Очистка
+
+<b>🔥 Нагрузочное тестирование:</b>
+• Wizard — сценарий → VU → время → паттерн → старт
+• Locust (HTTP API), k6 (Kafka)
 • VU: 10/25/50, Время: 2/5/10 минут
+• Cooldown 30 минут между тестами
 
-<b>🧹 Очистка данных (WH-217):</b>
+<b>🧹 Очистка данных:</b>
 • Redis — кэш и сессии
 • Kafka — consumer groups
-• PostgreSQL — тестовые данные (LoadTest, k6)
-
-<b>🔬 QA (тестирование):</b>
-• E2E, UI тесты через GitLab CI
-• Отчёты Allure
+• PostgreSQL — тестовые данные
 
 <b>🤖 Warehouse Robot:</b>
 • Приёмка/Отгрузка/Инвентаризация
@@ -71,7 +71,7 @@ async def handle_help(chat_id: int):
 /status — статус серверов
 /release — версия
 
-<i>Бот 24/7, как Redis — всегда в памяти!</i> 😏
+<i>Бот 24/7, как Redis — всегда в памяти!</i>
     """
     await send_message_with_reply_keyboard(help_msg.strip(), get_reply_keyboard(), chat_id=chat_id)
 
@@ -158,26 +158,20 @@ async def handle_pods(chat_id: int):
 async def handle_release(chat_id: int):
     """Показывает версию бота и последние релиз ноутс."""
     msg = """
-<b>🚀 Warehouse Bot v5.5.0</b>
+<b>🚀 Warehouse Bot v5.6.0</b>
 <i>Release: 2025-12-02</i>
 
-<b>Что нового в v5.5 (WH-217):</b>
+<b>Что нового в v5.6 (WH-218):</b>
 
-🔥 <b>Load Testing Workflow</b>
-• Wizard 7 шагов с inline-кнопками
-• Выбор сценария: Locust (HTTP) / k6 (Kafka)
-• Упрощённые опции: 10/25/50 VU, 2/5/10 мин
-• Раздельные пароли для staging/prod
-• Cooldown 30 минут между тестами
+🔬 <b>Unified QA Menu</b>
+• Всё тестирование в одном меню: QA → Среда → E2E/UI/Нагрузка/Очистка
+• Убраны отдельные кнопки Нагрузка и Очистка
+• Упрощённая навигация
 
-🧹 <b>Cleanup Service</b>
-• Redis — очистка кэша FLUSHDB
-• Kafka — удаление consumer groups
-• PostgreSQL — удаление тестовых данных
-
-📋 <b>Обновлённая клавиатура</b>
-• Новые кнопки: 🔥 Нагрузка, 🧹 Очистка
-• 🛑 Стоп — теперь универсальный
+<b>v5.5 (WH-217):</b>
+• Load Testing Wizard — сценарий → VU → время → старт
+• Locust (HTTP) / k6 (Kafka)
+• Cleanup Service — Redis/Kafka/PostgreSQL
 
 <b>Предыдущие версии:</b>
 • v5.4 — QA Menu, Allure

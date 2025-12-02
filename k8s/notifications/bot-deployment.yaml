@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 15
       containers:
         - name: bot
-          image: gitlab-telegram-bot:v5.5
+          image: gitlab-telegram-bot:v5.6
           imagePullPolicy: Never
           ports:
             - containerPort: 8000

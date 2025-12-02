@@ -119,8 +119,23 @@ async def handle_qa_env(chat_id: int, env: str):
 
 
 async def handle_qa_test_type(chat_id: int, test_type: str, env: str):
-    """Показывает меню действий для выбранного теста."""
-    type_names = {"e2e": "📝 E2E тесты", "ui": "🎭 UI тесты", "load": "🔥 Нагрузка"}
+    """
+    Показывает меню действий для выбранного теста.
+    WH-218: Нагрузка и Очистка сразу переходят к своим wizard'ам.
+    """
+    # WH-218: Нагрузка — сразу в wizard (шаг 3)
+    if test_type == "load":
+        await handle_load_wizard_scenario(chat_id, env)
+        return
+
+    # WH-218: Очистка — сразу показываем меню выбора компонента
+    if test_type == "cleanup":
+        from bot.handlers.cleanup import handle_cleanup_env
+        await handle_cleanup_env(chat_id, env)
+        return
+
+    # E2E и UI — показываем меню действий
+    type_names = {"e2e": "📝 E2E тесты", "ui": "🎭 UI тесты"}
     env_names = {"staging": "🧪 STAGING", "prod": "🚀 PROD"}
 
     type_name = type_names.get(test_type, test_type)
@@ -141,9 +156,10 @@ async def handle_qa_test_type(chat_id: int, test_type: str, env: str):
 
 async def handle_qa_run(chat_id: int, test_type: str, env: str):
     """Запускает тесты через GitLab CI."""
-    # Если это нагрузка — переходим к wizard нагрузки
+    # WH-218: Если это нагрузка — переходим к новому wizard (шаг 3 — выбор сценария)
+    # Пароль уже введён на этапе QA, поэтому пропускаем шаги 1-2
     if test_type == "load":
-        await handle_load_target(chat_id, env)
+        await handle_load_wizard_scenario(chat_id, env)
         return
 
     # Определяем job для запуска
