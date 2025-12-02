@@ -254,7 +254,7 @@ histogram_quantile(0.95, k6_kafka_produce_latency_ms_seconds)
 
 ## Telegram Bot Load Testing Wizard (WH-217)
 
-Бот v5.5 поддерживает запуск нагрузочных тестов через 7-шаговый wizard:
+Бот v5.6 поддерживает запуск нагрузочных тестов через 7-шаговый wizard:
 
 ### Шаги wizard
 
@@ -305,3 +305,39 @@ histogram_quantile(0.95, k6_kafka_produce_latency_ms_seconds)
 - ~80 VU — OOMKilled при 1Gi RAM
 
 Для >50 VU используй распределённый тест (k6-operator).
+
+---
+
+## k6 Kafka для Production (WH-217)
+
+### Конфигурация
+
+| Параметр | Staging | Production |
+|----------|---------|------------|
+| Kafka brokers | kafka.warehouse.svc.cluster.local:9092 | 130.193.44.34:29092 |
+| Env var | KAFKA_STAGING_BROKERS | KAFKA_PROD_BROKERS |
+
+### docker-compose.yml (Production)
+
+Kafka на prod настроен с EXTERNAL listener:
+```yaml
+kafka:
+  environment:
+    - KAFKA_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:29092,CONTROLLER://:9093
+    - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://130.193.44.34:29092
+  ports:
+    - "29092:29092"
+```
+
+### Запуск через Telegram Bot
+
+1. Нажать **[Нагрузка]** или через QA меню
+2. Выбрать **Production**
+3. Ввести пароль (LOAD_TEST_PROD_PASSWORD)
+4. Выбрать **k6 (Kafka)**
+5. Настроить VU / время / паттерн
+6. Подтвердить запуск
+
+---
+
+*Последнее обновление: 2025-12-02 (WH-217)*

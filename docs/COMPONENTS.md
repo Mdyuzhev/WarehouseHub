@@ -116,7 +116,7 @@
 
 ---
 
-### Telegram Bot (v5.5)
+### Telegram Bot (v5.6)
 
 | Параметр | Значение |
 |----------|----------|
@@ -124,7 +124,7 @@
 | Port | 30088 |
 | Replicas | 1 |
 | Namespace | notifications |
-| Image | gitlab-telegram-bot:v5.5 |
+| Image | gitlab-telegram-bot:v5.6 |
 | Расположение | `/telegram-bot/` |
 
 **Handlers:**
@@ -140,10 +140,11 @@
 | robot | Robot control + schedule |
 | gitlab_webhook | GitLab webhooks |
 
-**WH-217 (v5.5):**
+**WH-217 (v5.6):**
 - Load Testing Wizard — 7 шагов (среда → пароль → сценарий → VU → время → паттерн → confirm)
 - Cleanup Service — Redis FLUSHDB, Kafka consumer groups, PostgreSQL тестовые данные
 - Cooldown 30 минут между нагрузочными тестами
+- k6 Kafka для Production (KAFKA_PROD_BROKERS: 130.193.44.34:29092)
 
 ---
 
@@ -179,12 +180,14 @@
 
 ### Kafka (KRaft)
 
-| Параметр | Значение |
-|----------|----------|
-| Port | 9092 |
-| Mode | KRaft (без Zookeeper) |
-| Topics | warehouse.audit, warehouse.notifications |
-| Partitions | 3 |
+| Параметр | Staging | Production |
+|----------|---------|------------|
+| Port (internal) | 9092 | 9092 |
+| Port (external) | - | 29092 |
+| Mode | KRaft (без Zookeeper) | KRaft (без Zookeeper) |
+| Host | kafka.warehouse.svc.cluster.local | 130.193.44.34 |
+| Topics | warehouse.audit, warehouse.notifications | warehouse.audit, warehouse.notifications |
+| Partitions | 3 | 3 |
 
 ---
 
@@ -360,8 +363,8 @@ kubectl apply -k ~/warehouse-master/k8s/analytics/
 
 # Telegram Bot
 cd ~/warehouse-master/telegram-bot
-docker build --no-cache -t gitlab-telegram-bot:v5.5 .
-docker save gitlab-telegram-bot:v5.5 | sudo k3s ctr images import -
+docker build --no-cache -t gitlab-telegram-bot:v5.6 .
+docker save gitlab-telegram-bot:v5.6 | sudo k3s ctr images import -
 kubectl rollout restart deployment/gitlab-telegram-bot -n notifications
 ```
 

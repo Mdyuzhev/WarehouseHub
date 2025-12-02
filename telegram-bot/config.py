@@ -174,7 +174,7 @@ REDIS_PROD_PORT = int(os.getenv("REDIS_PROD_PORT", "6379"))
 
 # Kafka
 KAFKA_STAGING_BROKERS = os.getenv("KAFKA_STAGING_BROKERS", "kafka.warehouse.svc.cluster.local:9092")
-KAFKA_PROD_BROKERS = os.getenv("KAFKA_PROD_BROKERS", "")  # TODO: настроить
+KAFKA_PROD_BROKERS = os.getenv("KAFKA_PROD_BROKERS", "130.193.44.34:29092")
 
 # PostgreSQL
 POSTGRES_STAGING_URL = os.getenv(
