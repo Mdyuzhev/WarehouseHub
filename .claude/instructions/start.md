@@ -1,51 +1,39 @@
-# Инструкция: Старт работы
+# Старт работы
 
-## Правило
-**Читай документы ПО СИТУАЦИИ, не все 10 подряд!**
-
-## Команда запуска
-```
-Старт
+## Шаг 0: Проверь репозиторий
+```bash
+pwd && basename $(git rev-parse --show-toplevel)
 ```
 
-## Шаги
+| Репозиторий | Путь | Назначение |
+|-------------|------|------------|
+| warehouse-api | ~/warehouse-api | Backend (Java, Spring Boot) |
+| warehouse-frontend | ~/warehouse-frontend | Frontend (Vue.js) |
+| warehouse-master | ~/warehouse-master | Инфраструктура, Bot, K8s |
 
-### 1. Всегда читай (обязательно)
-```
-docs/PROJECT_STATUS.md
-```
-Это единственный обязательный документ.
+Если нужен другой — переключись: `cd ~/warehouse-api`
 
-### 2. Добавь по типу задачи
+## Шаг 1: PROJECT_STATUS.md
 
-| Тип задачи | Документы |
-|------------|-----------|
-| Деплой | DEPLOY_GUIDE.md, CREDENTIALS.md |
-| YouTrack | YOUTRACK_API.md |
-| Тестирование | TESTING.md, LOAD_TESTING.md |
-| Архитектура | ARCHITECTURE.md, COMPONENTS.md |
-| Проблемы | TROUBLESHOOTING_GUIDE.md |
+Единственный обязательный документ. Остальные — по типу задачи.
 
-**Если задача неизвестна** — читай только PROJECT_STATUS.md и спроси.
-
-### 3. Проверь health
+## Шаг 2: Health check
 ```bash
 curl -s http://192.168.1.74:30080/actuator/health | jq .status
 ```
 
-### 4. Кратко подтверди
+## Ответ
 ```
-Контекст загружен. API: UP. Ветка: XXX. Готов!
+Репозиторий: XXX
+Ветка: XXX
+API: UP
+Готов!
 ```
-
-## НЕ делать
-- Читать все 10 документов
-- Пересказывать документацию
-- Выводить длинные таблицы
 
 ## Критичные правила
-1. K3s != Docker — после build нужен k3s ctr import
-2. Main protected — merge через MR
-3. YouTrack — только Basic Auth
-4. Docker build — НЕ локально (OOM), через CI/CD
-5. Секреты в CREDENTIALS.md
+
+1. Проверь репозиторий перед работой
+2. K3s ≠ Docker — нужен k3s ctr import
+3. Main protected — merge через MR
+4. YouTrack — только Basic Auth
+5. Docker build — НЕ локально (OOM)
