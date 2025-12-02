@@ -33,6 +33,8 @@
 **Endpoints:**
 - `/api/auth/*` - аутентификация
 - `/api/products/*` - CRUD товаров
+- `/api/facilities/*` - управление объектами (WH-269)
+- `/api/facilities/tree` - иерархия объектов (WH-269)
 - `/actuator/health` - health check
 - `/actuator/prometheus` - метрики
 - `/swagger-ui.html` - Swagger UI

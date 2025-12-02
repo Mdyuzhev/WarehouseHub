@@ -69,6 +69,41 @@ curl -X DELETE http://192.168.1.74:30080/api/products/<ID> \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
+### Facilities (WH-269)
+
+```bash
+# Получить все объекты
+curl http://192.168.1.74:30080/api/facilities \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Получить иерархическое дерево
+curl http://192.168.1.74:30080/api/facilities/tree \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Создать DC (Distribution Center)
+curl -X POST http://192.168.1.74:30080/api/facilities \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "DC", "name": "Moscow DC", "address": "Moscow, Main St"}'
+
+# Создать WH (Warehouse)
+curl -X POST http://192.168.1.74:30080/api/facilities \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "WH", "name": "Moscow WH #1", "parentId": 1, "address": "Moscow Region"}'
+
+# Создать PP (Pickup Point)
+curl -X POST http://192.168.1.74:30080/api/facilities \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "PP", "name": "Moscow PP #1-1", "parentId": 2, "address": "Moscow, Street 1"}'
+```
+
+**Коды автоматически генерируются:**
+- DC → `DC-001`, `DC-002`, ...
+- WH → `WH-MSK-001`, `WH-SPB-002`, ... (регион из первого WH)
+- PP → `PP-MSK-001-01`, `PP-SPB-002-03`, ... (номер родителя + порядковый номер)
+
 ### Health Check
 
 ```bash

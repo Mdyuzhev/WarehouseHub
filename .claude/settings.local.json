@@ -1,8 +1,21 @@
 {
   "permissions": {
-    "allow": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Task", "TodoWrite", "NotebookEdit", "mcp__*"]
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "TodoWrite",
+      "NotebookEdit",
+      "mcp__*",
+      "mcp__ide__getDiagnostics"
+    ]
   },
-
   "preferences": {
     "language": "russian",
     "communication_style": "friendly_professional",
@@ -18,19 +31,32 @@
       "commits": "#WH-XXX описание на русском"
     }
   },
-
   "quick_start": {
     "description": "Читай документы ПО СИТУАЦИИ, не все подряд!",
-    "always_read": ["docs/PROJECT_STATUS.md"],
+    "always_read": [
+      "docs/PROJECT_STATUS.md"
+    ],
     "by_task_type": {
-      "deploy": ["docs/DEPLOY_GUIDE.md", "docs/CREDENTIALS.md"],
-      "youtrack": ["docs/YOUTRACK_API.md"],
-      "testing": ["docs/TESTING.md", "docs/LOAD_TESTING.md"],
-      "architecture": ["docs/ARCHITECTURE.md", "docs/COMPONENTS.md"],
-      "troubleshooting": ["docs/TROUBLESHOOTING_GUIDE.md"]
+      "deploy": [
+        "docs/DEPLOY_GUIDE.md",
+        "docs/CREDENTIALS.md"
+      ],
+      "youtrack": [
+        "docs/YOUTRACK_API.md"
+      ],
+      "testing": [
+        "docs/TESTING.md",
+        "docs/LOAD_TESTING.md"
+      ],
+      "architecture": [
+        "docs/ARCHITECTURE.md",
+        "docs/COMPONENTS.md"
+      ],
+      "troubleshooting": [
+        "docs/TROUBLESHOOTING_GUIDE.md"
+      ]
     }
   },
-
   "memory": {
     "server": "192.168.1.74, 24GB RAM, НЕ собирать Docker локально - OOM",
     "environments": {
@@ -39,30 +65,40 @@
     },
     "ci_cd": "GitLab :8080, project_id=1, token в ~/.gitlab-token"
   },
-
   "git_workflow": {
     "main": "PROTECTED! Merge только через MR",
     "process": "feature branch → push → MR → merge → auto deploy"
   },
-
   "task_workflows": {
-    "story": {"naming": "[Фаза X: Название] Описание", "docs": "Spec.md + Execute.md"},
-    "task": {"naming": "Глагол + объект"},
-    "bugfix": {"naming": "[BugFix] Описание", "parent": "привязать к Story"}
+    "story": {
+      "naming": "[Фаза X: Название] Описание",
+      "docs": "Spec.md + Execute.md"
+    },
+    "task": {
+      "naming": "Глагол + объект"
+    },
+    "bugfix": {
+      "naming": "[BugFix] Описание",
+      "parent": "привязать к Story"
+    }
   },
-
   "critical_rules": [
     "K3s != Docker — после build нужен k3s ctr import",
     "Main protected — merge только через MR",
     "YouTrack — только Basic Auth",
     "Docker build — НЕ локально (OOM), через CI/CD"
   ],
-
   "tools": {
-    "youtrack": {"url": "http://192.168.1.74:8088", "auth": "-u 'admin:Misha2021@1@'", "project": "0-1"},
-    "gitlab": {"url": "http://192.168.1.74:8080", "project": 1}
+    "youtrack": {
+      "url": "http://192.168.1.74:8088",
+      "auth": "-u 'admin:Misha2021@1@'",
+      "project": "0-1"
+    },
+    "gitlab": {
+      "url": "http://192.168.1.74:8080",
+      "project": 1
+    }
   },
-
   "repositories": {
     "api": "/home/flomaster/warehouse-api",
     "frontend": "/home/flomaster/warehouse-frontend",

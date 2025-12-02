@@ -64,9 +64,9 @@ Warehouse - система управления складом, разделён
 │                      Spring Boot 3.2.0 + Java 17                            │
 │                              :30080                                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Controllers: AuthController, ProductController                       │   │
-│  │  Services: ProductService, AuditService, JwtService                  │   │
-│  │  Security: JWT (HS256), BCrypt, Rate Limiting                        │   │
+│  │  Controllers: AuthController, ProductController, FacilityController  │   │
+│  │  Services: ProductService, AuditService, JwtService, FacilityService │   │
+│  │  Security: JWT (HS256) + Facility claims, BCrypt, Rate Limiting     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 └───────┬───────────────────────┬───────────────────────┬─────────────────────┘
         │                       │                       │
@@ -91,15 +91,39 @@ Warehouse - система управления складом, разделён
 
 ## Роли пользователей
 
-| Роль | Описание | Основные права |
-|------|----------|----------------|
-| SUPER_USER | Суперпользователь | Полный доступ |
-| ADMIN | Администратор | Управление пользователями |
-| MANAGER | Менеджер | Просмотр товаров и отчётов |
-| EMPLOYEE | Сотрудник | CRUD товаров |
-| ANALYST | Аналитик | Аналитика и дашборды |
+| Роль | Описание | Основные права | Facility |
+|------|----------|----------------|----------|
+| SUPER_USER | Суперпользователь | Полный доступ | null (глобально) |
+| ADMIN | Администратор | Управление пользователями | опционально |
+| MANAGER | Менеджер | Просмотр товаров и отчётов | привязан к объекту |
+| EMPLOYEE | Сотрудник | CRUD товаров | привязан к объекту |
+| ANALYST | Аналитик | Аналитика и дашборды | опционально |
 
 > Детали по правам и endpoints: [TESTING.md](TESTING.md)
+
+---
+
+## Facilities Management (WH-269)
+
+Иерархия логистических объектов:
+
+```
+DC (Distribution Center)
+ └── WH (Warehouse)
+      └── PP (Pickup Point)
+```
+
+**Коды объектов:**
+- DC: `DC-001`, `DC-002`, ...
+- WH: `WH-MSK-001`, `WH-SPB-002`, ...
+- PP: `PP-MSK-001-01`, `PP-SPB-002-03`, ...
+
+**JWT Claims:**
+- `facilityType` - тип объекта (DC, WH, PP)
+- `facilityId` - ID объекта
+- `facilityCode` - код объекта
+
+> Backward compatibility: JWT без facility claims поддерживаются
 
 ---
 
