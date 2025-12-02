@@ -40,6 +40,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "facility_type")
+    private FacilityType facilityType;
+
+    @Column(name = "facility_id")
+    private Long facilityId;
+
     @Column(nullable = false)
     private boolean enabled = true;
 
