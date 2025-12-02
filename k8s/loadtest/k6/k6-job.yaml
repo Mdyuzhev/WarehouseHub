@@ -30,9 +30,13 @@ spec:
           env:
             # Prometheus Remote Write endpoint
             - name: K6_PROMETHEUS_RW_SERVER_URL
-              value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+              value: "http://prometheus-prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
             - name: K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM
               value: "true"
+            - name: K6_PROMETHEUS_RW_TREND_STATS
+              value: "p(95),p(99),avg,min,max"
+            - name: K6_PROMETHEUS_RW_PUSH_INTERVAL
+              value: "5s"
             # Kafka connection
             - name: KAFKA_BROKERS
               value: "kafka.warehouse.svc.cluster.local:9092"
