@@ -89,7 +89,7 @@ data:
     class EmployeeUser(WarehouseUser):
         weight = 7
         username = "employee"
-        password = "employee123"
+        password = "password123"
         role = "employee"
         abstract = False
 
@@ -123,7 +123,7 @@ data:
     class ManagerUser(WarehouseUser):
         weight = 3
         username = "manager"
-        password = "manager123"
+        password = "password123"
         role = "manager"
         abstract = False
 
@@ -133,19 +133,25 @@ data:
                 return
             self.client.get("/api/products", headers=self.auth_headers(), name="/api/products (GET)")
 
-    class LinearLoadShape(LoadTestShape):
-        target_users = 100
-        ramp_time = 600
-        hold_time = 300
-        spawn_rate = 10
+    class StepLoadShape(LoadTestShape):
+        """
+        Ступенчатый ramp-up: 0 -> 150 VU, шаг 30, каждые 5 минут
+        Итого: 5 шагов * 5 мин = 25 мин
+        """
+        step_users = 30       # Добавлять по 30 пользователей
+        step_time = 300       # Каждые 5 минут (300 сек)
+        max_users = 150       # Максимум 150 пользователей
+        spawn_rate = 10       # Скорость spawn
 
         def tick(self):
             run_time = self.get_run_time()
-            total_time = self.ramp_time + self.hold_time
-            if run_time > total_time:
-                return None
-            if run_time < self.ramp_time:
-                current_users = int((run_time / self.ramp_time) * self.target_users)
-                return (max(1, current_users), self.spawn_rate)
-            else:
-                return (self.target_users, self.spawn_rate)
+            current_step = int(run_time // self.step_time) + 1
+            target_users = min(current_step * self.step_users, self.max_users)
+
+            # Останавливаем тест после достижения max и удержания 5 мин
+            if target_users >= self.max_users:
+                time_at_max = run_time - (self.max_users // self.step_users - 1) * self.step_time
+                if time_at_max > self.step_time:
+                    return None  # Тест завершён
+
+            return (target_users, self.spawn_rate)

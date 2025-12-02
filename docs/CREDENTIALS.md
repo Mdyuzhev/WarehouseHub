@@ -77,7 +77,7 @@ kubectl exec -n warehouse deployment/redis -- redis-cli PING
 | URL | http://192.168.1.74:8080 |
 | User | root |
 | Password | Misha2021@1@ |
-| Token | `glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3` |
+| Token | `glpat-2vUJYwQIOuT-PxvU-tcg-W86MQp1OjEH.01.0w0ykqxat` |
 
 ### YouTrack
 

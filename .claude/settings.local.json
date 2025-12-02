@@ -27,16 +27,37 @@
       "frequency": "умеренно — в начале, в конце, при успехе/ошибке"
     },
     "response_format": {
-      "use_emoji": true,
+      "use_emoji": false,
       "use_tables": true,
       "code_comments": "на русском",
       "commit_messages": "на русском с номером задачи #WH-XXX"
     },
     "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация — наше всё! Если что-то сломалось — не паникуем, чиним с шутками."
   },
+  "critical_reminders": {
+    "protected_branches": "ВАЖНО: НЕ ПУШИТЬ НАПРЯМУЮ В MAIN после настройки protected branches! Создавай feature branches!",
+    "k3s_not_docker": "ВАЖНО: K3s использует containerd, НЕ Docker! Читай docs/DEPLOY_GUIDE.md",
+    "no_hardcode_secrets": "ВАЖНО: Все секреты в docs/CREDENTIALS.md — не хардкодь пароли!",
+    "youtrack_only_basic_auth": "ВАЖНО: YouTrack API: ТОЛЬКО Basic Auth, никаких Bearer токенов!",
+    "docs_readonly": "ВАЖНО: Папка docs/ — только для финальной документации! Временные отчёты → PerformanceTesting/temp_reports/"
+  },
+  "repositories": {
+    "warehouse_api": "/home/flomaster/warehouse-api",
+    "warehouse_frontend": "/home/flomaster/warehouse-frontend",
+    "warehouse_master": "/home/flomaster/warehouse-master",
+    "details": "docs/COMPONENTS.md"
+  },
+  "troubleshooting": {
+    "docs": "docs/TROUBLESHOOTING_GUIDE.md",
+    "quick_fixes": {
+      "gitlab_restart": "ssh flomaster@192.168.1.74 'docker restart gitlab'",
+      "youtrack_restart": "ssh flomaster@192.168.1.74 'docker restart youtrack'",
+      "pod_logs": "kubectl logs -n NAMESPACE -l app=APP_NAME --tail=100"
+    }
+  },
   "workflow": {
     "before_start": {
-      "description": "⚠️ ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ ПЕРЕД НАЧАЛОМ РАБОТЫ!",
+      "description": "ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ ПЕРЕД НАЧАЛОМ РАБОТЫ!",
       "required_docs": [
         {
           "path": "docs/CREDENTIALS.md",
@@ -61,15 +82,27 @@
         {
           "path": "docs/TROUBLESHOOTING_GUIDE.md",
           "description": "Типичные проблемы и их решения"
+        },
+        {
+          "path": "docs/LOAD_TESTING.md",
+          "description": "Нагрузочное тестирование: k6, Locust, очистка данных, метрики"
+        },
+        {
+          "path": "docs/TESTING.md",
+          "description": "Тестирование API/UI: учётки, endpoints, Locust, метрики"
+        },
+        {
+          "path": "docs/COMPONENTS.md",
+          "description": "Компоненты системы: сервисы, порты, технологии, деплой"
         }
       ],
       "confirmation": {
         "required": true,
-        "message": "✅ Документация изучена, готов к работе!",
+        "message": "Документация изучена, готов к работе!",
         "include_summary": {
           "description": "После изучения документов отправь краткую справку по сетапу",
           "template": [
-            "## 📋 Краткая справка по сетапу",
+            "## Краткая справка по сетапу",
             "",
             "**Сервер:** 192.168.1.74 (staging) | 130.193.44.34 (prod)",
             "",
@@ -85,9 +118,9 @@
             "**K8s namespaces:** warehouse, notifications, loadtest, monitoring",
             "",
             "**Критичные напоминания:**",
-            "- 🚨 K3s использует containerd, НЕ Docker!",
-            "- 🔐 YouTrack: ТОЛЬКО Basic Auth",
-            "- 📦 Деплой: 7 шагов обязательно (см. DEPLOY_GUIDE.md)",
+            "- K3s использует containerd, НЕ Docker!",
+            "- YouTrack: ТОЛЬКО Basic Auth",
+            "- Деплой: 7 шагов обязательно (см. DEPLOY_GUIDE.md)",
             "",
             "Готов к задаче!"
           ]
@@ -101,14 +134,18 @@
       "tracker_url": "http://192.168.1.74:8088",
       "project_id": "0-1",
       "project_short": "WH",
-      "auth_note": "ТОЛЬКО Basic Auth! Подробности в docs/YOUTRACK_API.md"
+      "auth_note": "ТОЛЬКО Basic Auth! Подробности в docs/YOUTRACK_API.md",
+      "auth_credentials": {
+        "user": "admin",
+        "password": "Misha2021@1@"
+      }
     },
     "session_start": {
       "description": "Выполнить при каждом старте работы",
       "steps": [
-        "cd ~/warehouse-master && git pull origin main",
-        "cat .claude/settings.local.json",
-        "git status"
+        "1. Перейти в нужный репозиторий",
+        "2. git pull origin main",
+        "3. git status"
       ]
     },
     "task_start": {
@@ -124,95 +161,84 @@
       "steps": [
         "git add .",
         "git commit -m '#WH-XXX Краткое описание на русском'",
-        "git push origin main (или feature branch)",
+        "git push origin <branch> (НЕ напрямую в main если protected!)",
         "Добавить комментарий в YouTrack с результатами",
         "Обновить документацию если нужно"
       ]
     },
-    "deploy_note": "⚠️ Полные инструкции деплоя в docs/DEPLOY_GUIDE.md. K3s использует containerd, НЕ Docker!"
+    "deploy_note": "Полные инструкции деплоя в docs/DEPLOY_GUIDE.md. K3s использует containerd, НЕ Docker!"
   },
   "environment": {
-    "description": "Мастер-репозиторий для оркестрации проекта Warehouse",
-    "server": {
-      "host": "192.168.1.74",
-      "host_vpn": "100.81.243.12",
-      "user": "flomaster"
-    },
-    "quick_links": {
-      "warehouse_api": "http://192.168.1.74:30080",
-      "warehouse_frontend": "http://192.168.1.74:30081",
-      "warehouse_robot": "http://192.168.1.74:30070",
-      "analytics_service": "http://192.168.1.74:30091",
-      "gitlab": "http://192.168.1.74:8080",
-      "youtrack": "http://192.168.1.74:8088",
-      "grafana": "http://192.168.1.74:30300",
-      "telegram_bot": "http://192.168.1.74:30088"
-    },
-    "k8s_namespaces": [
-      "warehouse",
-      "notifications",
-      "loadtest",
-      "monitoring"
-    ],
-    "credentials_note": "Все учётки и секреты в docs/CREDENTIALS.md"
+    "staging": "192.168.1.74",
+    "production": "130.193.44.34",
+    "user": "flomaster",
+    "links": "docs/INFRASTRUCTURE_GUIDE.md",
+    "credentials": "docs/CREDENTIALS.md"
   },
   "templates": {
-    "youtrack_get_issue": "curl -s -u 'admin:Misha2021@1@' 'http://192.168.1.74:8088/api/issues/WH-XXX'",
-    "youtrack_add_comment": "curl -s -u 'admin:Misha2021@1@' -X POST 'http://192.168.1.74:8088/api/issues/WH-XXX/comments' -H 'Content-Type: application/json' -d '{\"text\":\"COMMENT\"}'",
-    "youtrack_close_issue": "curl -s -u 'admin:Misha2021@1@' -X POST 'http://192.168.1.74:8088/api/issues/WH-XXX' -H 'Content-Type: application/json' -d '{\"customFields\":[{\"name\":\"State\",\"$type\":\"StateIssueCustomField\",\"value\":{\"name\":\"Fixed\"}}]}'",
-    "k8s_restart": "kubectl rollout restart deployment/NAME -n NAMESPACE",
-    "k8s_logs": "kubectl logs -n NAMESPACE deployment/NAME --tail=100",
-    "prod_deploy": "ssh -i ~/.ssh/yc_prod_key ubuntu@130.193.44.34 'cd /opt/warehouse && sudo docker compose pull && sudo docker compose up -d'",
-    "prod_health": "curl -s https://api.wh-lab.ru/actuator/health",
-    "staging_health": "curl -s http://192.168.1.74:30080/actuator/health"
+    "docs": {
+      "youtrack": "docs/YOUTRACK_API.md",
+      "deploy": "docs/DEPLOY_GUIDE.md"
+    },
+    "health": {
+      "staging": "curl -s http://192.168.1.74:30080/actuator/health",
+      "prod": "curl -s https://api.wh-lab.ru/actuator/health"
+    }
   },
   "audit": {
-    "description": "Краткая сводка по инфраструктуре (детали в docs/)",
-    "last_audit": "2025-12-01",
-    "last_user_story": "WH-170 Улучшения и стабилизация (15 задач Fixed)",
-    "components": {
-      "warehouse-api": "Java 17 + Spring Boot 3.2.0, 2 replicas, port 30080, JWT+Redis",
-      "warehouse-frontend": "Vue.js 3.4 + Vite 5, port 30081, runtime API URL",
-      "warehouse-robot": "Python 3.11 FastAPI (WH-120), port 30070, .env.example",
-      "analytics-service": "Python 3.11 FastAPI (WH-121), port 30091, .env.example",
-      "telegram-bot": "Python aiogram v5.4, port 30088, .env.example",
-      "databases": "PostgreSQL 15 (StatefulSet), Redis 7.4.7, Kafka KRaft"
-    },
-    "wh170_improvements": [
-      ".env.example для всех Python сервисов (WH-183)",
-      "Защита секретов в .gitignore (WH-184)",
-      "Унифицированный locustfile.py с 4 типами users (WH-185)",
-      "Конфигурируемые таймауты (WH-179, 180, 181)",
-      "Документация magic numbers (WH-182)"
-    ],
-    "env_files": {
-      "telegram-bot/.env.example": "BOT_*, GITLAB_*, ALLURE_*, YOUTRACK_*",
-      "warehouse-robot/.env.example": "ROBOT_API_*, ROBOT_*_USERNAME/PASSWORD",
-      "analytics-service/.env.example": "ANALYTICS_KAFKA_*, ANALYTICS_REDIS_*"
-    },
+    "docs": "docs/COMPONENTS.md",
+    "last_audit": "2025-12-02",
+    "last_user_story": "WH-200 CI/CD Dual Environment",
     "production": {
       "host": "130.193.44.34",
       "api_url": "https://api.wh-lab.ru",
-      "frontend_url": "https://wh-lab.ru",
-      "status": "UP (PostgreSQL, Redis 7.4.7)",
-      "containers": ["api", "frontend", "analytics", "kafka", "redis", "db", "nginx", "certbot"]
+      "frontend_url": "https://wh-lab.ru"
     }
   },
   "humor_phrases": {
     "task_start": [
-      "Ну что, погнали! 🚀",
-      "Окей, держи пиво, смотри как надо 🍺",
-      "Сейчас всё сделаем, не переживай 💪"
+      "Ну что, погнали!",
+      "Окей, держи пиво, смотри как надо",
+      "Сейчас всё сделаем, не переживай"
     ],
     "task_success": [
-      "Готово! Можешь нести печеньки 🍪",
-      "Сделано! Я же говорил, что справлюсь 😎",
-      "Всё работает! Пора на обед 🍕"
+      "Готово! Можешь нести печеньки",
+      "Сделано! Я же говорил, что справлюсь",
+      "Всё работает! Пора на обед"
     ],
     "task_error": [
-      "Упс, что-то пошло не так... Но мы разберёмся! 🔧",
-      "Хьюстон, у нас проблемы 🚀 Сейчас починим",
-      "Не паникуем! Это всего лишь баг, а не конец света 🌍"
+      "Упс, что-то пошло не так... Но мы разберёмся!",
+      "Хьюстон, у нас проблемы. Сейчас починим",
+      "Не паникуем! Это всего лишь баг, а не конец света"
     ]
+  },
+  "testing": {
+    "rule": "ВАЖНО: При вопросах про тестирование — читай docs/TESTING.md!",
+    "docs": {
+      "testing": "docs/TESTING.md",
+      "load_testing": "docs/LOAD_TESTING.md"
+    },
+    "test_users_note": "Все тестовые учётки с паролями в docs/TESTING.md. Пароль: password123",
+    "dashboards": {
+      "integration": "http://192.168.1.74:30300/d/integration-load-testing",
+      "k6_kafka": "http://192.168.1.74:30300/d/kafka-load-testing",
+      "locust_ui": "http://192.168.1.74:30089"
+    }
+  },
+  "instructions": {
+    "description": "Инструкции для выполнения типовых задач",
+    "path": ".claude/instructions/",
+    "available": {
+      "start": {
+        "file": ".claude/instructions/start.md",
+        "description": "Загрузка контекста проекта для начала работы",
+        "command": "Старт"
+      },
+      "docs-audit": {
+        "file": ".claude/instructions/docs-audit.md",
+        "description": "Полная ревизия документации после крупных изменений",
+        "command": "Запусти инструкцию docs-audit"
+      }
+    }
   }
 }

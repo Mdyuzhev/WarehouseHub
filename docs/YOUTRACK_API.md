@@ -58,7 +58,9 @@ curl -s -u 'admin:Misha2021@1@' -X POST \
 |-----|----------|
 | User Story | `143-15` |
 | Bug | `143-5` |
-| Task | `143-16` |
+| Task | `143-9` |
+| Epic | `143-12` |
+| Feature | `143-8` |
 
 ### State (Статус)
 

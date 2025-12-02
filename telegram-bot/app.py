@@ -1,5 +1,5 @@
 """
-Warehouse Telegram Bot v5.4
+Warehouse Telegram Bot v5.5
 Главная точка входа - теперь чистая и красивая! 🎯
 
 Архитектура:
@@ -83,7 +83,7 @@ def setup_logging():
                 "logger": record.name,
                 "message": record.getMessage(),
                 "service": "telegram-bot",
-                "version": "5.4.0"
+                "version": "5.5.0"
             }
             if record.exc_info:
                 log_obj["exception"] = self.formatException(record.exc_info)
@@ -574,7 +574,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "5.4.0",
+        "version": "5.5.0",
         "timestamp": datetime.now().isoformat()
     }
 
@@ -584,7 +584,7 @@ async def root():
     """Root endpoint."""
     return {
         "name": "Warehouse Telegram Bot",
-        "version": "5.4.0",
+        "version": "5.5.0",
         "description": "CI/CD notifications, PM dashboard, robot control and full orchestration 🚀"
     }
 

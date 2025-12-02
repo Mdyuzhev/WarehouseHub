@@ -13,7 +13,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -48,7 +48,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(kafka_messages_produced_total[1m]))",
+          "expr": "sum(rate(k6_kafka_messages_produced_total_total[1m]))",
           "legendFormat": "msg/sec"
         }
       ],
@@ -58,7 +58,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -93,7 +93,7 @@
       },
       "targets": [
         {
-          "expr": "kafka_produce_latency_ms{quantile=\"0.95\"}",
+          "expr": "histogram_quantile(0.95, k6_kafka_produce_latency_ms_seconds) * 1000",
           "legendFormat": "p95"
         }
       ],
@@ -103,7 +103,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -138,7 +138,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(kafka_produce_errors_total[1m]))",
+          "expr": "sum(rate(k6_kafka_writer_error_count_total[1m]))",
           "legendFormat": "errors/sec"
         }
       ],
@@ -148,7 +148,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -183,7 +183,7 @@
       },
       "targets": [
         {
-          "expr": "kafka_produce_success_rate * 100",
+          "expr": "k6_kafka_produce_success_rate_rate * 100",
           "legendFormat": "Success %"
         }
       ],
@@ -193,7 +193,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -256,15 +256,15 @@
       },
       "targets": [
         {
-          "expr": "kafka_produce_latency_ms{quantile=\"0.5\"}",
+          "expr": "histogram_quantile(0.50, k6_kafka_produce_latency_ms_seconds) * 1000",
           "legendFormat": "p50"
         },
         {
-          "expr": "kafka_produce_latency_ms{quantile=\"0.95\"}",
+          "expr": "histogram_quantile(0.95, k6_kafka_produce_latency_ms_seconds) * 1000",
           "legendFormat": "p95"
         },
         {
-          "expr": "kafka_produce_latency_ms{quantile=\"0.99\"}",
+          "expr": "histogram_quantile(0.99, k6_kafka_produce_latency_ms_seconds) * 1000",
           "legendFormat": "p99"
         }
       ],
@@ -274,7 +274,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -337,11 +337,11 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(kafka_messages_produced_total[1m]))",
+          "expr": "sum(rate(k6_kafka_messages_produced_total_total[1m]))",
           "legendFormat": "Produced msg/sec"
         },
         {
-          "expr": "sum(rate(kafka_produce_errors_total[1m]))",
+          "expr": "sum(rate(k6_kafka_writer_error_count_total[1m]))",
           "legendFormat": "Errors/sec"
         }
       ],
@@ -351,7 +351,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -394,7 +394,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -437,7 +437,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -451,7 +451,7 @@
               { "color": "green", "value": null }
             ]
           },
-          "unit": "ms"
+          "unit": "s"
         }
       },
       "gridPos": { "h": 4, "w": 8, "x": 16, "y": 12 },
@@ -470,12 +470,89 @@
       },
       "targets": [
         {
-          "expr": "k6_iteration_duration_avg",
-          "legendFormat": "Avg iteration"
+          "expr": "histogram_quantile(0.95, k6_iteration_duration_seconds)",
+          "legendFormat": "p95 iteration"
         }
       ],
-      "title": "Avg Iteration Duration",
+      "title": "Iteration Duration p95",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "k6_vus",
+          "legendFormat": "VUs"
+        },
+        {
+          "expr": "sum(rate(k6_iterations_total[1m]))",
+          "legendFormat": "Iterations/sec"
+        }
+      ],
+      "title": "VUs and Iterations Over Time",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
@@ -493,6 +570,6 @@
   "timezone": "",
   "title": "Kafka Load Testing",
   "uid": "kafka-load-testing",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
