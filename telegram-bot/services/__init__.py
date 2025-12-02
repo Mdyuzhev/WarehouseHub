@@ -9,6 +9,7 @@ from .locust import start_load_test, stop_load_test, get_load_test_stats, calcul
 from .allure import get_allure_report_stats, get_allure_report_details, get_allure_report_url
 from .youtrack import get_open_stories, get_issue_by_id, get_activity_report, parse_issue_id
 from .robot import robot_service, RobotService
+from .k6 import start_k6_test, stop_k6_test, get_k6_status, get_k6_logs
 
 __all__ = [
     # GitLab
@@ -36,4 +37,9 @@ __all__ = [
     # Robot
     "robot_service",
     "RobotService",
+    # k6 Kafka
+    "start_k6_test",
+    "stop_k6_test",
+    "get_k6_status",
+    "get_k6_logs",
 ]
