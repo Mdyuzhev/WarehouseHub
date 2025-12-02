@@ -1,245 +1,71 @@
 {
   "permissions": {
-    "allow": [
-      "Bash",
-      "Read",
-      "Write",
-      "Edit",
-      "Glob",
-      "Grep",
-      "WebFetch",
-      "WebSearch",
-      "Task",
-      "TodoWrite",
-      "NotebookEdit",
-      "mcp__*",
-      "mcp__ide__getDiagnostics"
-    ],
-    "deny": [],
-    "ask": []
+    "allow": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch", "Task", "TodoWrite", "NotebookEdit", "mcp__*"]
   },
+
   "preferences": {
-    "communication_style": "humorous_russian",
     "language": "russian",
+    "communication_style": "friendly_professional",
     "humor": {
       "enabled": true,
-      "style": "добрый сарказм, айтишные шутки, мемы про разработку",
-      "frequency": "умеренно — в начале, в конце, при успехе/ошибке"
+      "style": "добрый сарказм, айтишные шутки",
+      "when": "в начале задачи, при успехе, при ошибках"
     },
-    "response_format": {
-      "use_emoji": false,
-      "use_tables": true,
+    "formatting": {
+      "emoji": false,
+      "tables": true,
       "code_comments": "на русском",
-      "commit_messages": "на русском с номером задачи #WH-XXX"
+      "commits": "#WH-XXX описание на русском"
+    }
+  },
+
+  "quick_start": {
+    "description": "Читай документы ПО СИТУАЦИИ, не все подряд!",
+    "always_read": ["docs/PROJECT_STATUS.md"],
+    "by_task_type": {
+      "deploy": ["docs/DEPLOY_GUIDE.md", "docs/CREDENTIALS.md"],
+      "youtrack": ["docs/YOUTRACK_API.md"],
+      "testing": ["docs/TESTING.md", "docs/LOAD_TESTING.md"],
+      "architecture": ["docs/ARCHITECTURE.md", "docs/COMPONENTS.md"],
+      "troubleshooting": ["docs/TROUBLESHOOTING_GUIDE.md"]
+    }
+  },
+
+  "memory": {
+    "server": "192.168.1.74, 24GB RAM, НЕ собирать Docker локально - OOM",
+    "environments": {
+      "prod": "namespace warehouse, порты 30xxx, deploy manual",
+      "dev": "namespace warehouse-dev, порты 31xxx, deploy auto"
     },
-    "notes": "Общаемся с юмором, без лишних церемоний. Автоматизация — наше всё! Если что-то сломалось — не паникуем, чиним с шутками."
+    "ci_cd": "GitLab :8080, project_id=1, token в ~/.gitlab-token"
   },
-  "critical_reminders": {
-    "protected_branches": "ВАЖНО: НЕ ПУШИТЬ НАПРЯМУЮ В MAIN после настройки protected branches! Создавай feature branches!",
-    "k3s_not_docker": "ВАЖНО: K3s использует containerd, НЕ Docker! Читай docs/DEPLOY_GUIDE.md",
-    "no_hardcode_secrets": "ВАЖНО: Все секреты в docs/CREDENTIALS.md — не хардкодь пароли!",
-    "youtrack_only_basic_auth": "ВАЖНО: YouTrack API: ТОЛЬКО Basic Auth, никаких Bearer токенов!",
-    "docs_readonly": "ВАЖНО: Папка docs/ — только для финальной документации! Временные отчёты → PerformanceTesting/temp_reports/"
+
+  "git_workflow": {
+    "main": "PROTECTED! Merge только через MR",
+    "process": "feature branch → push → MR → merge → auto deploy"
   },
+
+  "task_workflows": {
+    "story": {"naming": "[Фаза X: Название] Описание", "docs": "Spec.md + Execute.md"},
+    "task": {"naming": "Глагол + объект"},
+    "bugfix": {"naming": "[BugFix] Описание", "parent": "привязать к Story"}
+  },
+
+  "critical_rules": [
+    "K3s != Docker — после build нужен k3s ctr import",
+    "Main protected — merge только через MR",
+    "YouTrack — только Basic Auth",
+    "Docker build — НЕ локально (OOM), через CI/CD"
+  ],
+
+  "tools": {
+    "youtrack": {"url": "http://192.168.1.74:8088", "auth": "-u 'admin:Misha2021@1@'", "project": "0-1"},
+    "gitlab": {"url": "http://192.168.1.74:8080", "project": 1}
+  },
+
   "repositories": {
-    "warehouse_api": "/home/flomaster/warehouse-api",
-    "warehouse_frontend": "/home/flomaster/warehouse-frontend",
-    "warehouse_master": "/home/flomaster/warehouse-master",
-    "details": "docs/COMPONENTS.md"
-  },
-  "troubleshooting": {
-    "docs": "docs/TROUBLESHOOTING_GUIDE.md",
-    "quick_fixes": {
-      "gitlab_restart": "ssh flomaster@192.168.1.74 'docker restart gitlab'",
-      "youtrack_restart": "ssh flomaster@192.168.1.74 'docker restart youtrack'",
-      "pod_logs": "kubectl logs -n NAMESPACE -l app=APP_NAME --tail=100"
-    }
-  },
-  "workflow": {
-    "before_start": {
-      "description": "ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ ПЕРЕД НАЧАЛОМ РАБОТЫ!",
-      "required_docs": [
-        {
-          "path": "docs/CREDENTIALS.md",
-          "description": "Все секреты, учётки, пароли, доступы к серверам и сервисам"
-        },
-        {
-          "path": "docs/DEPLOY_GUIDE.md",
-          "description": "Процедуры деплоя в K3s (КРИТИЧНО: K3s ≠ Docker!)"
-        },
-        {
-          "path": "docs/YOUTRACK_API.md",
-          "description": "YouTrack API референс, ID полей, workflow создания задач"
-        },
-        {
-          "path": "docs/ARCHITECTURE.md",
-          "description": "Архитектура системы, компоненты, связи"
-        },
-        {
-          "path": "docs/INFRASTRUCTURE_GUIDE.md",
-          "description": "K8s инфраструктура, namespaces, сервисы"
-        },
-        {
-          "path": "docs/TROUBLESHOOTING_GUIDE.md",
-          "description": "Типичные проблемы и их решения"
-        },
-        {
-          "path": "docs/LOAD_TESTING.md",
-          "description": "Нагрузочное тестирование: k6, Locust, очистка данных, метрики"
-        },
-        {
-          "path": "docs/TESTING.md",
-          "description": "Тестирование API/UI: учётки, endpoints, Locust, метрики"
-        },
-        {
-          "path": "docs/COMPONENTS.md",
-          "description": "Компоненты системы: сервисы, порты, технологии, деплой"
-        }
-      ],
-      "confirmation": {
-        "required": true,
-        "message": "Документация изучена, готов к работе!",
-        "include_summary": {
-          "description": "После изучения документов отправь краткую справку по сетапу",
-          "template": [
-            "## Краткая справка по сетапу",
-            "",
-            "**Сервер:** 192.168.1.74 (staging) | 130.193.44.34 (prod)",
-            "",
-            "**Основные сервисы:**",
-            "| Сервис | Порт | Статус |",
-            "|--------|------|--------|",
-            "| Warehouse API | 30080 | ? |",
-            "| Frontend | 30081 | ? |",
-            "| Robot | 30070 | ? |",
-            "| Analytics | 30091 | ? |",
-            "| Telegram Bot | 30088 | ? |",
-            "",
-            "**K8s namespaces:** warehouse, notifications, loadtest, monitoring",
-            "",
-            "**Критичные напоминания:**",
-            "- K3s использует containerd, НЕ Docker!",
-            "- YouTrack: ТОЛЬКО Basic Auth",
-            "- Деплой: 7 шагов обязательно (см. DEPLOY_GUIDE.md)",
-            "",
-            "Готов к задаче!"
-          ]
-        }
-      },
-      "rule": "Прочитай документы → Отправь справку → Начинай работу!"
-    },
-    "task_tracking": {
-      "enabled": true,
-      "tracker": "YouTrack",
-      "tracker_url": "http://192.168.1.74:8088",
-      "project_id": "0-1",
-      "project_short": "WH",
-      "auth_note": "ТОЛЬКО Basic Auth! Подробности в docs/YOUTRACK_API.md",
-      "auth_credentials": {
-        "user": "admin",
-        "password": "Misha2021@1@"
-      }
-    },
-    "session_start": {
-      "description": "Выполнить при каждом старте работы",
-      "steps": [
-        "1. Перейти в нужный репозиторий",
-        "2. git pull origin main",
-        "3. git status"
-      ]
-    },
-    "task_start": {
-      "description": "Выполнить перед началом задачи",
-      "steps": [
-        "Проверить что задача существует в YouTrack",
-        "Создать ветку если нужно: git checkout -b feature/WH-XXX",
-        "Прочитать описание задачи"
-      ]
-    },
-    "task_end": {
-      "description": "Выполнить после завершения задачи",
-      "steps": [
-        "git add .",
-        "git commit -m '#WH-XXX Краткое описание на русском'",
-        "git push origin <branch> (НЕ напрямую в main если protected!)",
-        "Добавить комментарий в YouTrack с результатами",
-        "Обновить документацию если нужно"
-      ]
-    },
-    "deploy_note": "Полные инструкции деплоя в docs/DEPLOY_GUIDE.md. K3s использует containerd, НЕ Docker!"
-  },
-  "environment": {
-    "staging": "192.168.1.74",
-    "production": "130.193.44.34",
-    "user": "flomaster",
-    "links": "docs/INFRASTRUCTURE_GUIDE.md",
-    "credentials": "docs/CREDENTIALS.md"
-  },
-  "templates": {
-    "docs": {
-      "youtrack": "docs/YOUTRACK_API.md",
-      "deploy": "docs/DEPLOY_GUIDE.md"
-    },
-    "health": {
-      "staging": "curl -s http://192.168.1.74:30080/actuator/health",
-      "prod": "curl -s https://api.wh-lab.ru/actuator/health"
-    }
-  },
-  "audit": {
-    "docs": "docs/COMPONENTS.md",
-    "last_audit": "2025-12-02",
-    "last_user_story": "WH-217 Unified QA Menu + k6 Kafka Production",
-    "telegram_bot_version": "v5.6",
-    "production": {
-      "host": "130.193.44.34",
-      "api_url": "https://api.wh-lab.ru",
-      "frontend_url": "https://wh-lab.ru"
-    }
-  },
-  "humor_phrases": {
-    "task_start": [
-      "Ну что, погнали!",
-      "Окей, держи пиво, смотри как надо",
-      "Сейчас всё сделаем, не переживай"
-    ],
-    "task_success": [
-      "Готово! Можешь нести печеньки",
-      "Сделано! Я же говорил, что справлюсь",
-      "Всё работает! Пора на обед"
-    ],
-    "task_error": [
-      "Упс, что-то пошло не так... Но мы разберёмся!",
-      "Хьюстон, у нас проблемы. Сейчас починим",
-      "Не паникуем! Это всего лишь баг, а не конец света"
-    ]
-  },
-  "testing": {
-    "rule": "ВАЖНО: При вопросах про тестирование — читай docs/TESTING.md!",
-    "docs": {
-      "testing": "docs/TESTING.md",
-      "load_testing": "docs/LOAD_TESTING.md"
-    },
-    "test_users_note": "Все тестовые учётки с паролями в docs/TESTING.md. Пароль: password123",
-    "dashboards": {
-      "integration": "http://192.168.1.74:30300/d/integration-load-testing",
-      "k6_kafka": "http://192.168.1.74:30300/d/kafka-load-testing",
-      "locust_ui": "http://192.168.1.74:30089"
-    }
-  },
-  "instructions": {
-    "description": "Инструкции для выполнения типовых задач",
-    "path": ".claude/instructions/",
-    "available": {
-      "start": {
-        "file": ".claude/instructions/start.md",
-        "description": "Загрузка контекста проекта для начала работы",
-        "command": "Старт"
-      },
-      "docs-audit": {
-        "file": ".claude/instructions/docs-audit.md",
-        "description": "Полная ревизия документации после крупных изменений",
-        "command": "Запусти инструкцию docs-audit"
-      }
-    }
+    "api": "/home/flomaster/warehouse-api",
+    "frontend": "/home/flomaster/warehouse-frontend",
+    "master": "/home/flomaster/warehouse-master"
   }
 }

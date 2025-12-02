@@ -1,98 +1,51 @@
 # Инструкция: Старт работы
 
-## Описание
-Загрузка полного контекста проекта Warehouse для начала работы.
+## Правило
+**Читай документы ПО СИТУАЦИИ, не все 10 подряд!**
 
-## Когда запускать
-- В начале каждой новой сессии
-- После длительного перерыва
-- Когда нужно освежить контекст
-
----
-
-## Команда для запуска
-
+## Команда запуска
 ```
 Старт
 ```
 
-или
+## Шаги
 
+### 1. Всегда читай (обязательно)
 ```
-Запусти инструкцию start
+docs/PROJECT_STATUS.md
 ```
+Это единственный обязательный документ.
 
----
+### 2. Добавь по типу задачи
 
-## Шаги выполнения
+| Тип задачи | Документы |
+|------------|-----------|
+| Деплой | DEPLOY_GUIDE.md, CREDENTIALS.md |
+| YouTrack | YOUTRACK_API.md |
+| Тестирование | TESTING.md, LOAD_TESTING.md |
+| Архитектура | ARCHITECTURE.md, COMPONENTS.md |
+| Проблемы | TROUBLESHOOTING_GUIDE.md |
 
-### 1. Прочитать основные документы
+**Если задача неизвестна** — читай только PROJECT_STATUS.md и спроси.
 
-Обязательно прочитать следующие файлы:
-
-| Документ | Описание |
-|----------|----------|
-| `.claude/settings.local.json` | Настройки проекта, workflow, критичные напоминания |
-| `docs/CREDENTIALS.md` | Все секреты, учётки, пароли |
-| `docs/ARCHITECTURE.md` | Высокоуровневая архитектура |
-| `docs/COMPONENTS.md` | Компоненты, порты, технологии |
-| `docs/INFRASTRUCTURE_GUIDE.md` | K8s namespaces, сервисы |
-| `docs/DEPLOY_GUIDE.md` | Процедуры деплоя |
-| `docs/TESTING.md` | Тестирование, учётки, endpoints |
-| `docs/YOUTRACK_API.md` | YouTrack API референс |
-| `docs/TROUBLESHOOTING_GUIDE.md` | Типичные проблемы и решения |
-
-### 2. Проверить статус окружений
-
+### 3. Проверь health
 ```bash
-# Staging health
-curl -s http://192.168.1.74:30080/actuator/health | jq -r '.status'
-
-# Production health
-curl -s https://api.wh-lab.ru/actuator/health | jq -r '.status'
-
-# Git status
-cd /home/flomaster/warehouse-master && git status
+curl -s http://192.168.1.74:30080/actuator/health | jq .status
 ```
 
-### 3. Вывести краткую справку
-
-После изучения документов вывести справку по формату:
-
-```markdown
-## Краткая справка по сетапу
-
-**Сервер:** 192.168.1.74 (staging) | 130.193.44.34 (prod)
-
-**Основные сервисы:**
-| Сервис | Порт | Статус |
-|--------|------|--------|
-| Warehouse API | 30080 | UP/DOWN |
-| Frontend | 30081 | UP/DOWN |
-| Robot | 30070 | UP/DOWN |
-| Analytics | 30091 | UP/DOWN |
-| Telegram Bot | 30088 | UP/DOWN |
-
-**K8s namespaces:** warehouse, warehouse-dev, notifications, loadtest, monitoring
-
-**Критичные напоминания:**
-- K3s использует containerd, НЕ Docker!
-- YouTrack: ТОЛЬКО Basic Auth
-- Деплой: 7 шагов обязательно (см. DEPLOY_GUIDE.md)
-- НЕ пушить напрямую в main!
-
-**Production:**
-- API: https://api.wh-lab.ru
-- Frontend: https://wh-lab.ru
-
-Готов к задаче!
+### 4. Кратко подтверди
+```
+Контекст загружен. API: UP. Ветка: XXX. Готов!
 ```
 
----
+## НЕ делать
+- Читать все 10 документов
+- Пересказывать документацию
+- Выводить длинные таблицы
 
-## Примечания
-
-- Документы читаются параллельно для ускорения
-- Health check может быть недоступен если сервер выключен
-- После справки можно сразу приступать к задаче
-
+## Критичные правила
+1. K3s != Docker — после build нужен k3s ctr import
+2. Main protected — merge через MR
+3. YouTrack — только Basic Auth
+4. Docker build — НЕ локально (OOM), через CI/CD
+5. Секреты в CREDENTIALS.md
