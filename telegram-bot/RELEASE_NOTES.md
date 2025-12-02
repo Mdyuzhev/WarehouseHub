@@ -1,5 +1,38 @@
 # Release Notes — Warehouse Telegram Bot
 
+## v5.5.0 (2025-12-02)
+
+### Новые возможности (WH-217)
+- **Load Testing Wizard** — 7-шаговый wizard для запуска нагрузочных тестов
+  - Выбор среды: staging / production
+  - Авторизация: раздельные пароли для сред
+  - Сценарии: Locust (HTTP API) / k6 (Kafka)
+  - Параметры: VU (10/25/50), время (2/5/10 мин), паттерн (constant/ramp-up)
+  - Cooldown 30 минут между тестами (защита от перегрузки)
+  - Статус текущего теста с результатами
+- **Cleanup Service** — очистка тестовых данных через бота
+  - Redis — FLUSHDB (кэш и сессии)
+  - Kafka — удаление consumer groups
+  - PostgreSQL — удаление тестовых данных (LoadTest%, k6%)
+- **Новые кнопки в клавиатуре**
+  - [Нагрузка] — запуск Load Testing Wizard
+  - [Очистка] — меню очистки данных
+
+### Изменения
+- Версия бота обновлена до 5.5.0
+- Обновлена справка /help с описанием новых функций
+- Обновлён /release с информацией о v5.5
+
+### Технические детали
+- Новый сервис: `services/cleanup.py` — Redis/Kafka/PostgreSQL cleanup
+- Новый handler: `handlers/cleanup.py` — меню очистки
+- Обновлён: `handlers/testing.py` — 7-шаговый wizard
+- Новые клавиатуры: 8 keyboard функций для wizard
+- Новые форматтеры: 4 функции в messages.py
+- Новые env: `LOAD_TEST_STAGING_PASSWORD`, `LOAD_TEST_PROD_PASSWORD`, `COOLDOWN_MINUTES`
+
+---
+
 ## v5.2.0 (2025-12-01)
 
 ### Новые возможности

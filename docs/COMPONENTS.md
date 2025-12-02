@@ -116,7 +116,7 @@
 
 ---
 
-### Telegram Bot (v5.4)
+### Telegram Bot (v5.5)
 
 | Параметр | Значение |
 |----------|----------|
@@ -124,7 +124,7 @@
 | Port | 30088 |
 | Replicas | 1 |
 | Namespace | notifications |
-| Image | gitlab-telegram-bot:v5.4 |
+| Image | gitlab-telegram-bot:v5.5 |
 | Расположение | `/telegram-bot/` |
 
 **Handlers:**
@@ -133,11 +133,17 @@
 |---------|----------|
 | commands | /start, /help, /status, /health, /metrics, /pods, /release |
 | deploy | Деплой staging/production |
-| testing | QA меню - E2E, UI тесты, Load testing |
+| testing | QA меню, Load Testing Wizard (7 шагов), Locust/k6 |
+| cleanup | Очистка Redis/Kafka/PostgreSQL |
 | claude | AI интеграция |
 | pm | PM Dashboard (YouTrack) |
 | robot | Robot control + schedule |
 | gitlab_webhook | GitLab webhooks |
+
+**WH-217 (v5.5):**
+- Load Testing Wizard — 7 шагов (среда → пароль → сценарий → VU → время → паттерн → confirm)
+- Cleanup Service — Redis FLUSHDB, Kafka consumer groups, PostgreSQL тестовые данные
+- Cooldown 30 минут между нагрузочными тестами
 
 ---
 
@@ -354,8 +360,8 @@ kubectl apply -k ~/warehouse-master/k8s/analytics/
 
 # Telegram Bot
 cd ~/warehouse-master/telegram-bot
-docker build --no-cache -t gitlab-telegram-bot:v5.4 .
-docker save gitlab-telegram-bot:v5.4 | sudo k3s ctr images import -
+docker build --no-cache -t gitlab-telegram-bot:v5.5 .
+docker save gitlab-telegram-bot:v5.5 | sudo k3s ctr images import -
 kubectl rollout restart deployment/gitlab-telegram-bot -n notifications
 ```
 

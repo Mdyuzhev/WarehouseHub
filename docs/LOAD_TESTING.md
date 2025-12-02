@@ -252,6 +252,39 @@ histogram_quantile(0.95, k6_kafka_produce_latency_ms_seconds)
 
 ---
 
+## Telegram Bot Load Testing Wizard (WH-217)
+
+Бот v5.5 поддерживает запуск нагрузочных тестов через 7-шаговый wizard:
+
+### Шаги wizard
+
+1. **Среда** — staging / production
+2. **Пароль** — простой (staging) / надёжный (production)
+3. **Сценарий** — Locust (HTTP API) / k6 (Kafka)
+4. **VU** — 10 / 25 / 50 виртуальных пользователей
+5. **Время** — 2 / 5 / 10 минут
+6. **Паттерн** — constant (ровная нагрузка) / ramp-up (постепенный рост)
+7. **Подтверждение** — review параметров + запуск
+
+### Cooldown
+
+- **30 минут** между запусками (защита от перегрузки)
+- Cooldown показывается в боте с обратным отсчётом
+
+### Пароли
+
+| Среда | Переменная | Описание |
+|-------|------------|----------|
+| staging | `LOAD_TEST_STAGING_PASSWORD` | Простой пароль (по умолчанию "1") |
+| production | `LOAD_TEST_PROD_PASSWORD` | Надёжный пароль (обязателен!) |
+
+### Кнопки в боте
+
+- **[Нагрузка]** — запуск wizard
+- **[Очистка]** — очистка Redis/Kafka/PostgreSQL
+
+---
+
 ## Baseline результаты
 
 ### 10 VU / 1 min (single pod)

@@ -188,7 +188,8 @@
   "audit": {
     "docs": "docs/COMPONENTS.md",
     "last_audit": "2025-12-02",
-    "last_user_story": "WH-200 CI/CD Dual Environment",
+    "last_user_story": "WH-217 Load Testing Workflow + Cleanup Service",
+    "telegram_bot_version": "v5.5",
     "production": {
       "host": "130.193.44.34",
       "api_url": "https://api.wh-lab.ru",
