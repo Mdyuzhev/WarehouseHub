@@ -1,6 +1,7 @@
 """
 Services module.
 Все интеграции живут здесь! 🔌
+WH-223: добавлен cleanup
 """
 
 from .gitlab import trigger_gitlab_job, get_job_status
@@ -10,6 +11,7 @@ from .allure import get_allure_report_stats, get_allure_report_details, get_allu
 from .youtrack import get_open_stories, get_issue_by_id, get_activity_report, parse_issue_id
 from .robot import robot_service, RobotService
 from .k6 import start_k6_test, stop_k6_test, get_k6_status, get_k6_logs
+from .cleanup import cleanup_redis, cleanup_kafka, cleanup_postgres, cleanup_all  # WH-223
 
 __all__ = [
     # GitLab
@@ -42,4 +44,9 @@ __all__ = [
     "stop_k6_test",
     "get_k6_status",
     "get_k6_logs",
+    # Cleanup (WH-223)
+    "cleanup_redis",
+    "cleanup_kafka",
+    "cleanup_postgres",
+    "cleanup_all",
 ]

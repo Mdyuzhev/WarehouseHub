@@ -1,26 +1,42 @@
 """
 Обработчики QA команд.
 E2E тесты, UI тесты и нагрузочное тестирование! 🔬
+WH-239-251: Новый wizard с 7 шагами, cooldown
 """
 
 import asyncio
+import logging
 from datetime import datetime
 from bot.telegram import send_message_with_reply_keyboard, send_message_with_inline_keyboard, send_message, send_chat_action
 from bot.keyboards import (
     get_reply_keyboard, get_qa_menu_keyboard, get_qa_type_keyboard, get_qa_action_keyboard,
-    get_load_test_keyboard, get_duration_keyboard, get_rampup_keyboard
+    get_load_test_keyboard, get_duration_keyboard, get_rampup_keyboard,
+    # WH-217: новые клавиатуры
+    get_load_env_keyboard, get_load_scenario_keyboard, get_load_users_keyboard,
+    get_load_duration_keyboard, get_load_pattern_keyboard, get_load_confirm_keyboard,
+    get_load_status_keyboard, get_load_idle_keyboard
 )
-from bot.messages import get_random_joke, format_load_test_stats, format_test_report
+from bot.messages import (
+    get_random_joke, format_load_test_stats, format_test_report,
+    # WH-217: новые сообщения
+    format_load_confirm_message, format_cooldown_message, format_load_status_message
+)
 from services import (
     trigger_gitlab_job, get_job_status,
     start_load_test, stop_load_test, get_load_test_stats, calculate_spawn_rate,
-    get_allure_report_details, get_allure_report_url
+    get_allure_report_details, get_allure_report_url,
+    # WH-217: k6
+    start_k6_test, stop_k6_test, get_k6_status
 )
 from config import (
     GITLAB_JOBS, STAGING_API_URL, PROD_API_URL, ALLURE_SERVER_URL,
     LOAD_TEST_PASSWORD, LOAD_TEST_GUEST_PASSWORD,
-    GUEST_MAX_USERS, GUEST_MAX_DURATION
+    GUEST_MAX_USERS, GUEST_MAX_DURATION,
+    # WH-217: новые константы
+    LOAD_TEST_STAGING_PASSWORD, LOAD_TEST_PROD_PASSWORD, COOLDOWN_MINUTES
 )
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Allure Project IDs
@@ -49,6 +65,29 @@ load_test_status = {
 
 # Ожидание пароля
 pending_load_auth = {}
+
+# =============================================================================
+# WH-217: State Management — cooldown tracking, last_test_result
+# =============================================================================
+
+# Время завершения последнего теста (для cooldown)
+last_test_finished_at = None
+
+# Информация о последнем тесте
+last_test_result = {
+    "environment": None,
+    "scenario": None,
+    "users": 0,
+    "duration": 0,
+    "finished_at": None,
+}
+
+# State для нового wizard (WH-239)
+# chat_id -> {step, environment, scenario, users, duration, pattern}
+load_wizard_state = {}
+
+# Ожидание пароля для нового wizard
+pending_load_wizard_auth = {}
 
 
 # =============================================================================
@@ -634,4 +673,512 @@ async def handle_load_status(chat_id: int):
 
 def is_pending_password(chat_id: int) -> bool:
     """Проверяет, ожидается ли пароль от пользователя."""
-    return chat_id in pending_load_auth
+    return chat_id in pending_load_auth or chat_id in pending_load_wizard_auth
+
+
+# =============================================================================
+# WH-217: Новый wizard нагрузочного тестирования (7 шагов)
+# =============================================================================
+
+def check_cooldown() -> float:
+    """
+    Проверяет cooldown.
+    Returns: оставшееся время в минутах (0 если cooldown не активен)
+    """
+    global last_test_finished_at
+
+    if not last_test_finished_at:
+        return 0
+
+    elapsed = (datetime.now() - last_test_finished_at).total_seconds() / 60
+    if elapsed < COOLDOWN_MINUTES:
+        return COOLDOWN_MINUTES - elapsed
+    return 0
+
+
+async def handle_load_wizard_menu(chat_id: int):
+    """
+    Шаг 1: Показывает меню выбора среды (wizard entry point).
+    Проверяет cooldown перед показом.
+    """
+    # Проверяем cooldown
+    remaining = check_cooldown()
+    if remaining > 0:
+        msg = format_cooldown_message(remaining, last_test_result)
+        await send_message_with_reply_keyboard(msg, get_reply_keyboard(), chat_id=chat_id)
+        return
+
+    # Проверяем, не запущен ли уже тест
+    if load_test_status["running"]:
+        status = {
+            "running": True,
+            "environment": load_test_status.get("target"),
+            "scenario": "locust",  # legacy
+            "users": load_test_status.get("users", 0),
+            "duration": load_test_status.get("duration", 0),
+            "elapsed": 0,
+        }
+        if load_test_status.get("started_at"):
+            status["elapsed"] = int((datetime.now() - load_test_status["started_at"]).total_seconds())
+
+        msg = format_load_status_message(status)
+        await send_message_with_inline_keyboard(msg, get_load_status_keyboard(), chat_id=chat_id)
+        return
+
+    msg = """<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 1/7:</b> Выбери среду
+
+🧪 <b>STAGING</b> — тестовый K3s кластер
+🚀 <b>PRODUCTION</b> — боевой сервер (Yandex Cloud)
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_load_env_keyboard(), chat_id=chat_id)
+
+
+async def handle_load_wizard_env(chat_id: int, environment: str):
+    """
+    После выбора среды — сразу запрос пароля (Шаг 2).
+    """
+    global load_wizard_state, pending_load_wizard_auth
+
+    # Сохраняем состояние
+    load_wizard_state[chat_id] = {
+        "step": 2,
+        "environment": environment,
+    }
+    pending_load_wizard_auth[chat_id] = {"environment": environment}
+
+    env_names = {"staging": "🧪 STAGING", "prod": "🚀 PRODUCTION"}
+    env_name = env_names.get(environment, environment)
+
+    warning = ""
+    if environment == "prod":
+        warning = "\n\n⚠️ <b>ВНИМАНИЕ!</b> Это боевой сервер!"
+
+    msg = f"""<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 2/7:</b> Авторизация
+
+📍 Среда: {env_name}{warning}
+
+<b>Введи пароль для продолжения:</b>
+    """
+    await send_message(msg.strip(), chat_id=chat_id)
+
+
+async def handle_load_wizard_password(chat_id: int, password: str) -> bool:
+    """Обрабатывает ввод пароля в wizard."""
+    global pending_load_wizard_auth, load_wizard_state
+
+    if chat_id not in pending_load_wizard_auth:
+        return False
+
+    auth_data = pending_load_wizard_auth[chat_id]
+    environment = auth_data["environment"]
+
+    # Проверяем пароль
+    expected_password = LOAD_TEST_STAGING_PASSWORD if environment == "staging" else LOAD_TEST_PROD_PASSWORD
+
+    # Также принимаем старый пароль для совместимости
+    if password == expected_password or password == LOAD_TEST_PASSWORD:
+        del pending_load_wizard_auth[chat_id]
+        await send_message("✅ <b>Пароль принят!</b>", chat_id=chat_id)
+        await handle_load_wizard_scenario(chat_id, environment)
+        return True
+    else:
+        del pending_load_wizard_auth[chat_id]
+        if chat_id in load_wizard_state:
+            del load_wizard_state[chat_id]
+        await send_message_with_reply_keyboard(
+            "❌ <b>Неверный пароль!</b>\n\n<i>Доступ запрещён.</i>",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+        return True
+
+
+async def handle_load_wizard_scenario(chat_id: int, environment: str):
+    """
+    Шаг 3: Выбор сценария (Locust vs k6).
+    """
+    global load_wizard_state
+
+    load_wizard_state[chat_id] = {
+        "step": 3,
+        "environment": environment,
+    }
+
+    msg = f"""<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 3/7:</b> Выбери сценарий
+
+🦗 <b>Locust (HTTP)</b> — нагрузка на REST API
+⚡ <b>k6 (Kafka)</b> — нагрузка на очереди сообщений
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_load_scenario_keyboard(environment), chat_id=chat_id)
+
+
+async def handle_load_wizard_users(chat_id: int, environment: str, scenario: str):
+    """
+    Шаг 4: Выбор количества VU.
+    """
+    global load_wizard_state
+
+    load_wizard_state[chat_id] = {
+        "step": 4,
+        "environment": environment,
+        "scenario": scenario,
+    }
+
+    scenario_names = {"locust": "🦗 Locust", "k6": "⚡ k6"}
+    scenario_name = scenario_names.get(scenario, scenario)
+
+    msg = f"""<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 4/7:</b> Количество пользователей
+
+🎯 Сценарий: {scenario_name}
+
+Выбери количество виртуальных пользователей:
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_load_users_keyboard(environment, scenario), chat_id=chat_id)
+
+
+async def handle_load_wizard_duration(chat_id: int, environment: str, scenario: str, users: int):
+    """
+    Шаг 5: Выбор длительности.
+    """
+    global load_wizard_state
+
+    load_wizard_state[chat_id] = {
+        "step": 5,
+        "environment": environment,
+        "scenario": scenario,
+        "users": users,
+    }
+
+    msg = f"""<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 5/7:</b> Длительность
+
+👥 Пользователей: {users} VU
+
+Выбери длительность теста:
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_load_duration_keyboard(environment, scenario, users), chat_id=chat_id)
+
+
+async def handle_load_wizard_pattern(chat_id: int, environment: str, scenario: str, users: int, duration: int):
+    """
+    Шаг 6: Выбор паттерна нарастания.
+    """
+    global load_wizard_state
+
+    load_wizard_state[chat_id] = {
+        "step": 6,
+        "environment": environment,
+        "scenario": scenario,
+        "users": users,
+        "duration": duration,
+    }
+
+    duration_min = duration // 60
+
+    msg = f"""<b>🔥 Нагрузочное тестирование</b>
+
+<b>Шаг 6/7:</b> Паттерн нагрузки
+
+👥 {users} VU × {duration_min} мин
+
+📈 <b>Плавный</b> — постепенное наращивание
+⚡ <b>Быстрый</b> — быстрый набор нагрузки
+🚀 <b>Мгновенный</b> — все сразу (стресс!)
+📊 <b>Ступенчатый</b> — по 25% каждые 25% времени
+    """
+    await send_message_with_inline_keyboard(msg.strip(), get_load_pattern_keyboard(environment, scenario, users, duration), chat_id=chat_id)
+
+
+async def handle_load_wizard_confirm(chat_id: int, environment: str, scenario: str, users: int, duration: int, pattern: str):
+    """
+    Шаг 7: Подтверждение запуска.
+    """
+    global load_wizard_state
+
+    load_wizard_state[chat_id] = {
+        "step": 7,
+        "environment": environment,
+        "scenario": scenario,
+        "users": users,
+        "duration": duration,
+        "pattern": pattern,
+    }
+
+    msg = format_load_confirm_message(environment, scenario, users, duration, pattern)
+    await send_message_with_inline_keyboard(msg, get_load_confirm_keyboard(environment, scenario, users, duration, pattern), chat_id=chat_id)
+
+
+async def handle_load_wizard_start(chat_id: int, environment: str, scenario: str, users: int, duration: int, pattern: str):
+    """
+    Запуск теста после подтверждения.
+    """
+    global load_wizard_state, load_test_status
+
+    # Очищаем state wizard
+    if chat_id in load_wizard_state:
+        del load_wizard_state[chat_id]
+
+    # Выбираем тип теста
+    if scenario == "k6":
+        await start_k6_load_test(chat_id, environment, users, duration, pattern)
+    else:  # locust
+        await start_locust_load_test(chat_id, environment, users, duration, pattern)
+
+
+async def start_k6_load_test(chat_id: int, environment: str, users: int, duration: int, pattern: str):
+    """Запускает k6 тест."""
+    global load_test_status
+
+    joke = get_random_joke("load_test_start")
+    duration_str = f"{duration // 60}m"
+
+    await send_message(
+        f"{joke}\n\n<b>⚡ Запускаю k6 Kafka тест...</b>",
+        chat_id=chat_id
+    )
+
+    result = await start_k6_test(
+        scenario="producer",
+        vus=users,
+        duration=duration_str,
+        environment=environment
+    )
+
+    if result.get("success"):
+        env_names = {"staging": "🧪 STAGING", "prod": "🚀 PRODUCTION"}
+
+        load_test_status = {
+            "running": True,
+            "started_at": datetime.now(),
+            "target": environment,
+            "users": users,
+            "duration": duration,
+            "chat_id": chat_id,
+            "stats_task": None,
+            "scenario": "k6",
+            "job_name": result.get("job_name"),
+        }
+
+        await send_message_with_reply_keyboard(
+            f"<b>⚡ k6 тест запущен!</b>\n\n"
+            f"📍 Среда: {env_names.get(environment)}\n"
+            f"👥 Пользователей: {users} VU\n"
+            f"⏱ Длительность: {duration // 60} мин\n"
+            f"📊 Job: <code>{result.get('job_name')}</code>\n\n"
+            f"<i>Статус можно проверить кнопкой 🔥 Нагрузка</i>",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+
+        # Мониторинг k6
+        load_test_status["stats_task"] = asyncio.create_task(
+            monitor_k6_test(chat_id, result.get("job_name"), environment, users, duration)
+        )
+    else:
+        await send_message_with_reply_keyboard(
+            f"❌ <b>Не удалось запустить k6 тест</b>\n\n<b>Ошибка:</b> {result.get('error', 'Unknown')}",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+
+
+async def start_locust_load_test(chat_id: int, environment: str, users: int, duration: int, pattern: str):
+    """Запускает Locust тест (существующая логика)."""
+    target_url = STAGING_API_URL if environment == "staging" else PROD_API_URL
+    spawn_rate = calculate_spawn_rate(users, pattern)
+
+    joke = get_random_joke("load_test_start")
+
+    await send_message(
+        f"{joke}\n\n<b>🦗 Запускаю Locust HTTP тест...</b>",
+        chat_id=chat_id
+    )
+
+    result = await start_load_test(target_url, users, spawn_rate)
+
+    if result.get("success"):
+        load_test_status.update({
+            "running": True,
+            "started_at": datetime.now(),
+            "target": environment,
+            "users": users,
+            "duration": duration,
+            "chat_id": chat_id,
+            "scenario": "locust",
+        })
+
+        env_names = {"staging": "🧪 STAGING", "prod": "🚀 PRODUCTION"}
+
+        await send_message_with_reply_keyboard(
+            f"<b>🦗 Locust тест запущен!</b>\n\n"
+            f"📍 Среда: {env_names.get(environment)}\n"
+            f"👥 Пользователей: {users} VU\n"
+            f"⏱ Длительность: {duration // 60} мин\n\n"
+            f"<i>Буду присылать статистику каждые 3 минуты...</i>",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+
+        load_test_status["stats_task"] = asyncio.create_task(
+            monitor_load_test(chat_id, environment, users, duration)
+        )
+    else:
+        await send_message_with_reply_keyboard(
+            f"❌ <b>Не удалось запустить Locust тест</b>\n\n<b>Ошибка:</b> {result.get('error', 'Unknown')}",
+            get_reply_keyboard(),
+            chat_id=chat_id
+        )
+
+
+async def monitor_k6_test(chat_id: int, job_name: str, environment: str, users: int, duration: int):
+    """Мониторит k6 тест."""
+    global load_test_status, last_test_finished_at, last_test_result
+
+    check_interval = 30  # проверяем каждые 30 секунд
+    elapsed = 0
+    max_wait = duration + 120  # +2 минуты на завершение
+
+    while elapsed < max_wait and load_test_status.get("running"):
+        await asyncio.sleep(check_interval)
+        elapsed += check_interval
+
+        if not load_test_status.get("running"):
+            break
+
+        status = await get_k6_status(job_name=job_name)
+        if status.get("success") and status.get("jobs"):
+            job = status["jobs"][0]
+            job_status = job.get("status")
+
+            if job_status == "completed":
+                # Тест завершён успешно
+                joke = get_random_joke("load_test_stop")
+                await send_message_with_reply_keyboard(
+                    f"{joke}\n\n<b>✅ k6 тест завершён!</b>\n\n"
+                    f"📍 Среда: {environment}\n"
+                    f"👥 Пользователей: {users} VU\n"
+                    f"⏱ Время: {elapsed // 60}м {elapsed % 60}с\n\n"
+                    f"📊 Смотри метрики в Grafana",
+                    get_reply_keyboard(),
+                    chat_id=chat_id
+                )
+                break
+
+            elif job_status == "failed":
+                await send_message_with_reply_keyboard(
+                    f"❌ <b>k6 тест упал!</b>\n\n"
+                    f"Проверь логи: <code>kubectl logs -n loadtest job/{job_name}</code>",
+                    get_reply_keyboard(),
+                    chat_id=chat_id
+                )
+                break
+
+    # Финализация
+    last_test_finished_at = datetime.now()
+    last_test_result = {
+        "environment": environment,
+        "scenario": "k6",
+        "users": users,
+        "duration": duration,
+        "finished_at": datetime.now().strftime("%H:%M:%S"),
+    }
+
+    load_test_status.update({
+        "running": False,
+        "started_at": None,
+        "stats_task": None,
+    })
+
+
+async def handle_load_wizard_stop(chat_id: int):
+    """Останавливает текущий тест (wizard version)."""
+    global load_test_status, last_test_finished_at, last_test_result
+
+    if not load_test_status.get("running"):
+        await send_message_with_inline_keyboard(
+            format_load_status_message({"running": False}),
+            get_load_idle_keyboard(),
+            chat_id=chat_id
+        )
+        return
+
+    scenario = load_test_status.get("scenario", "locust")
+
+    if scenario == "k6":
+        job_name = load_test_status.get("job_name")
+        result = await stop_k6_test(job_name)
+    else:
+        result = await stop_load_test()
+
+    # Обновляем cooldown
+    last_test_finished_at = datetime.now()
+    last_test_result = {
+        "environment": load_test_status.get("target"),
+        "scenario": scenario,
+        "users": load_test_status.get("users", 0),
+        "duration": load_test_status.get("duration", 0),
+        "finished_at": datetime.now().strftime("%H:%M:%S"),
+    }
+
+    # Отменяем мониторинг
+    if load_test_status.get("stats_task"):
+        load_test_status["stats_task"].cancel()
+
+    load_test_status.update({
+        "running": False,
+        "started_at": None,
+        "stats_task": None,
+    })
+
+    joke = get_random_joke("load_test_stop")
+    await send_message_with_reply_keyboard(
+        f"{joke}\n\n<b>🛑 Тест остановлен!</b>",
+        get_reply_keyboard(),
+        chat_id=chat_id
+    )
+
+
+async def handle_load_wizard_status(chat_id: int):
+    """Показывает статус теста (wizard version)."""
+    if not load_test_status.get("running"):
+        await send_message_with_inline_keyboard(
+            format_load_status_message({"running": False}),
+            get_load_idle_keyboard(),
+            chat_id=chat_id
+        )
+        return
+
+    elapsed = 0
+    if load_test_status.get("started_at"):
+        elapsed = int((datetime.now() - load_test_status["started_at"]).total_seconds())
+
+    status = {
+        "running": True,
+        "environment": load_test_status.get("target"),
+        "scenario": load_test_status.get("scenario", "locust"),
+        "users": load_test_status.get("users", 0),
+        "duration": load_test_status.get("duration", 0),
+        "elapsed": elapsed,
+    }
+
+    # Получаем статистику если это Locust
+    if status["scenario"] == "locust":
+        stats_result = await get_load_test_stats()
+        if stats_result.get("success"):
+            status["stats"] = {
+                "rps": stats_result.get("current_rps", 0),
+                "errors": stats_result.get("total_failures", 0),
+                "avg_response": stats_result.get("avg_response_time", 0),
+            }
+
+    msg = format_load_status_message(status)
+    await send_message_with_inline_keyboard(msg, get_load_status_keyboard(), chat_id=chat_id)

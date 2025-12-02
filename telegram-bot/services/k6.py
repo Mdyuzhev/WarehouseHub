@@ -1,14 +1,15 @@
 """
 k6 Kafka нагрузочное тестирование.
 Гоняем Kafka до посинения! 🔥
-WH-215
+WH-215, WH-222
 """
 
 import logging
-import subprocess
 import asyncio
 import json
 from typing import Dict, Any, Optional
+
+from config import KAFKA_STAGING_BROKERS, KAFKA_PROD_BROKERS
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,18 @@ NAMESPACE = "loadtest"
 CONFIGMAP_NAME = "k6-scripts"
 JOB_BASE_NAME = "k6-kafka-test"
 
+# WH-222: Разные Kafka brokers для сред
+KAFKA_BROKERS = {
+    "staging": KAFKA_STAGING_BROKERS or "kafka.warehouse.svc.cluster.local:9092",
+    "prod": KAFKA_PROD_BROKERS or "kafka-prod.warehouse.svc.cluster.local:9092",
+}
+
 
 async def start_k6_test(
     scenario: str = "producer",
     vus: int = 10,
-    duration: str = "2m"
+    duration: str = "2m",
+    environment: str = "staging"  # WH-222: NEW
 ) -> Dict[str, Any]:
     """
     Запускает k6 Kafka тест через kubectl.
@@ -30,13 +38,17 @@ async def start_k6_test(
         scenario: "producer" или "consumer"
         vus: количество виртуальных пользователей
         duration: длительность теста (например "2m", "30m")
+        environment: "staging" или "prod" (WH-222)
 
     Returns:
         dict с полями: success, job_name, error
     """
     try:
         script = "producer-test.js" if scenario == "producer" else "consumer-test.js"
-        job_name = f"{JOB_BASE_NAME}-{scenario}"
+        job_name = f"{JOB_BASE_NAME}-{scenario}-{environment}"  # WH-222: environment в имени
+
+        # WH-222: Получаем brokers для среды
+        kafka_brokers = KAFKA_BROKERS.get(environment, KAFKA_BROKERS["staging"])
 
         # Удалить предыдущий job если есть
         delete_cmd = f"kubectl delete job {job_name} -n {NAMESPACE} --ignore-not-found"
@@ -47,7 +59,7 @@ async def start_k6_test(
         )
         await asyncio.sleep(2)
 
-        # Создать Job YAML
+        # Создать Job YAML (WH-222: добавлены environment лейблы и env vars)
         job_yaml = f"""apiVersion: batch/v1
 kind: Job
 metadata:
@@ -57,6 +69,7 @@ metadata:
     app: k6
     test-type: kafka
     scenario: {scenario}
+    environment: {environment}
 spec:
   backoffLimit: 0
   ttlSecondsAfterFinished: 3600
@@ -65,6 +78,7 @@ spec:
       labels:
         app: k6
         scenario: {scenario}
+        environment: {environment}
     spec:
       serviceAccountName: k6-runner
       restartPolicy: Never
@@ -83,11 +97,13 @@ spec:
             - name: K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM
               value: "true"
             - name: KAFKA_BROKERS
-              value: "kafka.warehouse.svc.cluster.local:9092"
+              value: "{kafka_brokers}"
             - name: K6_VUS
               value: "{vus}"
             - name: K6_DURATION
               value: "{duration}"
+            - name: K6_ENVIRONMENT
+              value: "{environment}"
           volumeMounts:
             - name: scripts
               mountPath: /scripts
@@ -112,13 +128,14 @@ spec:
         stdout, stderr = await process.communicate()
 
         if process.returncode == 0:
-            logger.info(f"K6 test started: {job_name}, VUs: {vus}, Duration: {duration}")
+            logger.info(f"K6 test started: {job_name}, VUs: {vus}, Duration: {duration}, Env: {environment}")
             return {
                 "success": True,
                 "job_name": job_name,
                 "vus": vus,
                 "duration": duration,
-                "scenario": scenario
+                "scenario": scenario,
+                "environment": environment  # WH-222
             }
         else:
             error = stderr.decode().strip()[:200]
@@ -152,11 +169,20 @@ async def stop_k6_test(job_name: Optional[str] = None) -> Dict[str, Any]:
         return {"success": False, "error": str(e)[:100]}
 
 
-async def get_k6_status(job_name: Optional[str] = None) -> Dict[str, Any]:
-    """Получает статус k6 теста."""
+async def get_k6_status(job_name: Optional[str] = None, environment: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Получает статус k6 теста.
+
+    Args:
+        job_name: конкретный job (опционально)
+        environment: фильтр по среде 'staging' или 'prod' (WH-222)
+    """
     try:
         if job_name:
             cmd = f"kubectl get job {job_name} -n {NAMESPACE} -o json"
+        elif environment:
+            # WH-222: фильтрация по environment
+            cmd = f"kubectl get jobs -n {NAMESPACE} -l app=k6,environment={environment} -o json"
         else:
             cmd = f"kubectl get jobs -n {NAMESPACE} -l app=k6 -o json"
 

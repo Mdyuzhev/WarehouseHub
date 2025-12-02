@@ -728,6 +728,192 @@ def format_robot_error(error: str) -> str:
     return f"❌ *Ошибка:* {error}\n\n{joke}"
 
 
+# =============================================================================
+# WH-217: Сообщения нагрузочного тестирования
+# =============================================================================
+
+def format_load_confirm_message(
+    environment: str,
+    scenario: str,
+    users: int,
+    duration: int,
+    pattern: str
+) -> str:
+    """
+    Форматирует сводку параметров перед запуском НТ.
+    Показывается на шаге 7 wizard.
+    WH-235
+    """
+    env_names = {
+        "staging": "🧪 STAGING (K3s)",
+        "prod": "🚀 PRODUCTION (Yandex Cloud)"
+    }
+    scenario_names = {
+        "locust": "🦗 Locust (HTTP API)",
+        "k6": "⚡ k6 (Kafka)"
+    }
+    pattern_names = {
+        "smooth": "📈 Плавный",
+        "fast": "⚡ Быстрый",
+        "instant": "🚀 Мгновенный",
+        "step": "📊 Ступенчатый"
+    }
+
+    duration_min = duration // 60
+
+    warning = ""
+    if environment == "prod":
+        warning = "\n\n⚠️ <b>ВНИМАНИЕ!</b> Это боевой сервер!"
+
+    return f"""<b>📋 Подтверждение запуска НТ</b>
+
+<b>Параметры:</b>
+🌍 Среда: {env_names.get(environment, environment)}
+🎯 Сценарий: {scenario_names.get(scenario, scenario)}
+👥 Пользователей: <b>{users} VU</b>
+⏱ Длительность: <b>{duration_min} мин</b>
+📊 Паттерн: {pattern_names.get(pattern, pattern)}{warning}
+
+<i>Нажми "Запустить" для начала теста</i>"""
+
+
+def format_cooldown_message(remaining_minutes: float, last_test_info: dict = None) -> str:
+    """
+    Форматирует сообщение о необходимости подождать между тестами.
+    WH-236
+
+    Args:
+        remaining_minutes: сколько минут осталось ждать
+        last_test_info: информация о последнем тесте (опционально)
+    """
+    msg = f"""<b>⏳ Cooldown активен</b>
+
+Подожди ещё <b>{remaining_minutes:.0f} мин</b> перед следующим тестом.
+
+<i>Это защита от перегрузки систем.</i>"""
+
+    if last_test_info:
+        env = last_test_info.get('environment', '?')
+        scenario = last_test_info.get('scenario', '?')
+        finished = last_test_info.get('finished_at', '?')
+        msg += f"""\n\n<b>Последний тест:</b>
+🌍 Среда: {env}
+🎯 Сценарий: {scenario}
+⏱ Завершён: {finished}"""
+
+    return msg
+
+
+def format_cleanup_result(result: dict) -> str:
+    """
+    Форматирует результат очистки данных.
+    WH-237
+
+    Args:
+        result: словарь с результатами очистки
+            - redis: {success: bool, keys_deleted: int, error: str}
+            - kafka: {success: bool, topics_cleared: list, error: str}
+            - postgres: {success: bool, rows_deleted: int, error: str}
+    """
+    msg = "<b>🧹 Результат очистки</b>\n\n"
+
+    # Redis
+    if 'redis' in result:
+        r = result['redis']
+        if r.get('success'):
+            msg += f"✅ <b>Redis:</b> удалено {r.get('keys_deleted', 0)} ключей\n"
+        else:
+            msg += f"❌ <b>Redis:</b> {r.get('error', 'ошибка')}\n"
+
+    # Kafka
+    if 'kafka' in result:
+        k = result['kafka']
+        if k.get('success'):
+            topics = ', '.join(k.get('topics_cleared', [])) or "нет групп"
+            msg += f"✅ <b>Kafka:</b> очищено: {topics}\n"
+        else:
+            msg += f"❌ <b>Kafka:</b> {k.get('error', 'ошибка')}\n"
+
+    # PostgreSQL
+    if 'postgres' in result:
+        p = result['postgres']
+        if p.get('success'):
+            msg += f"✅ <b>PostgreSQL:</b> удалено {p.get('rows_deleted', 0)} строк\n"
+        else:
+            msg += f"❌ <b>PostgreSQL:</b> {p.get('error', 'ошибка')}\n"
+
+    # Итог
+    all_success = all(
+        v.get('success', False)
+        for v in result.values()
+        if isinstance(v, dict)
+    )
+
+    if all_success:
+        msg += "\n✨ <b>Всё очищено успешно!</b>"
+    else:
+        msg += "\n⚠️ <b>Есть ошибки, проверь логи</b>"
+
+    return msg
+
+
+def format_load_status_message(status: dict) -> str:
+    """
+    Форматирует сообщение о статусе нагрузочного тестирования.
+    WH-238
+
+    Args:
+        status: словарь со статусом
+            - running: bool
+            - environment: str
+            - scenario: str
+            - users: int
+            - duration: int
+            - elapsed: int
+            - stats: dict (rps, errors, avg_response)
+    """
+    if not status.get('running'):
+        return """<b>📊 Статус нагрузочного теста</b>
+
+😴 <b>Нет активного теста</b>
+
+<i>Нажми "Запустить тест" чтобы начать</i>"""
+
+    env_names = {"staging": "🧪 STAGING", "prod": "🚀 PRODUCTION"}
+    scenario_names = {"locust": "🦗 Locust", "k6": "⚡ k6"}
+
+    elapsed = status.get('elapsed', 0)
+    duration = status.get('duration', 0)
+    progress = min(100, (elapsed / duration * 100)) if duration > 0 else 0
+
+    # Progress bar
+    bar_filled = int(progress / 10)
+    bar_empty = 10 - bar_filled
+    progress_bar = "🟩" * bar_filled + "⬜" * bar_empty
+
+    msg = f"""<b>📊 Статус нагрузочного теста</b>
+
+🏃 <b>ТЕСТ ЗАПУЩЕН</b>
+
+{progress_bar} {progress:.0f}%
+
+<b>Параметры:</b>
+🌍 Среда: {env_names.get(status.get('environment'), status.get('environment'))}
+🎯 Сценарий: {scenario_names.get(status.get('scenario'), status.get('scenario'))}
+👥 Пользователей: {status.get('users', 0)} VU
+⏱ Прошло: {elapsed // 60}м {elapsed % 60}с / {duration // 60}м"""
+
+    # Stats если есть
+    stats = status.get('stats', {})
+    if stats:
+        msg += f"""\n\n<b>Метрики:</b>
+⚡ RPS: {stats.get('rps', 0)}
+❌ Ошибок: {stats.get('errors', 0)}
+📈 Avg: {stats.get('avg_response', 0)}ms"""
+
+    return msg
+
+
 def format_robot_notification(scenario: str, result: dict) -> str:
     """
     Форматирует уведомление о завершении сценария.

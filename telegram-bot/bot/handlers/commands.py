@@ -16,12 +16,16 @@ async def handle_start(chat_id: int):
     welcome_msg = f"""
 {joke}
 
-<b>🤖 Warehouse Bot v5.4</b>
+<b>🤖 Warehouse Bot v5.5</b>
 
 <b>Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🔬 QA | 🛑 стоп | 🤖 робот
-📋 PM | 🎰 шутка | ❓ помощь
+🔬 QA | 🔥 нагрузка | 🤖 робот
+📋 PM | 🧹 очистка | ❓ помощь
+
+<b>🆕 WH-217:</b>
+• 🔥 Нагрузка — wizard 7 шагов (Locust/k6)
+• 🧹 Очистка — Redis/Kafka/PostgreSQL
 
 <b>🔐 Деплой и тесты через GitLab CI!</b>
     """
@@ -31,41 +35,43 @@ async def handle_start(chat_id: int):
 async def handle_help(chat_id: int):
     """Обработка команды /help."""
     help_msg = """
-<b>❓ Справка — Warehouse Bot v5.4</b>
+<b>❓ Справка — Warehouse Bot v5.5</b>
 
 <b>📱 Кнопки внизу:</b>
 🏥 статус | 📊 метрики | 🚀 деплой
-🔬 QA | 🛑 стоп | 🤖 робот
-📋 PM | 🎰 шутка | ❓ помощь
+🔬 QA | 🔥 нагрузка | 🤖 робот
+📋 PM | 🧹 очистка | ❓ помощь
+
+<b>🔥 Нагрузочное тестирование (WH-217):</b>
+• Wizard 7 шагов — среда → пароль → сценарий → VU → время → паттерн → подтверждение
+• Сценарии — Locust (HTTP API), k6 (Kafka)
+• Cooldown 30 минут между тестами
+• VU: 10/25/50, Время: 2/5/10 минут
+
+<b>🧹 Очистка данных (WH-217):</b>
+• Redis — кэш и сессии
+• Kafka — consumer groups
+• PostgreSQL — тестовые данные (LoadTest, k6)
 
 <b>🔬 QA (тестирование):</b>
-• Выбор среды — STAGING или PRODUCTION
-• Типы тестов — E2E, UI, Нагрузочное
-• Запуск тестов через GitLab CI
-• Отчёты Allure по каждому типу
+• E2E, UI тесты через GitLab CI
+• Отчёты Allure
 
 <b>🤖 Warehouse Robot:</b>
-• Сценарии — Приёмка/Отгрузка/Инвентаризация
-• Продолжительность — 5мин/30мин/1час/однократно
-• Скорость — пауза между повторами (1с/5с/15с)
-• Планирование — запуск по расписанию (МСК)
+• Приёмка/Отгрузка/Инвентаризация
+• Планирование по расписанию
 
 <b>📋 PM Dashboard:</b>
-• 🔄 Сейчас в работе — последние задачи агента
-• 📋 Аудит сторей — открытые User Stories
-• 📈 Отчёт за день/неделю — активность
+• Аудит сторей, отчёты активности
 
 <b>🚀 Деплой:</b>
-/deploy — меню деплоя (Staging / Production)
+/deploy — Staging / Production
 
 <b>📊 Мониторинг:</b>
 /status — статус серверов
-/pods — поды K8s
+/release — версия
 
-<b>ℹ️ Инфо:</b>
-/release — версия и что нового
-
-<i>Бот 24/7, в отличие от разрабов...</i> 😏
+<i>Бот 24/7, как Redis — всегда в памяти!</i> 😏
     """
     await send_message_with_reply_keyboard(help_msg.strip(), get_reply_keyboard(), chat_id=chat_id)
 
@@ -152,21 +158,30 @@ async def handle_pods(chat_id: int):
 async def handle_release(chat_id: int):
     """Показывает версию бота и последние релиз ноутс."""
     msg = """
-<b>🚀 Warehouse Bot v5.4.0</b>
-<i>Release: 2025-12-01</i>
+<b>🚀 Warehouse Bot v5.5.0</b>
+<i>Release: 2025-12-02</i>
 
-<b>Что нового в v5.4 (WH-155):</b>
+<b>Что нового в v5.5 (WH-217):</b>
 
-🔬 <b>QA Menu</b> — новая структура тестирования
-• Выбор среды: STAGING или PRODUCTION
-• Типы тестов: E2E, UI, Нагрузочное
-• Раздельные Allure отчёты по проектам:
-  - e2e-staging, e2e-prod
-  - ui-staging, ui-prod
+🔥 <b>Load Testing Workflow</b>
+• Wizard 7 шагов с inline-кнопками
+• Выбор сценария: Locust (HTTP) / k6 (Kafka)
+• Упрощённые опции: 10/25/50 VU, 2/5/10 мин
+• Раздельные пароли для staging/prod
+• Cooldown 30 минут между тестами
+
+🧹 <b>Cleanup Service</b>
+• Redis — очистка кэша FLUSHDB
+• Kafka — удаление consumer groups
+• PostgreSQL — удаление тестовых данных
+
+📋 <b>Обновлённая клавиатура</b>
+• Новые кнопки: 🔥 Нагрузка, 🧹 Очистка
+• 🛑 Стоп — теперь универсальный
 
 <b>Предыдущие версии:</b>
-• v5.2.0 — Warehouse Robot, планирование
-• v5.1.0 — PM Dashboard, YouTrack
-• v5.0.0 — GitLab CI/CD, Locust, E2E, K8s
+• v5.4 — QA Menu, Allure
+• v5.2 — Warehouse Robot
+• v5.1 — PM Dashboard
     """
     await send_message_with_reply_keyboard(msg.strip(), get_reply_keyboard(), chat_id=chat_id)

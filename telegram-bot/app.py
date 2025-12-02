@@ -41,12 +41,20 @@ from bot.handlers import (
     # Deploy
     handle_deploy_menu, request_deploy_password, handle_deploy_password_input,
     is_pending_deploy_password,
-    # QA / Testing
+    # QA / Testing (legacy)
     handle_qa_menu, handle_qa_env, handle_qa_test_type, handle_qa_run, handle_qa_report,
     handle_load_menu, handle_load_target,
     handle_load_users, handle_load_duration, request_password,
     handle_password_input, handle_stop_load_test, handle_load_status,
     is_pending_password,
+    # WH-217: Load Testing Wizard
+    handle_load_wizard_menu, handle_load_wizard_env, handle_load_wizard_password,
+    handle_load_wizard_scenario, handle_load_wizard_users, handle_load_wizard_duration,
+    handle_load_wizard_pattern, handle_load_wizard_confirm, handle_load_wizard_start,
+    handle_load_wizard_stop, handle_load_wizard_status,
+    # WH-217: Cleanup
+    handle_cleanup_menu, handle_cleanup_env, request_cleanup_password,
+    handle_cleanup_password, is_pending_cleanup_password,
     # Claude (код сохранён, но не используется в меню)
     handle_claude_menu, handle_claude_input, is_pending_claude,
     # PM
@@ -169,8 +177,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Warehouse Telegram Bot",
-    description="CI/CD notifications, PM orchestration and robot control",
-    version="5.4.0",
+    description="CI/CD notifications, PM orchestration, robot control and load testing",
+    version="5.5.0",
     lifespan=lifespan
 )
 
@@ -235,7 +243,7 @@ async def telegram_polling():
 async def process_command(chat_id: int, text: str):
     """Главный роутер команд."""
     # Логируем входящую команду (без паролей!)
-    log_text = "[HIDDEN]" if is_pending_password(chat_id) or is_pending_deploy_password(chat_id) or is_pending_robot_password(chat_id) else text
+    log_text = "[HIDDEN]" if is_pending_password(chat_id) or is_pending_deploy_password(chat_id) or is_pending_robot_password(chat_id) or is_pending_cleanup_password(chat_id) else text
     logger.info(f"Command received: chat_id={chat_id}, text='{log_text}'")
 
     # Проверяем ожидание ввода
@@ -244,7 +252,14 @@ async def process_command(chat_id: int, text: str):
         return
 
     if is_pending_password(chat_id):
-        await handle_password_input(chat_id, text)
+        # WH-217: сначала проверяем новый wizard
+        handled = await handle_load_wizard_password(chat_id, text)
+        if not handled:
+            await handle_password_input(chat_id, text)
+        return
+
+    if is_pending_cleanup_password(chat_id):
+        await handle_cleanup_password(chat_id, text)
         return
 
     if is_pending_robot_password(chat_id):
@@ -268,8 +283,12 @@ async def process_command(chat_id: int, text: str):
         await handle_deploy_menu(chat_id)
     elif text == "🔬 QA":
         await handle_qa_menu(chat_id)
+    elif text == "🔥 Нагрузка":  # WH-217: новая кнопка
+        await handle_load_wizard_menu(chat_id)
+    elif text == "🧹 Очистка":  # WH-217: новая кнопка
+        await handle_cleanup_menu(chat_id)
     elif text == "🛑 Стоп":
-        await handle_stop_load_test(chat_id)
+        await handle_load_wizard_stop(chat_id)  # WH-217: новый handler
     elif text == "📋 PM":
         await handle_pm_menu(chat_id)
     elif text == "🤖 Claude":
@@ -436,7 +455,7 @@ async def process_callback(callback_query: dict):
             test_type, env = parts
             await handle_qa_report(chat_id, test_type, env)
 
-    # Load testing
+    # Load testing (legacy)
     elif data == "load_staging":
         await handle_load_target(chat_id, "staging")
     elif data == "load_prod":
@@ -446,7 +465,73 @@ async def process_callback(callback_query: dict):
     elif data == "load_status":
         await handle_load_status(chat_id)
 
-    # Load test wizard
+    # =============================================================================
+    # WH-217: Новый wizard нагрузочного тестирования
+    # =============================================================================
+    elif data == "load_menu":
+        await handle_load_wizard_menu(chat_id)
+    elif data == "load_env_staging":
+        await handle_load_wizard_env(chat_id, "staging")
+    elif data == "load_env_prod":
+        await handle_load_wizard_env(chat_id, "prod")
+    elif data.startswith("load_scenario_"):
+        # load_scenario_staging_locust, load_scenario_prod_k6
+        parts = data.replace("load_scenario_", "").split("_")
+        if len(parts) == 2:
+            environment, scenario = parts
+            await handle_load_wizard_users(chat_id, environment, scenario)
+    elif data.startswith("load_users_"):
+        # load_users_staging_locust_10
+        parts = data.replace("load_users_", "").split("_")
+        if len(parts) == 3:
+            environment, scenario, users_str = parts
+            await handle_load_wizard_duration(chat_id, environment, scenario, int(users_str))
+    elif data.startswith("load_dur_"):
+        # load_dur_staging_locust_10_300
+        parts = data.replace("load_dur_", "").split("_")
+        if len(parts) == 4:
+            environment, scenario, users_str, duration_str = parts
+            await handle_load_wizard_pattern(chat_id, environment, scenario, int(users_str), int(duration_str))
+    elif data.startswith("load_pattern_"):
+        # load_pattern_staging_locust_10_300_smooth
+        parts = data.replace("load_pattern_", "").split("_")
+        if len(parts) == 5:
+            environment, scenario, users_str, duration_str, pattern = parts
+            await handle_load_wizard_confirm(chat_id, environment, scenario, int(users_str), int(duration_str), pattern)
+    elif data.startswith("load_confirm_"):
+        # load_confirm_staging_locust_10_300_smooth
+        parts = data.replace("load_confirm_", "").split("_")
+        if len(parts) == 5:
+            environment, scenario, users_str, duration_str, pattern = parts
+            await handle_load_wizard_start(chat_id, environment, scenario, int(users_str), int(duration_str), pattern)
+    elif data == "load_status_refresh":
+        await handle_load_wizard_status(chat_id)
+    elif data == "load_stop":
+        await handle_load_wizard_stop(chat_id)
+
+    # =============================================================================
+    # WH-217: Cleanup
+    # =============================================================================
+    elif data == "cleanup_menu":
+        await handle_cleanup_menu(chat_id)
+    elif data == "cleanup_staging":
+        await handle_cleanup_env(chat_id, "staging")
+    elif data == "cleanup_prod":
+        await handle_cleanup_env(chat_id, "prod")
+    elif data.startswith("cleanup_redis_"):
+        environment = data.replace("cleanup_redis_", "")
+        await request_cleanup_password(chat_id, environment, "redis")
+    elif data.startswith("cleanup_kafka_"):
+        environment = data.replace("cleanup_kafka_", "")
+        await request_cleanup_password(chat_id, environment, "kafka")
+    elif data.startswith("cleanup_postgres_"):
+        environment = data.replace("cleanup_postgres_", "")
+        await request_cleanup_password(chat_id, environment, "postgres")
+    elif data.startswith("cleanup_all_"):
+        environment = data.replace("cleanup_all_", "")
+        await request_cleanup_password(chat_id, environment, "all")
+
+    # Load test wizard (legacy)
     elif data.startswith("lt_users_"):
         parts = data.split("_")
         if len(parts) == 4:
@@ -575,7 +660,8 @@ async def health_check():
     return {
         "status": "healthy",
         "version": "5.5.0",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "features": ["load-testing-wizard", "cleanup-service"]  # WH-217
     }
 
 
@@ -585,7 +671,8 @@ async def root():
     return {
         "name": "Warehouse Telegram Bot",
         "version": "5.5.0",
-        "description": "CI/CD notifications, PM dashboard, robot control and full orchestration 🚀"
+        "description": "CI/CD notifications, PM dashboard, robot control, load testing and cleanup 🚀",
+        "changelog": "WH-217: Load Testing Workflow + Cleanup Service"
     }
 
 

@@ -30,7 +30,7 @@ from .testing import (
     handle_qa_test_type,
     handle_qa_run,
     handle_qa_report,
-    # Load Testing
+    # Load Testing (legacy)
     handle_load_menu,
     handle_load_target,
     handle_load_users,
@@ -40,6 +40,26 @@ from .testing import (
     handle_stop_load_test,
     handle_load_status,
     is_pending_password,
+    # WH-217: Новый wizard нагрузочного тестирования
+    handle_load_wizard_menu,
+    handle_load_wizard_env,
+    handle_load_wizard_password,
+    handle_load_wizard_scenario,
+    handle_load_wizard_users,
+    handle_load_wizard_duration,
+    handle_load_wizard_pattern,
+    handle_load_wizard_confirm,
+    handle_load_wizard_start,
+    handle_load_wizard_stop,
+    handle_load_wizard_status,
+)
+
+from .cleanup import (
+    handle_cleanup_menu,
+    handle_cleanup_env,
+    request_cleanup_password,
+    handle_cleanup_password,
+    is_pending_cleanup_password,
 )
 
 from .claude import (
@@ -102,7 +122,7 @@ __all__ = [
     "request_deploy_password",
     "handle_deploy_password_input",
     "is_pending_deploy_password",
-    # QA / Testing
+    # QA / Testing (legacy)
     "handle_qa_menu",
     "handle_qa_env",
     "handle_qa_test_type",
@@ -117,6 +137,24 @@ __all__ = [
     "handle_stop_load_test",
     "handle_load_status",
     "is_pending_password",
+    # WH-217: Load Testing Wizard
+    "handle_load_wizard_menu",
+    "handle_load_wizard_env",
+    "handle_load_wizard_password",
+    "handle_load_wizard_scenario",
+    "handle_load_wizard_users",
+    "handle_load_wizard_duration",
+    "handle_load_wizard_pattern",
+    "handle_load_wizard_confirm",
+    "handle_load_wizard_start",
+    "handle_load_wizard_stop",
+    "handle_load_wizard_status",
+    # WH-217: Cleanup
+    "handle_cleanup_menu",
+    "handle_cleanup_env",
+    "request_cleanup_password",
+    "handle_cleanup_password",
+    "is_pending_cleanup_password",
     # Claude
     "handle_claude_menu",
     "handle_claude_input",

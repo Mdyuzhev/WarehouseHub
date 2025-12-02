@@ -151,3 +151,34 @@ ROBOT_API_URL = os.getenv(
     "http://warehouse-robot-service.warehouse.svc.cluster.local:8070"
 )
 ROBOT_PASSWORD = os.getenv("ROBOT_PASSWORD", "1")
+
+# =============================================================================
+# WH-217: Load Testing Passwords (per environment)
+# =============================================================================
+LOAD_TEST_STAGING_PASSWORD = os.getenv("LOAD_TEST_STAGING_PASSWORD", "1")  # простой для staging
+LOAD_TEST_PROD_PASSWORD = os.getenv("LOAD_TEST_PROD_PASSWORD")  # обязателен для prod
+
+# =============================================================================
+# WH-217: Load Testing Cooldown
+# =============================================================================
+COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "30"))
+
+# =============================================================================
+# WH-217: Cleanup Service Endpoints
+# =============================================================================
+# Redis
+REDIS_STAGING_HOST = os.getenv("REDIS_STAGING_HOST", "redis.warehouse.svc.cluster.local")
+REDIS_STAGING_PORT = int(os.getenv("REDIS_STAGING_PORT", "6379"))
+REDIS_PROD_HOST = os.getenv("REDIS_PROD_HOST", "localhost")  # через SSH tunnel
+REDIS_PROD_PORT = int(os.getenv("REDIS_PROD_PORT", "6379"))
+
+# Kafka
+KAFKA_STAGING_BROKERS = os.getenv("KAFKA_STAGING_BROKERS", "kafka.warehouse.svc.cluster.local:9092")
+KAFKA_PROD_BROKERS = os.getenv("KAFKA_PROD_BROKERS", "")  # TODO: настроить
+
+# PostgreSQL
+POSTGRES_STAGING_URL = os.getenv(
+    "POSTGRES_STAGING_URL",
+    "postgresql://warehouse:password@postgresql.warehouse.svc.cluster.local:5432/warehouse"
+)
+POSTGRES_PROD_URL = os.getenv("POSTGRES_PROD_URL", "")  # В K8s Secret
