@@ -90,6 +90,10 @@ public class AuthController {
                                 .username(user.getUsername())
                                 .fullName(user.getFullName())
                                 .role(user.getRole())
+                                .facilityType(user.getFacilityType())
+                                .facilityId(user.getFacilityId())
+                                .facilityCode(user.getFacilityId() != null ?
+                                        jwtService.getFacilityCode(cachedToken) : null)
                                 .build());
                     }
                 }
@@ -117,6 +121,10 @@ public class AuthController {
                     .username(user.getUsername())
                     .fullName(user.getFullName())
                     .role(user.getRole())
+                    .facilityType(user.getFacilityType())
+                    .facilityId(user.getFacilityId())
+                    .facilityCode(user.getFacilityId() != null ?
+                            jwtService.getFacilityCode(token) : null)
                     .build());
 
         } catch (BadCredentialsException e) {
@@ -190,6 +198,8 @@ public class AuthController {
                     .username(user.getUsername())
                     .fullName(user.getFullName())
                     .role(user.getRole())
+                    .facilityType(user.getFacilityType())
+                    .facilityId(user.getFacilityId())
                     .build());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
