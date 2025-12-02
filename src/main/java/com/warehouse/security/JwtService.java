@@ -7,7 +7,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
 
     private final FacilityRepository facilityRepository;
@@ -29,6 +28,11 @@ public class JwtService {
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
+
+    // Constructor with optional FacilityRepository injection
+    public JwtService(@Autowired(required = false) FacilityRepository facilityRepository) {
+        this.facilityRepository = facilityRepository;
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -50,8 +54,8 @@ public class JwtService {
                 extraClaims.put("facilityType", user.getFacilityType().name());
                 extraClaims.put("facilityId", user.getFacilityId());
 
-                // Add facility code if facilityId exists
-                if (user.getFacilityId() != null) {
+                // Add facility code if facilityId exists and repository is available
+                if (user.getFacilityId() != null && facilityRepository != null) {
                     facilityRepository.findById(user.getFacilityId())
                             .ifPresent(facility -> extraClaims.put("facilityCode", facility.getCode()));
                 }
