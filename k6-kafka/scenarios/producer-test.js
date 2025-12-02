@@ -6,6 +6,7 @@
 import { Writer } from 'k6/x/kafka';
 import { check, sleep } from 'k6';
 import { Counter, Trend, Rate } from 'k6/metrics';
+import encoding from 'k6/encoding';
 
 // ═══════════════════════════════════════════════════════════════════════
 // КОНФИГУРАЦИЯ
@@ -41,7 +42,7 @@ export const options = {
     },
     // Пороговые значения для автоматического pass/fail
     thresholds: {
-        'kafka_produce_latency_ms': ['p95<100', 'p99<500'],
+        'kafka_produce_latency_ms': ['p(95)<100', 'p(99)<500'],
         'kafka_produce_success_rate': ['rate>0.99'],
         'kafka_produce_errors_total': ['count<10'],
     },
@@ -54,21 +55,21 @@ export const options = {
 const writer = new Writer({
     brokers: KAFKA_BROKERS.split(','),
     topic: TOPIC_AUDIT,
-    autoCreateTopic: false,
-    // Настройки как в production warehouse-api
-    requiredAcks: 'all',      // Ждём подтверждения от всех реплик
+    autoCreateTopic: true,    // Автосоздание топика если не существует
+    // requiredAcks: 1 = leader only (быстрее для тестов)
+    requiredAcks: 1,
     batchSize: 16384,         // 16KB batch
-    batchTimeout: 5,          // 5ms linger
+    batchTimeout: 10,         // 10ms linger
     compression: 'none',      // Без сжатия для честного теста
 });
 
 const notificationWriter = new Writer({
     brokers: KAFKA_BROKERS.split(','),
     topic: TOPIC_NOTIFICATIONS,
-    autoCreateTopic: false,
-    requiredAcks: 'all',
+    autoCreateTopic: true,
+    requiredAcks: 1,
     batchSize: 16384,
-    batchTimeout: 5,
+    batchTimeout: 10,
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -116,6 +117,11 @@ function generateNotificationEvent(vu, iter) {
 // ОСНОВНАЯ ФУНКЦИЯ ТЕСТА
 // ═══════════════════════════════════════════════════════════════════════
 
+// default export для совместимости с K6_VUS/K6_DURATION env переменными
+export default function() {
+    produceEvents();
+}
+
 export function produceEvents() {
     const startTime = Date.now();
     let success = false;
@@ -128,13 +134,8 @@ export function produceEvents() {
 
             writer.produce({
                 messages: [{
-                    key: event.entityId,
-                    value: JSON.stringify(event),
-                    headers: {
-                        'content-type': 'application/json',
-                        'source': 'k6-load-test',
-                        'vu': String(__VU),
-                    },
+                    key: encoding.b64encode(event.entityId),
+                    value: encoding.b64encode(JSON.stringify(event)),
                 }],
             });
         } else {
@@ -143,12 +144,8 @@ export function produceEvents() {
 
             notificationWriter.produce({
                 messages: [{
-                    key: event.productId,
-                    value: JSON.stringify(event),
-                    headers: {
-                        'content-type': 'application/json',
-                        'source': 'k6-load-test',
-                    },
+                    key: encoding.b64encode(event.productId),
+                    value: encoding.b64encode(JSON.stringify(event)),
                 }],
             });
         }

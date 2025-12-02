@@ -30,7 +30,7 @@ spec:
           env:
             # Prometheus Remote Write endpoint
             - name: K6_PROMETHEUS_RW_SERVER_URL
-              value: "http://prometheus-prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+              value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
             - name: K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM
               value: "true"
             - name: K6_PROMETHEUS_RW_TREND_STATS
