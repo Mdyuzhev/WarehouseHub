@@ -64,20 +64,15 @@ async def cleanup_redis(environment: str) -> Dict[str, Any]:
                 "kubectl exec -n warehouse deploy/redis -- "
                 "redis-cli FLUSHDB"
             )
-        else:
-            # Для prod - через SSH tunnel (TODO: настроить)
-            host = REDIS_PROD_HOST
-            port = REDIS_PROD_PORT
-            cmd = f"redis-cli -h {host} -p {port} FLUSHDB"
-
-        # Сначала получаем количество ключей
-        if environment == "staging":
             count_cmd = (
                 "kubectl exec -n warehouse deploy/redis -- "
                 "redis-cli DBSIZE"
             )
         else:
-            count_cmd = f"redis-cli -h {REDIS_PROD_HOST} -p {REDIS_PROD_PORT} DBSIZE"
+            # Для prod - через SSH + docker exec
+            ssh_prefix = "ssh -i /root/.ssh/yc_prod_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@130.193.44.34"
+            cmd = f"{ssh_prefix} 'docker exec warehouse-redis redis-cli FLUSHDB'"
+            count_cmd = f"{ssh_prefix} 'docker exec warehouse-redis redis-cli DBSIZE'"
 
         success, output = await _run_kubectl(count_cmd)
         keys_before = 0
@@ -118,21 +113,20 @@ async def cleanup_kafka(environment: str) -> Dict[str, Any]:
         dict: {success: bool, topics_cleared: list, error: str}
     """
     try:
+        ssh_prefix = "ssh -i /root/.ssh/yc_prod_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@130.193.44.34"
+
         if environment == "staging":
-            brokers = KAFKA_STAGING_BROKERS
-            namespace = "warehouse"
+            # Staging: kubectl exec
+            list_cmd = (
+                "kubectl exec -n warehouse deploy/kafka -- "
+                "/opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list"
+            )
         else:
-            brokers = KAFKA_PROD_BROKERS
-            namespace = "warehouse"  # TODO: prod namespace
-
-        if not brokers:
-            return {"success": False, "topics_cleared": [], "error": "Kafka brokers not configured"}
-
-        # Получаем список consumer groups
-        list_cmd = (
-            f"kubectl exec -n {namespace} deploy/kafka -- "
-            f"kafka-consumer-groups.sh --bootstrap-server {brokers} --list"
-        )
+            # Prod: SSH + docker exec
+            list_cmd = (
+                f"{ssh_prefix} 'docker exec warehouse-kafka "
+                f"/opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list'"
+            )
 
         success, output = await _run_kubectl(list_cmd)
         if not success:
@@ -146,11 +140,18 @@ async def cleanup_kafka(environment: str) -> Dict[str, Any]:
             if group.startswith("_") or group.startswith("console-"):
                 continue
 
-            delete_cmd = (
-                f"kubectl exec -n {namespace} deploy/kafka -- "
-                f"kafka-consumer-groups.sh --bootstrap-server {brokers} "
-                f"--delete --group {group}"
-            )
+            if environment == "staging":
+                delete_cmd = (
+                    "kubectl exec -n warehouse deploy/kafka -- "
+                    f"/opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 "
+                    f"--delete --group {group}"
+                )
+            else:
+                delete_cmd = (
+                    f"{ssh_prefix} 'docker exec warehouse-kafka "
+                    f"/opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 "
+                    f"--delete --group {group}'"
+                )
 
             success, _ = await _run_kubectl(delete_cmd)
             if success:
@@ -180,31 +181,30 @@ async def cleanup_postgres(environment: str) -> Dict[str, Any]:
         dict: {success: bool, rows_deleted: int, error: str}
     """
     try:
-        if environment == "staging":
-            namespace = "warehouse"
-            # Удаляем данные с характерными признаками НТ
-            # (например, товары с названием содержащим "LoadTest" или "k6")
-            sql_commands = [
-                "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE notes LIKE '%LoadTest%');",
-                "DELETE FROM orders WHERE notes LIKE '%LoadTest%';",
-                "DELETE FROM products WHERE name LIKE '%LoadTest%' OR name LIKE '%k6%';",
-            ]
-        else:
-            namespace = "warehouse"  # TODO: prod
-            sql_commands = [
-                "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE notes LIKE '%LoadTest%');",
-                "DELETE FROM orders WHERE notes LIKE '%LoadTest%';",
-                "DELETE FROM products WHERE name LIKE '%LoadTest%' OR name LIKE '%k6%';",
-            ]
+        ssh_prefix = "ssh -i /root/.ssh/yc_prod_key -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@130.193.44.34"
+
+        # SQL команды для удаления тестовых данных
+        sql_commands = [
+            "DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE notes LIKE '%LoadTest%');",
+            "DELETE FROM orders WHERE notes LIKE '%LoadTest%';",
+            "DELETE FROM products WHERE name LIKE '%LoadTest%' OR name LIKE '%k6%';",
+        ]
 
         total_deleted = 0
         errors = []
 
         for sql in sql_commands:
-            cmd = (
-                f"kubectl exec -n {namespace} deploy/postgresql -- "
-                f'psql -U warehouse -d warehouse -c "{sql}"'
-            )
+            if environment == "staging":
+                cmd = (
+                    f"kubectl exec -n warehouse deploy/postgresql -- "
+                    f'psql -U warehouse -d warehouse -c "{sql}"'
+                )
+            else:
+                # Prod: SSH + docker exec
+                cmd = (
+                    f'{ssh_prefix} \'docker exec warehouse-db '
+                    f'psql -U warehouse -d warehouse -c "{sql}"\''
+                )
 
             success, output = await _run_kubectl(cmd, timeout=60)
 

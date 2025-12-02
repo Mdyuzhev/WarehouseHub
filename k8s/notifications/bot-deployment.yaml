@@ -19,6 +19,8 @@ spec:
       labels:
         app: gitlab-telegram-bot
     spec:
+      # WH-218: ServiceAccount для kubectl доступа
+      serviceAccountName: telegram-bot-sa
       # Время на graceful shutdown (SIGTERM → SIGKILL)
       terminationGracePeriodSeconds: 15
       containers:
@@ -77,3 +79,13 @@ spec:
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
+          # WH-267: SSH ключ для prod cleanup
+          volumeMounts:
+            - name: ssh-key
+              mountPath: /root/.ssh
+              readOnly: true
+      volumes:
+        - name: ssh-key
+          hostPath:
+            path: /home/flomaster/.ssh
+            type: Directory

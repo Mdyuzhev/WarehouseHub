@@ -632,6 +632,16 @@ async def handle_stop_load_test(chat_id: int, auto_stop: bool = False):
     if auto_stop:
         msg += "\n\n<i>Тест завершился по таймеру</i>"
 
+    # WH-268: Устанавливаем cooldown
+    global last_test_finished_at, last_test_result
+    last_test_finished_at = datetime.now()
+    last_test_result = {
+        "environment": load_test_status.get("target"),
+        "scenario": "locust",
+        "users": load_test_status.get("users", 0),
+        "duration": load_test_status.get("duration", 0),
+    }
+
     # Сбрасываем статус
     if load_test_status["stats_task"]:
         load_test_status["stats_task"].cancel()
@@ -816,8 +826,33 @@ async def handle_load_wizard_password(chat_id: int, password: str) -> bool:
 async def handle_load_wizard_scenario(chat_id: int, environment: str):
     """
     Шаг 3: Выбор сценария (Locust vs k6).
+    WH-268: Добавлена проверка cooldown и running test.
     """
     global load_wizard_state
+
+    # WH-268: Проверяем cooldown
+    remaining = check_cooldown()
+    if remaining > 0:
+        msg = format_cooldown_message(remaining, last_test_result)
+        await send_message_with_reply_keyboard(msg, get_reply_keyboard(), chat_id=chat_id)
+        return
+
+    # WH-268: Проверяем, не запущен ли уже тест
+    if load_test_status["running"]:
+        status = {
+            "running": True,
+            "environment": load_test_status.get("target"),
+            "scenario": "locust",
+            "users": load_test_status.get("users", 0),
+            "duration": load_test_status.get("duration", 0),
+            "elapsed": 0,
+        }
+        if load_test_status.get("started_at"):
+            status["elapsed"] = int((datetime.now() - load_test_status["started_at"]).total_seconds())
+
+        msg = format_load_status_message(status)
+        await send_message_with_inline_keyboard(msg, get_load_status_keyboard(), chat_id=chat_id)
+        return
 
     load_wizard_state[chat_id] = {
         "step": 3,
@@ -954,6 +989,22 @@ async def start_k6_load_test(chat_id: int, environment: str, users: int, duratio
     """Запускает k6 тест."""
     global load_test_status
 
+    # WH-268: Проверяем, не запущен ли уже тест
+    if load_test_status.get("running"):
+        status = {
+            "running": True,
+            "environment": load_test_status.get("target"),
+            "scenario": load_test_status.get("scenario", "k6"),
+            "users": load_test_status.get("users", 0),
+            "duration": load_test_status.get("duration", 0),
+            "elapsed": 0,
+        }
+        if load_test_status.get("started_at"):
+            status["elapsed"] = int((datetime.now() - load_test_status["started_at"]).total_seconds())
+        msg = format_load_status_message(status)
+        await send_message_with_inline_keyboard(msg, get_load_status_keyboard(), chat_id=chat_id)
+        return
+
     joke = get_random_joke("load_test_start")
     duration_str = f"{duration // 60}m"
 
@@ -1009,6 +1060,22 @@ async def start_k6_load_test(chat_id: int, environment: str, users: int, duratio
 
 async def start_locust_load_test(chat_id: int, environment: str, users: int, duration: int, pattern: str):
     """Запускает Locust тест (существующая логика)."""
+    # WH-268: Проверяем, не запущен ли уже тест
+    if load_test_status.get("running"):
+        status = {
+            "running": True,
+            "environment": load_test_status.get("target"),
+            "scenario": load_test_status.get("scenario", "locust"),
+            "users": load_test_status.get("users", 0),
+            "duration": load_test_status.get("duration", 0),
+            "elapsed": 0,
+        }
+        if load_test_status.get("started_at"):
+            status["elapsed"] = int((datetime.now() - load_test_status["started_at"]).total_seconds())
+        msg = format_load_status_message(status)
+        await send_message_with_inline_keyboard(msg, get_load_status_keyboard(), chat_id=chat_id)
+        return
+
     target_url = STAGING_API_URL if environment == "staging" else PROD_API_URL
     spawn_rate = calculate_spawn_rate(users, pattern)
 

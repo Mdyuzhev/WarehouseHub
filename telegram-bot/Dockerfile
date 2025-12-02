@@ -2,7 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Установка зависимостей
+# WH-267: Установка kubectl и openssh-client для cleanup (staging + prod)
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates openssh-client \
+    && curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/ \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка Python зависимостей
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
