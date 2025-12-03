@@ -1,6 +1,6 @@
-# Warehouse Project - Infrastructure Guide
+# Warehouse Project - Infrastructure Guide `v2025.12.03`
 
-> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-02 (WH-200 Dual Environment CI/CD)
+> Полная инвентаризация хозяйства. Храни как зеницу ока! Обновлено: 2025-12-03 (WH-379 Notification Service)
 
 ---
 
@@ -47,7 +47,7 @@
 │  │  ├── warehouse-dev:  API (1) + Frontend + PostgreSQL + Redis     │   │
 │  │  │                   (DEV environment, WH-192)                    │   │
 │  │  ├── loadtest:       Locust Master + Workers (5) + Exporter      │   │
-│  │  ├── notifications:  Telegram Bot (v5.4)                          │   │
+│  │  ├── notifications:  Telegram Bot (v5.6)                          │   │
 │  │  └── monitoring:     Prometheus + Grafana + Alertmanager          │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
@@ -330,7 +330,7 @@ docker save analytics-service:latest | sudo k3s ctr images import -
 kubectl apply -k ~/warehouse-master/k8s/analytics/
 ```
 
-### Telegram Bot (v5.4)
+### Telegram Bot (v5.6)
 
 **Расположение:** `/telegram-bot/`
 **Port:** 30088
@@ -350,9 +350,9 @@ kubectl apply -k ~/warehouse-master/k8s/analytics/
 **Деплой:**
 ```bash
 cd ~/warehouse-master/telegram-bot
-docker build --no-cache -t gitlab-telegram-bot:v5.4 .
-sudo k3s ctr images rm docker.io/library/gitlab-telegram-bot:v5.4 2>/dev/null || true
-docker save gitlab-telegram-bot:v5.4 | sudo k3s ctr images import -
+docker build --no-cache -t gitlab-telegram-bot:v5.6 .
+sudo k3s ctr images rm docker.io/library/gitlab-telegram-bot:v5.6 2>/dev/null || true
+docker save gitlab-telegram-bot:v5.6 | sudo k3s ctr images import -
 kubectl apply -f ~/warehouse-master/k8s/notifications/
 kubectl rollout restart deployment/gitlab-telegram-bot -n notifications
 ```
@@ -763,14 +763,15 @@ curl -s -u 'admin:Misha2021@1@' -X POST \
 
 ---
 
-## Актуальный статус (2025-12-01)
+## Актуальный статус (2025-12-03)
 
 | Namespace | Deployments | Status |
 |-----------|-------------|--------|
 | warehouse | warehouse-api (2), frontend, robot, analytics, postgres, postgres-replica, redis, kafka, selenoid | ✅ All Running |
-| loadtest | locust-master, locust-worker (5), locust-exporter | ✅ All Running |
-| notifications | gitlab-telegram-bot | ✅ Running |
-| monitoring | prometheus, grafana (2), alertmanager, kube-state-metrics, node-exporter | ✅ All Running |
+| warehouse-dev | warehouse-api (1), frontend, postgres, redis | ✅ All Running |
+| loadtest | locust-master, locust-worker (5), locust-exporter, k6-notification-test | ✅ Running |
+| notifications | gitlab-telegram-bot (v5.6) | ✅ Running |
+| monitoring | prometheus, grafana, alertmanager, kube-state-metrics, node-exporter | ✅ All Running |
 
 ---
 
@@ -816,4 +817,4 @@ secrets.yaml
 
 ---
 
-*Последнее обновление: 2025-12-02 (Ревизия после WH-200 CI/CD Dual Environment)*
+*Последнее обновление: 2025-12-03 (Ревизия после WH-379 Notification Service)*

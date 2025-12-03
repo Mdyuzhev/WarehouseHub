@@ -1,6 +1,6 @@
-# Warehouse Project - Architecture
+# Warehouse Project - Architecture `v2025.12.03`
 
-> Высокоуровневая архитектура проекта. Обновлено: 2025-12-02
+> Высокоуровневая архитектура проекта. Обновлено: 2025-12-03
 
 ---
 
@@ -64,8 +64,8 @@ Warehouse - система управления складом, разделён
 │                      Spring Boot 3.2.0 + Java 17                            │
 │                              :30080                                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Controllers: AuthController, ProductController, FacilityController  │   │
-│  │  Services: ProductService, AuditService, JwtService, FacilityService │   │
+│  │  Controllers: Auth, Product, Facility, NotificationController (24)   │   │
+│  │  Services: Product, Notification, Audit, JwtService, FacilityService │   │
 │  │  Security: JWT (HS256) + Facility claims, BCrypt, Rate Limiting     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 └───────┬───────────────────────┬───────────────────────┬─────────────────────┘
@@ -209,4 +209,4 @@ main    → push → build → test → deploy-prod (manual) → warehouse
 
 ---
 
-*Последнее обновление: 2025-12-02*
+*Последнее обновление: 2025-12-03*

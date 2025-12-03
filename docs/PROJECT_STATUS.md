@@ -1,6 +1,6 @@
-# Project Status - Warehouse
+# Project Status - Warehouse `v2025.12.03`
 
-> Актуальный статус проекта на 2025-12-03 (после Epic WH-379). Используй этот файл для понимания текущего контекста перед планированием задач.
+> Актуальный статус проекта на 2025-12-03 (аудит full). Используй этот файл для понимания текущего контекста перед планированием задач.
 
 ---
 
@@ -142,8 +142,8 @@
 - [x] WH-217 - Telegram Bot v5.6
 
 ### В работе
-- [ ] Pipeline #230 - package-image (running)
-- [ ] Deploy Notification Service to Production (waiting)
+- [ ] Notification Service production monitoring (Grafana)
+- [ ] Integration with business logic (stock notifications)
 
 ### Следующие задачи
 - [ ] Интеграция Notification Service с бизнес-логикой (stock notifications, alerts)
@@ -181,6 +181,14 @@
 
 ## Changelog
 
+### 2025-12-03
+- ✅ Full audit выполнен
+- ✅ Production и Staging: API UP, все компоненты работают
+- ✅ warehouse-api: 24 endpoints, hotfix/test-fixes с небольшими изменениями
+- ✅ warehouse-frontend: clean state, develop branch
+- ✅ warehouse-master: 3 незакоммиченных файла (k6 notification test)
+- ✅ Документация обновлена (ARCHITECTURE, COMPONENTS, INFRASTRUCTURE_GUIDE)
+
 ### 2025-12-02
 - ✅ Epic WH-379 (Notification Service) завершен и deployed
 - ✅ Hotfix: исправлены тесты (@EnableScheduling + manual processQueue())
@@ -200,4 +208,4 @@
 
 ---
 
-*Последнее обновление: 2025-12-02 23:59 UTC*
+*Последнее обновление: 2025-12-03 (Full Audit)*

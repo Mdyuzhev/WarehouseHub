@@ -1,4 +1,4 @@
-# Components Guide
+# Components Guide `v2025.12.03`
 
 Описание всех компонентов системы Warehouse.
 
@@ -30,11 +30,11 @@
 - Redis (кэширование, rate limiting, token blacklist)
 - Kafka (audit events, notifications)
 
-**Endpoints:**
-- `/api/auth/*` - аутентификация
-- `/api/products/*` - CRUD товаров
-- `/api/facilities/*` - управление объектами (WH-269)
-- `/api/facilities/tree` - иерархия объектов (WH-269)
+**Endpoints (24 total):**
+- `/api/auth/*` - аутентификация (4)
+- `/api/products/*` - CRUD товаров (5)
+- `/api/facilities/*` - управление объектами (8, WH-269)
+- `/api/notifications/*` - уведомления (3, WH-379)
 - `/actuator/health` - health check
 - `/actuator/prometheus` - метрики
 - `/swagger-ui.html` - Swagger UI
@@ -118,6 +118,27 @@
 
 ---
 
+### Notification Service (WH-379)
+
+| Параметр | Значение |
+|----------|----------|
+| Технологии | Spring Boot 3.2.0 (часть warehouse-api) |
+| Endpoints | `/api/notifications/*` (3 endpoint) |
+| Channels | TELEGRAM, EMAIL, WEBHOOK, IN_MEMORY |
+| Statuses | PENDING, SENDING, SENT, FAILED, DEAD |
+
+**API:**
+- `POST /api/notifications` - создать уведомление
+- `GET /api/notifications/{id}` - получить по ID
+- `GET /api/notifications/stats` - статистика
+
+**Telegram Integration:**
+- Bot: @wh_ntf_bot
+- Chat: WH_lab_notify (-1003231635846)
+- Формат: HTML с bold для subject
+
+---
+
 ### Telegram Bot (v5.6)
 
 | Параметр | Значение |
@@ -147,6 +168,7 @@
 - Cleanup Service — Redis FLUSHDB, Kafka consumer groups, PostgreSQL тестовые данные
 - Cooldown 30 минут между нагрузочными тестами
 - k6 Kafka для Production (KAFKA_PROD_BROKERS: 130.193.44.34:29092)
+- k6 Notification Load Test (WH-396)
 
 ---
 
@@ -378,4 +400,4 @@ ssh -i ~/.ssh/yc_prod_key ubuntu@130.193.44.34 'cd /opt/warehouse && sudo docker
 
 ---
 
-*Последнее обновление: 2025-12-02*
+*Последнее обновление: 2025-12-03*
