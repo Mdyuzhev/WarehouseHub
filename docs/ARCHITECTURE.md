@@ -64,8 +64,8 @@ Warehouse - система управления складом, разделён
 │                      Spring Boot 3.2.0 + Java 17                            │
 │                              :30080                                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  Controllers: Auth, Product, Facility, NotificationController (24)   │   │
-│  │  Services: Product, Notification, Audit, JwtService, FacilityService │   │
+│  │  Controllers: Auth, Product, Facility, Stock, Notification (31)      │   │
+│  │  Services: Product, Stock, Facility, Notification, Audit, JwtService │   │
 │  │  Security: JWT (HS256) + Facility claims, BCrypt, Rate Limiting     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 └───────┬───────────────────────┬───────────────────────┬─────────────────────┘
@@ -124,6 +124,36 @@ DC (Distribution Center)
 - `facilityCode` - код объекта
 
 > Backward compatibility: JWT без facility claims поддерживаются
+
+---
+
+## Stock Management (WH-270)
+
+Управление остатками товаров на объектах:
+
+```
+Product (1) ←──── Stock ────→ (1) Facility
+              quantity: 150
+              reserved: 25
+              available: 125
+```
+
+**Ключевые концепции:**
+- `quantity` — общее количество на объекте
+- `reserved` — зарезервировано (для заказов)
+- `available` = quantity - reserved
+
+**Kafka события:**
+- Все изменения остатков отправляются в `warehouse.audit`
+- Формат: StockEvent с action (UPDATE, ADJUST, RESERVE, SHIP, RELEASE)
+
+**API Endpoints (8):**
+- GET `/api/stock/facility/{id}` — остатки на объекте
+- GET `/api/stock/product/{id}` — остатки товара везде
+- GET `/api/stock/product/{id}/total` — суммарный остаток
+- POST `/api/stock/product/{id}/facility/{id}` — установить остаток
+- PATCH `/api/stock/product/{id}/facility/{id}/adjust` — изменить (±)
+- POST `/api/stock/product/{id}/facility/{id}/reserve` — зарезервировать
 
 ---
 

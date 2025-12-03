@@ -104,6 +104,69 @@ curl -X POST http://192.168.1.74:30080/api/facilities \
 - WH → `WH-MSK-001`, `WH-SPB-002`, ... (регион из первого WH)
 - PP → `PP-MSK-001-01`, `PP-SPB-002-03`, ... (номер родителя + порядковый номер)
 
+### Stock API (WH-270)
+
+```bash
+# Получить токен
+TOKEN=$(curl -s -X POST http://192.168.1.74:30080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password123"}' | jq -r '.token')
+
+# Все остатки на объекте
+curl -s http://192.168.1.74:30080/api/stock/facility/1 \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Остатки товара на всех объектах
+curl -s http://192.168.1.74:30080/api/stock/product/1 \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Суммарный остаток товара
+curl -s http://192.168.1.74:30080/api/stock/product/1/total \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Конкретный остаток (товар + объект)
+curl -s http://192.168.1.74:30080/api/stock/product/1/facility/1 \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Установить остаток (100 единиц)
+curl -s -X POST http://192.168.1.74:30080/api/stock/product/1/facility/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity":100}' | jq
+
+# Изменить остаток (+50)
+curl -s -X PATCH http://192.168.1.74:30080/api/stock/product/1/facility/1/adjust \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"delta":50}' | jq
+
+# Зарезервировать (25 единиц)
+curl -s -X POST http://192.168.1.74:30080/api/stock/product/1/facility/1/reserve \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount":25}' | jq
+
+# Товары с низким остатком (threshold=10)
+curl -s "http://192.168.1.74:30080/api/stock/facility/1/low?threshold=10" \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+**Database schema (V4):**
+```sql
+CREATE TABLE stock (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES products(id),
+    facility_id BIGINT NOT NULL REFERENCES facilities(id),
+    quantity INTEGER NOT NULL DEFAULT 0,
+    reserved INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (product_id, facility_id),
+    CHECK (quantity >= 0),
+    CHECK (quantity >= reserved)
+);
+```
+
 ### Health Check
 
 ```bash

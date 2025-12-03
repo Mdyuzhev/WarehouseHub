@@ -33,6 +33,31 @@
 
 ---
 
+### WH-270: Product/Stock Separation ✅
+**Статус:** Deployed to Production
+**Дата:** 2025-12-03
+**MR:** !6 merged
+
+**Что реализовано:**
+- ✅ Stock entity с привязкой к Product + Facility
+- ✅ Flyway миграция V4 (таблица stock)
+- ✅ StockService + StockRepository
+- ✅ StockController (8 REST endpoints)
+- ✅ Kafka события в warehouse.audit
+- ✅ Unit тесты (13) + Integration тесты (7)
+
+**Endpoints /api/stock/*:**
+- `GET /facility/{id}` — остатки на объекте
+- `GET /product/{id}` — остатки товара везде
+- `GET /product/{id}/facility/{id}` — конкретный остаток
+- `GET /product/{id}/total` — суммарный остаток
+- `POST /product/{id}/facility/{id}` — установить остаток
+- `PATCH /product/{id}/facility/{id}/adjust` — изменить остаток
+- `POST /product/{id}/facility/{id}/reserve` — зарезервировать
+- `GET /facility/{id}/low` — товары с низким остатком
+
+---
+
 ## Текущая ситуация в репозиториях
 
 ### warehouse-master
@@ -66,6 +91,7 @@
 | **Ветки** | main, develop, hotfix/test-fixes (merged) |
 
 **Что в main:**
+- ✅ WH-270: Stock Management (Product/Stock Separation)
 - ✅ WH-379: Notification Service (полный Epic)
 - ✅ WH-388: TelegramNotificationSender
 - ✅ WH-394, WH-395: Unit и Integration тесты
@@ -135,6 +161,7 @@
 ## Текущие приоритеты
 
 ### Завершено
+- [x] WH-270 Epic - Stock Management (Product/Stock Separation)
 - [x] WH-379 Epic - Notification Service
 - [x] WH-388 - TelegramNotificationSender
 - [x] WH-396 - k6 load test
@@ -156,11 +183,11 @@
 
 | Метрика | Значение |
 |---------|----------|
-| **warehouse-api тесты** | 8/8 Integration + Unit passed |
+| **warehouse-api тесты** | 20/20 Stock + Notification passed |
 | **Pods Running** | 10/10 в warehouse namespace |
-| **Последний Epic** | WH-379 (Notification Service) |
-| **API Endpoints** | 23 (добавлено 3 для notifications) |
-| **Pipeline** | #230 running (main) |
+| **Последний Epic** | WH-270 (Stock Management) |
+| **API Endpoints** | 31 (добавлено 8 для stock) |
+| **Pipeline** | #237 (main) |
 | **Версия Bot** | v5.6 (deployed) |
 
 ---
@@ -181,7 +208,15 @@
 
 ## Changelog
 
-### 2025-12-03
+### 2025-12-03 (WH-270)
+- ✅ **WH-270 Stock Management deployed to Production**
+- ✅ Stock entity + V4 миграция
+- ✅ 8 новых endpoints /api/stock/*
+- ✅ MR !6 merged, Pipeline #237 passed
+- ✅ Unit тесты (13) + Integration тесты (7)
+- ✅ Kafka события для аудита
+
+### 2025-12-03 (Full Audit)
 - ✅ Full audit выполнен
 - ✅ Production и Staging: API UP, все компоненты работают
 - ✅ warehouse-api: 24 endpoints, hotfix/test-fixes с небольшими изменениями

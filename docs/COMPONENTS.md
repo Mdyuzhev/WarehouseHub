@@ -30,10 +30,11 @@
 - Redis (кэширование, rate limiting, token blacklist)
 - Kafka (audit events, notifications)
 
-**Endpoints (24 total):**
+**Endpoints (31 total):**
 - `/api/auth/*` - аутентификация (4)
 - `/api/products/*` - CRUD товаров (5)
 - `/api/facilities/*` - управление объектами (8, WH-269)
+- `/api/stock/*` - управление остатками (8, WH-270)
 - `/api/notifications/*` - уведомления (3, WH-379)
 - `/actuator/health` - health check
 - `/actuator/prometheus` - метрики
@@ -136,6 +137,45 @@
 - Bot: @wh_ntf_bot
 - Chat: WH_lab_notify (-1003231635846)
 - Формат: HTML с bold для subject
+
+---
+
+### Stock API (WH-270)
+
+| Параметр | Значение |
+|----------|----------|
+| Технологии | Spring Boot 3.2.0 (часть warehouse-api) |
+| Endpoints | `/api/stock/*` (8 endpoints) |
+| Flyway | V4__add_stock_table.sql |
+| Kafka | События в warehouse.audit |
+
+**Endpoints:**
+
+| Endpoint | Метод | Описание | Роли |
+|----------|-------|----------|------|
+| `/api/stock/facility/{id}` | GET | Все остатки на объекте | EMPLOYEE+ |
+| `/api/stock/product/{id}` | GET | Остатки товара на всех объектах | EMPLOYEE+ |
+| `/api/stock/product/{id}/facility/{id}` | GET | Конкретный остаток | EMPLOYEE+ |
+| `/api/stock/product/{id}/total` | GET | Суммарный остаток товара | EMPLOYEE+ |
+| `/api/stock/product/{id}/facility/{id}` | POST | Установить остаток | MANAGER+ |
+| `/api/stock/product/{id}/facility/{id}/adjust` | PATCH | Изменить остаток (±) | EMPLOYEE+ |
+| `/api/stock/product/{id}/facility/{id}/reserve` | POST | Зарезервировать | EMPLOYEE+ |
+| `/api/stock/facility/{id}/low` | GET | Товары с низким остатком | MANAGER+ |
+
+**Stock DTO:**
+```json
+{
+  "id": 1,
+  "productId": 1,
+  "productName": "Ключ разводной",
+  "facilityId": 1,
+  "facilityCode": "DC-001",
+  "facilityName": "Test DC",
+  "quantity": 150,
+  "reserved": 25,
+  "available": 125
+}
+```
 
 ---
 
