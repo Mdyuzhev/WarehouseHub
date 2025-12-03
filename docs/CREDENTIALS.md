@@ -144,7 +144,11 @@ cat /home/flomaster/secrets/yc-registry-key.json | docker login --username json_
 
 ## Тестовые пользователи (Warehouse API)
 
+### Production (30080)
 > Пароль для всех: `password123`
+
+### Dev (31080)
+> Пароль для всех: `admin123`
 
 | Username | Role | Права |
 |----------|------|-------|
@@ -167,4 +171,4 @@ cat /home/flomaster/secrets/yc-registry-key.json | docker login --username json_
 
 ---
 
-*Последнее обновление: 2025-12-01*
+*Последнее обновление: 2025-12-03*
