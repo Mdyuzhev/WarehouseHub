@@ -7,11 +7,13 @@ import com.warehouse.model.Stock;
 import com.warehouse.repository.FacilityRepository;
 import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.StockRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,13 +22,44 @@ import java.util.stream.Collectors;
  * WH-270: Product/Stock Separation
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class StockService {
 
     private final StockRepository stockRepository;
     private final ProductRepository productRepository;
     private final FacilityRepository facilityRepository;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    public StockService(StockRepository stockRepository,
+                        ProductRepository productRepository,
+                        FacilityRepository facilityRepository,
+                        @Autowired(required = false) KafkaTemplate<String, String> kafkaTemplate) {
+        this.stockRepository = stockRepository;
+        this.productRepository = productRepository;
+        this.facilityRepository = facilityRepository;
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+    /**
+     * Отправить событие изменения остатка в Kafka (WH-298)
+     */
+    private void sendStockEvent(String action, Stock stock, Integer delta) {
+        if (kafkaTemplate == null) return;
+
+        try {
+            String event = String.format(
+                "{\"type\":\"STOCK_%s\",\"productId\":%d,\"facilityId\":%d,\"facilityCode\":\"%s\"," +
+                "\"quantity\":%d,\"delta\":%d,\"timestamp\":\"%s\"}",
+                action, stock.getProduct().getId(), stock.getFacility().getId(),
+                stock.getFacility().getCode(), stock.getQuantity(),
+                delta != null ? delta : 0, Instant.now()
+            );
+            kafkaTemplate.send("warehouse.audit", event);
+            log.debug("Stock event sent: {}", event);
+        } catch (Exception e) {
+            log.warn("Failed to send stock event: {}", e.getMessage());
+        }
+    }
 
     /**
      * Получить все остатки на объекте
@@ -75,11 +108,13 @@ public class StockService {
                         .reserved(0)
                         .build());
 
+        int oldQuantity = stock.getQuantity();
         stock.setQuantity(quantity);
         stock = stockRepository.save(stock);
 
         log.info("Stock updated: product={}, facility={}, quantity={}",
                 productId, facility.getCode(), quantity);
+        sendStockEvent("UPDATE", stock, quantity - oldQuantity);
 
         return toDTO(stock);
     }
@@ -108,6 +143,7 @@ public class StockService {
 
         log.info("Stock adjusted: product={}, facility={}, delta={}, newQuantity={}",
                 productId, stock.getFacility().getCode(), delta, newQuantity);
+        sendStockEvent("ADJUST", stock, delta);
 
         return toDTO(stock);
     }
@@ -131,6 +167,7 @@ public class StockService {
 
         log.info("Stock reserved: product={}, facility={}, amount={}, newReserved={}",
                 productId, stock.getFacility().getCode(), amount, stock.getReserved());
+        sendStockEvent("RESERVE", stock, amount);
 
         return toDTO(stock);
     }
@@ -158,6 +195,7 @@ public class StockService {
 
         log.info("Reservation released: product={}, facility={}, amount={}, shipped={}",
                 productId, stock.getFacility().getCode(), amount, shipped);
+        sendStockEvent(shipped ? "SHIP" : "RELEASE", stock, -amount);
 
         return toDTO(stock);
     }
