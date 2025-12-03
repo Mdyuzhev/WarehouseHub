@@ -1,4 +1,30 @@
 {
+  "workflows": {
+    "post_deploy_production": {
+      "description": "Обязательные шаги после деплоя в Production",
+      "steps": [
+        "1. Health check (curl actuator/health)",
+        "2. Smoke test (проверить основной функционал)",
+        "3. RELEASE NOTES: Отправить в Telegram (docs/RELEASE_NOTES_PROCEDURE.md)",
+        "4. Обновить документацию с новой версией (docs/DOC_VERSIONING.md)",
+        "5. Закрыть Epic в YouTrack с комментарием"
+      ],
+      "release_notes": {
+        "channel": "TELEGRAM",
+        "recipient": "-1003231635846",
+        "chat_name": "WH_lab_notify",
+        "required": true
+      }
+    },
+    "doc_update": {
+      "description": "При любом изменении документации",
+      "steps": [
+        "1. Внести изменения",
+        "2. Обновить версию в шапке",
+        "3. Коммит: docs: Update {DOC} vYYYY.MM.DD"
+      ]
+    }
+  },
   "permissions": {
     "allow": [
       "Bash",
