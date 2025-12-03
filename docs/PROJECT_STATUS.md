@@ -1,6 +1,6 @@
 # Project Status - Warehouse
 
-> Актуальный статус проекта на 2025-12-02 (после Epic WH-379). Используй этот файл для понимания текущего контекста перед планированием задач.
+> Актуальный статус проекта на 2025-12-03 (после Epic WH-379). Используй этот файл для понимания текущего контекста перед планированием задач.
 
 ---
 
@@ -8,17 +8,18 @@
 
 ### WH-379: Notification Service ✅
 **Статус:** Deployed to Production
-**Дата:** 2025-12-02
-**Ветки:** warehouse-api/main, warehouse-master/main
+**Дата:** 2025-12-03
+**Окружения:** warehouse-dev ✅, warehouse (prod) ✅
 
-**Что реализовано:**
-- ✅ NotificationService с асинхронной очередью
-- ✅ TelegramNotificationSender (Telegram Bot API integration)
-- ✅ NotificationQueueProcessor с retry логикой (max 3 попытки)
-- ✅ REST API `/api/notifications/*`
-- ✅ Flyway миграция V3 (таблица notifications)
-- ✅ Unit и Integration тесты (8/8 passed)
-- ✅ k6 load test (notification-load-test.js)
+**Результаты тестирования:**
+- Dev: 5479 запросов, 0 ошибок, throughput 18 req/s
+- Prod: smoke test passed, Telegram интеграция подтверждена
+
+**Компоненты:**
+- NotificationService с асинхронной очередью
+- TelegramNotificationSender (Bot: @wh_ntf_bot)
+- REST API: /api/notifications/*
+- Flyway миграция V3
 
 **Endpoints:**
 - `POST /api/notifications` - создать уведомление
