@@ -23,17 +23,20 @@ public class ProductService {
     private final Counter productsDeletedCounter;
     private final AuditService auditService;  // nullable если Kafka недоступна
     private final StockNotificationService stockNotificationService;  // nullable если Kafka недоступна
+    private final StockService stockService;  // nullable, WH-270: Stock separation
 
     public ProductService(ProductRepository productRepository,
                           @Qualifier("productsCreatedCounter") Counter productsCreatedCounter,
                           @Qualifier("productsDeletedCounter") Counter productsDeletedCounter,
                           @Autowired(required = false) AuditService auditService,
-                          @Autowired(required = false) StockNotificationService stockNotificationService) {
+                          @Autowired(required = false) StockNotificationService stockNotificationService,
+                          @Autowired(required = false) StockService stockService) {
         this.productRepository = productRepository;
         this.productsCreatedCounter = productsCreatedCounter;
         this.productsDeletedCounter = productsDeletedCounter;
         this.auditService = auditService;
         this.stockNotificationService = stockNotificationService;
+        this.stockService = stockService;
     }
 
     private String getCurrentUsername() {
@@ -111,5 +114,21 @@ public class ProductService {
         if (auditService != null) {
             auditService.logProductDelete(id, getCurrentUsername());
         }
+    }
+
+    /**
+     * Получить общее количество товара (deprecated, для совместимости)
+     * WH-270: Используй StockService для работы с остатками по объектам
+     * @deprecated Use StockService.getTotalStock() instead
+     */
+    @Deprecated
+    public Integer getProductQuantity(Long productId) {
+        if (stockService != null) {
+            return stockService.getTotalStock(productId);
+        }
+        // Fallback на старое поле
+        return productRepository.findById(productId)
+                .map(Product::getQuantity)
+                .orElse(0);
     }
 }
