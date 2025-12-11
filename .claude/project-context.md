@@ -152,38 +152,46 @@ ENDSSH
 | Сервис | URL |
 |--------|-----|
 | GitLab | http://192.168.1.74:8080 |
-| YouTrack | http://192.168.1.74:8088 |
 | Allure Server | http://192.168.1.74:5050 |
 | Allure UI | http://192.168.1.74:5252 |
 | Claude Proxy | http://192.168.1.74:8765 |
 
+**YouTrack отключён** - задачи ведутся в GitHub Project
+
 ---
 
-## YouTrack (Task Tracking)
+## GitHub (Task Tracking)
 
-- **URL:** http://192.168.1.74:8088
-- **Проект:** WH (id: 0-1)
-- **Авторизация:** admin / Misha2021@1@
+- **Repo:** https://github.com/Mdyuzhev/WaregouseHub
+- **Project:** https://github.com/users/Mdyuzhev/projects/3
+- **Issues:** 200 задач мигрированы из YouTrack
 
-### API примеры:
+### Работа с задачами:
 ```bash
+# Список открытых задач
+gh issue list --repo Mdyuzhev/WaregouseHub
+
 # Создать задачу
-curl -X POST "http://192.168.1.74:8088/api/issues" \
-  -u "admin:Misha2021@1@" \
-  -H "Content-Type: application/json" \
-  -d '{"project":{"id":"0-1"}, "summary":"Название задачи"}'
+gh issue create --repo Mdyuzhev/WaregouseHub --title "Название" --body "Описание"
 
-# Добавить комментарий
-curl -X POST "http://192.168.1.74:8088/api/issues/WH-XX/comments" \
-  -u "admin:Misha2021@1@" \
-  -H "Content-Type: application/json" \
-  -d '{"text":"Текст комментария"}'
+# Закрыть задачу
+gh issue close 123 --repo Mdyuzhev/WaregouseHub
 
-# Изменить статус на Fixed
-curl -X POST "http://192.168.1.74:8088/api/issues/WH-XX" \
-  -u "admin:Misha2021@1@" \
+# Посмотреть задачу
+gh issue view 123 --repo Mdyuzhev/WaregouseHub
+```
+
+### API (через curl):
+```bash
+# Список issues
+curl -H "Authorization: token $GITHUB_TOKEN" \
+  "https://api.github.com/repos/Mdyuzhev/WaregouseHub/issues"
+
+# Создать issue
+curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"customFields":[{"name":"State","$type":"StateIssueCustomField","value":{"name":"Fixed","$type":"StateBundleElement"}}]}'
+  "https://api.github.com/repos/Mdyuzhev/WaregouseHub/issues" \
+  -d '{"title":"Название","body":"Описание"}'
 ```
 
 ---
@@ -279,10 +287,11 @@ docker build --no-cache -t warehouse-frontend:latest .
 ```
 
 ## Секреты
-- YouTrack: admin / Misha2021@1@
+- GitHub Token: в переменной GITHUB_TOKEN (ghp_...)
 - GitLab Token: glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3
 - Telegram Bot Token: 8532494921:AAEoxQ87qQVcutgCSa8d8DntT_47xhvrCAI
 - Telegram Chat ID: 290274837
+- Yandex Cloud SSH: ~/.ssh/yc_prod_key
 
 ---
 

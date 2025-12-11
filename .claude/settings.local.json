@@ -7,7 +7,7 @@
         "2. Smoke test (проверить основной функционал)",
         "3. RELEASE NOTES: Отправить в Telegram (docs/RELEASE_NOTES_PROCEDURE.md)",
         "4. Обновить документацию с новой версией (docs/DOC_VERSIONING.md)",
-        "5. Закрыть Epic в YouTrack с комментарием"
+        "5. Закрыть Issue в GitHub Project"
       ],
       "release_notes": {
         "channel": "TELEGRAM",
@@ -54,7 +54,7 @@
       "emoji": false,
       "tables": true,
       "code_comments": "на русском",
-      "commits": "#WH-XXX описание на русском"
+      "commits": "описание на русском, ссылка на issue #XXX"
     }
   },
   "quick_start": {
@@ -67,8 +67,8 @@
         "docs/DEPLOY_GUIDE.md",
         "docs/CREDENTIALS.md"
       ],
-      "youtrack": [
-        "docs/YOUTRACK_API.md"
+      "issues": [
+        "Смотри GitHub Project"
       ],
       "testing": [
         "docs/TESTING.md",
@@ -89,7 +89,7 @@
       "prod": "namespace warehouse, порты 30xxx, deploy manual",
       "dev": "namespace warehouse-dev, порты 31xxx, deploy auto"
     },
-    "ci_cd": "GitLab :8080, project_id=1, token в ~/.gitlab-token"
+    "ci_cd": "GitLab :8080 (локальный) -> GitHub -> Yandex Cloud"
   },
   "lab_control": {
     "description": "Управление ресурсами сервера для экономии RAM",
@@ -106,21 +106,19 @@
         "services": "IDLE + GitLab"
       },
       "FULL": {
-        "ram": "14-16GB",
+        "ram": "11-13GB",
         "command": "lab start-session",
-        "services": "GitLab + YouTrack + Grafana/Prometheus"
+        "services": "GitLab + Grafana/Prometheus (YouTrack отключён)"
       }
     },
     "commands": {
-      "start-session": "Полная рабочая сессия",
+      "start-session": "Полная рабочая сессия (без YouTrack)",
       "stop-session": "Завершение сессии, возврат в IDLE",
       "start-ci": "Только GitLab для CI/CD",
       "start-warehouse": "K3s namespace warehouse + warehouse-dev",
       "stop-warehouse": "Остановить warehouse окружения",
       "start-gitlab": "Только GitLab",
       "stop-gitlab": "Остановить GitLab",
-      "start-youtrack": "Только YouTrack",
-      "stop-youtrack": "Остановить YouTrack",
       "status": "Показать текущее состояние"
     },
     "rules": [
@@ -130,8 +128,8 @@
     ]
   },
   "git_workflow": {
-    "main": "PROTECTED! Merge только через MR",
-    "process": "feature branch → push → MR → merge → auto deploy"
+    "main": "PROTECTED! Merge только через MR/PR",
+    "process": "feature branch → push GitLab → sync GitHub → auto deploy Yandex Cloud"
   },
   "task_workflows": {
     "story": {
@@ -148,19 +146,25 @@
   },
   "critical_rules": [
     "K3s != Docker — после build нужен k3s ctr import",
-    "Main protected — merge только через MR",
-    "YouTrack — только Basic Auth",
+    "Main protected — merge только через MR/PR",
+    "Задачи ведутся в GitHub Project",
     "Docker build — НЕ локально (OOM), через CI/CD"
   ],
   "tools": {
-    "youtrack": {
-      "url": "http://192.168.1.74:8088",
-      "auth": "-u 'admin:Misha2021@1@'",
-      "project": "0-1"
+    "github": {
+      "repo": "https://github.com/Mdyuzhev/WaregouseHub",
+      "project": "https://github.com/users/Mdyuzhev/projects/3",
+      "project_id": "PVT_kwHOAoshms4BKZrs",
+      "token_env": "GITHUB_TOKEN",
+      "api": {
+        "issues": "gh issue list / gh issue create",
+        "project": "GraphQL API"
+      }
     },
     "gitlab": {
       "url": "http://192.168.1.74:8080",
-      "project": 1
+      "project": 1,
+      "role": "CI/CD, синхронизация с GitHub"
     }
   },
   "repositories": {
