@@ -156,7 +156,6 @@ class InventoryActServiceTest {
 
         when(inventoryActRepository.findByIdWithItems(1L)).thenReturn(Optional.of(testInventoryAct));
         when(inventoryActRepository.save(any(InventoryAct.class))).thenAnswer(inv -> inv.getArgument(0));
-        doNothing().when(stockService).adjustStock(1L, 2L, +10);
 
         // Act
         InventoryActDTO result = inventoryActService.complete(1L, testUser);
@@ -177,7 +176,6 @@ class InventoryActServiceTest {
 
         when(inventoryActRepository.findByIdWithItems(1L)).thenReturn(Optional.of(testInventoryAct));
         when(inventoryActRepository.save(any(InventoryAct.class))).thenAnswer(inv -> inv.getArgument(0));
-        doNothing().when(stockService).adjustStock(1L, 2L, -15);
 
         // Act
         InventoryActDTO result = inventoryActService.complete(1L, testUser);

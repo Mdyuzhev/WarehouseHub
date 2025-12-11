@@ -188,7 +188,6 @@ class IssueActServiceTest {
         // Arrange
         when(issueActRepository.findByIdWithItems(1L)).thenReturn(Optional.of(testIssueAct));
         when(issueActRepository.save(any(IssueAct.class))).thenAnswer(inv -> inv.getArgument(0));
-        doNothing().when(stockService).adjustStock(1L, 4L, -10);
 
         // Act
         IssueActDTO result = issueActService.complete(1L, testUser);
