@@ -11,6 +11,7 @@ stages:
   - init
   - deploy-staging
   - deploy-prod
+  - sync-github
   - test
 
 # Фейковый job чтобы pipeline был "успешным" и показывал кнопки
@@ -180,6 +181,68 @@ deploy-all-prod:
   environment:
     name: production
     url: https://wh-lab.ru
+
+# =============================================================================
+# SYNC TO GITHUB (triggers cloud deploy)
+# =============================================================================
+
+sync-to-github:
+  stage: sync-github
+  variables:
+    GITHUB_REPO: "https://github.com/Mdyuzhev/WaregouseHub.git"
+  script:
+    - echo "🔄 Syncing to GitHub..."
+    - |
+      # Configure git
+      git config --global user.email "gitlab-ci@warehouse.local"
+      git config --global user.name "GitLab CI"
+
+      # Add GitHub remote if not exists
+      git remote get-url github 2>/dev/null || git remote add github "https://${GITHUB_TOKEN}@github.com/Mdyuzhev/WaregouseHub.git"
+
+      # Update remote URL with token
+      git remote set-url github "https://${GITHUB_TOKEN}@github.com/Mdyuzhev/WaregouseHub.git"
+
+      # Push to GitHub (triggers GitHub Actions -> Yandex Cloud)
+      git push github HEAD:main --force
+
+      echo "✅ Pushed to GitHub!"
+      echo "🚀 GitHub Actions will now deploy to Yandex Cloud"
+      echo "   Check: https://github.com/Mdyuzhev/WaregouseHub/actions"
+  tags:
+    - shell
+  when: manual
+  needs:
+    - job: deploy-all-prod
+      optional: true
+
+# Auto-sync after any prod deploy
+sync-to-github-auto:
+  stage: sync-github
+  variables:
+    GITHUB_REPO: "https://github.com/Mdyuzhev/WaregouseHub.git"
+  script:
+    - echo "🔄 Auto-syncing to GitHub after prod deploy..."
+    - |
+      git config --global user.email "gitlab-ci@warehouse.local"
+      git config --global user.name "GitLab CI"
+      git remote set-url github "https://${GITHUB_TOKEN}@github.com/Mdyuzhev/WaregouseHub.git" 2>/dev/null || \
+        git remote add github "https://${GITHUB_TOKEN}@github.com/Mdyuzhev/WaregouseHub.git"
+      git push github HEAD:main --force
+      echo "✅ Synced to GitHub -> Cloud deploy triggered"
+  tags:
+    - shell
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+    - when: never
+  needs:
+    - job: deploy-all-prod
+      optional: true
+    - job: deploy-api-prod
+      optional: true
+    - job: deploy-frontend-prod
+      optional: true
 
 # =============================================================================
 # TESTING
