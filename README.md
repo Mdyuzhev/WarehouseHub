@@ -1,87 +1,220 @@
-# Warehouse Master
+# WarehouseHub
 
-Мастер-репозиторий для оркестрации деплоя, тестирования и управления инфраструктурой проекта Warehouse.
+**Warehouse Management System** - полнофункциональная система управления складом с микросервисной архитектурой, развёрнутая в Kubernetes.
 
-## Структура
+## Обзор
+
+Проект представляет собой комплексное решение для автоматизации складских операций, включающее:
+
+- REST API на Spring Boot
+- SPA-интерфейс на Vue.js
+- Автоматизированное тестирование (E2E, нагрузочное, UI)
+- CI/CD пайплайны
+- Мониторинг и алертинг
+- Telegram-бот для уведомлений
+
+## Архитектура
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Production                                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │  Frontend   │───▶│   API       │───▶│ PostgreSQL  │         │
+│  │  (Vue.js)   │    │(Spring Boot)│    │             │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│                            │                                     │
+│                            ▼                                     │
+│                     ┌─────────────┐                             │
+│                     │    Redis    │                             │
+│                     │   (Cache)   │                             │
+│                     └─────────────┘                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Структура репозитория
 
 ```
 warehouse-master/
-├── .gitlab-ci.yml           # Главный пайплайн оркестрации
-├── k8s/                     # Kubernetes манифесты
-│   ├── warehouse/           # API + Frontend
-│   ├── loadtest/            # Locust (нагрузочное тестирование)
-│   ├── notifications/       # Telegram Bot
-│   └── monitoring/          # Prometheus
-├── loadtest/                # Скрипты нагрузочного тестирования
-│   └── locustfile.py        # Сценарии Locust
-├── e2e-tests/               # E2E тесты (RestAssured + Allure)
-│   └── src/test/java/...    # Java тесты
-├── telegram-bot/            # Исходники Telegram бота
-│   ├── app.py               # Основной код бота
-│   ├── claude_proxy.py      # Прокси для Claude API
+├── k8s/                      # Kubernetes манифесты
+│   ├── warehouse/            # Production namespace
+│   ├── warehouse-dev/        # Development namespace
+│   ├── loadtest/             # Нагрузочное тестирование
+│   ├── monitoring/           # Prometheus + Grafana
+│   └── notifications/        # Telegram Bot
+│
+├── e2e-tests/                # E2E тесты (RestAssured + Allure)
+│   └── src/test/java/        # Java тесты
+│
+├── PerformanceTesting/       # Нагрузочное тестирование
+│   ├── configs/              # Конфигурации k6
+│   └── scripts/              # Скрипты тестов
+│
+├── ui-tests/                 # UI тесты (Selenoid)
+│
+├── telegram-bot/             # Telegram бот для уведомлений
+│   ├── app.py                # Основной код
 │   └── Dockerfile
-├── docs/                    # Документация
-│   ├── ARCHITECTURE.md      # Архитектура репозиториев
-│   └── TROUBLESHOOTING_GUIDE.md  # Руководство по устранению проблем
-└── .claude/                 # Контекст для Claude AI
-    ├── project-context.md
-    └── settings.local.json
+│
+├── docs/                     # Документация
+│   ├── ARCHITECTURE.md
+│   ├── COMPONENTS.md
+│   ├── DEPLOY_GUIDE.md
+│   ├── TESTING.md
+│   └── TROUBLESHOOTING_GUIDE.md
+│
+├── .gitlab-ci.yml            # CI/CD пайплайн
+└── .claude/                  # AI-агент контекст
 ```
 
-## Доступные CI/CD действия
+## Технологический стек
 
-| Действие | Описание | Триггер |
-|----------|----------|---------|
-| `deploy-api-staging` | Деплой API в K8s | Manual |
-| `deploy-frontend-staging` | Деплой Frontend в K8s | Manual |
-| `deploy-all-staging` | Деплой API + Frontend | Manual |
-| `deploy-api-prod` | Деплой API на Yandex Cloud | Manual |
-| `deploy-frontend-prod` | Деплой Frontend на Yandex Cloud | Manual |
-| `deploy-all-prod` | Деплой всего на prod | Manual |
-| `run-e2e-tests` | Запуск E2E тестов + Allure отчёт | Manual |
-| `run-load-tests` | Нагрузочное тестирование Locust | Manual |
-| `deploy-telegram-bot` | Деплой Telegram бота в K8s | Manual |
+### Backend
+- Java 17
+- Spring Boot 3.x
+- Spring Security + JWT
+- Spring Data JPA
+- PostgreSQL 15
+- Redis (кэширование)
 
-## Связанные репозитории
+### Frontend
+- Vue.js 3
+- Vite
+- Pinia (state management)
+- Axios
 
-- **warehouse-api** - Spring Boot REST API (только бизнес-логика)
-- **warehouse-frontend** - Vue.js SPA (только UI код)
+### Infrastructure
+- Kubernetes (K3s)
+- Docker
+- GitLab CI/CD
+- Nginx Ingress
 
-## Инфраструктура
+### Testing
+- JUnit 5 + RestAssured (E2E)
+- k6 (нагрузочное)
+- Locust (нагрузочное)
+- Selenoid (UI)
+- Allure (отчёты)
 
-| Среда | URL | Описание |
-|-------|-----|----------|
-| Staging API | http://192.168.1.74:30080 | K3s кластер |
-| Staging Frontend | http://192.168.1.74:30081 | K3s кластер |
-| Production API | https://api.wh-lab.ru | Yandex Cloud |
-| Production Frontend | https://wh-lab.ru | Yandex Cloud |
-| Locust UI | http://192.168.1.74:30089 | Нагрузочное тестирование |
-| Prometheus | http://192.168.1.74:30090 | Мониторинг |
-| Allure | http://192.168.1.74:5252 | Отчёты E2E тестов |
-| GitLab | http://192.168.1.74:8080 | CI/CD |
-| YouTrack | http://192.168.1.74:8088 | Трекер задач |
+### Monitoring
+- Prometheus
+- Grafana
+- Loki (логи)
+
+## Функциональность
+
+### Управление товарами
+- CRUD операции
+- Категоризация
+- Поиск и фильтрация
+- Массовый импорт/экспорт
+
+### Складские операции
+- Приёмка товаров
+- Отгрузка
+- Инвентаризация
+- Перемещение между зонами
+
+### Аналитика
+- Остатки в реальном времени
+- История движения
+- Отчёты по периодам
+
+### Пользователи и роли
+- SUPER_USER - полный доступ
+- ADMIN - управление пользователями
+- MANAGER - складские операции
+- EMPLOYEE - базовые операции
 
 ## Быстрый старт
 
-### Деплой в Staging
+### Требования
+- Docker & Docker Compose
+- Kubernetes cluster (опционально)
+- Java 17+ (для разработки)
+- Node.js 18+ (для фронтенда)
+
+### Локальный запуск
+
 ```bash
-# Через GitLab CI - запустить pipeline вручную
-# Или через kubectl:
+# Клонировать репозиторий
+git clone https://github.com/Mdyuzhev/WaregouseHub.git
+cd WaregouseHub
+
+# Запуск через Docker Compose
+docker-compose up -d
+
+# Или деплой в Kubernetes
 kubectl apply -f k8s/warehouse/
-kubectl rollout restart deployment/warehouse-api -n warehouse
 ```
 
-### Запуск E2E тестов
+### Переменные окружения
+
 ```bash
-# Из корня warehouse-api:
-./mvnw test -Dtest="*E2ETest" -Dspring.profiles.active=test
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=warehouse
+DB_USER=warehouse
+DB_PASSWORD=***
+
+# JWT
+JWT_SECRET=***
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
-### Запуск нагрузочных тестов
+## CI/CD
+
+Проект использует GitLab CI/CD с ручными триггерами:
+
+| Job | Описание |
+|-----|----------|
+| `deploy-api-staging` | Деплой API в staging |
+| `deploy-frontend-staging` | Деплой Frontend в staging |
+| `deploy-all-prod` | Деплой в production |
+| `run-e2e-tests` | E2E тесты + Allure отчёт |
+| `run-load-tests` | Нагрузочное тестирование |
+
+## Тестирование
+
+### E2E тесты
 ```bash
-# Локально:
-locust -f loadtest/locustfile.py --host=http://192.168.1.74:30080
-
-# В K8s:
-kubectl apply -f k8s/loadtest/
+cd e2e-tests
+./mvnw test -Dtest="*E2ETest"
 ```
+
+### Нагрузочные тесты (k6)
+```bash
+k6 run PerformanceTesting/scripts/load-test.js
+```
+
+### UI тесты
+```bash
+cd ui-tests
+./mvnw test
+```
+
+## Документация
+
+- [Архитектура](docs/ARCHITECTURE.md)
+- [Компоненты](docs/COMPONENTS.md)
+- [Руководство по деплою](docs/DEPLOY_GUIDE.md)
+- [Тестирование](docs/TESTING.md)
+- [Troubleshooting](docs/TROUBLESHOOTING_GUIDE.md)
+
+## Связанные репозитории
+
+| Репозиторий | Описание |
+|-------------|----------|
+| warehouse-api | Spring Boot REST API |
+| warehouse-frontend | Vue.js SPA |
+
+## Лицензия
+
+Private repository. All rights reserved.
+
+---
+
+**Maintainer:** [@Mdyuzhev](https://github.com/Mdyuzhev)

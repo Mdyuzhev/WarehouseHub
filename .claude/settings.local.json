@@ -91,6 +91,44 @@
     },
     "ci_cd": "GitLab :8080, project_id=1, token в ~/.gitlab-token"
   },
+  "lab_control": {
+    "description": "Управление ресурсами сервера для экономии RAM",
+    "script": "/home/flomaster/scripts/lab-control.sh",
+    "modes": {
+      "IDLE": {
+        "ram": "4-5GB",
+        "command": "lab stop-session",
+        "services": "K3s control plane, Docker daemon"
+      },
+      "CI_CD": {
+        "ram": "7-9GB",
+        "command": "lab start-ci",
+        "services": "IDLE + GitLab"
+      },
+      "FULL": {
+        "ram": "14-16GB",
+        "command": "lab start-session",
+        "services": "GitLab + YouTrack + Grafana/Prometheus"
+      }
+    },
+    "commands": {
+      "start-session": "Полная рабочая сессия",
+      "stop-session": "Завершение сессии, возврат в IDLE",
+      "start-ci": "Только GitLab для CI/CD",
+      "start-warehouse": "K3s namespace warehouse + warehouse-dev",
+      "stop-warehouse": "Остановить warehouse окружения",
+      "start-gitlab": "Только GitLab",
+      "stop-gitlab": "Остановить GitLab",
+      "start-youtrack": "Только YouTrack",
+      "stop-youtrack": "Остановить YouTrack",
+      "status": "Показать текущее состояние"
+    },
+    "rules": [
+      "ПЕРЕД работой - lab start-warehouse",
+      "ПОСЛЕ работы - lab stop-warehouse",
+      "Конец дня - lab stop-session"
+    ]
+  },
   "git_workflow": {
     "main": "PROTECTED! Merge только через MR",
     "process": "feature branch → push → MR → merge → auto deploy"
