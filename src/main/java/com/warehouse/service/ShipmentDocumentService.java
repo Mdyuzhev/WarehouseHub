@@ -2,13 +2,14 @@ package com.warehouse.service;
 
 import com.warehouse.dto.ShipmentCreateRequest;
 import com.warehouse.dto.ShipmentDocumentDTO;
+import com.warehouse.dto.ShipmentEvent;
 import com.warehouse.dto.ShipmentItemDTO;
 import com.warehouse.model.*;
 import com.warehouse.repository.FacilityRepository;
 import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.ShipmentDocumentRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
  * - CANCEL: release reservation
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ShipmentDocumentService {
 
@@ -36,8 +36,22 @@ public class ShipmentDocumentService {
     private final FacilityRepository facilityRepository;
     private final ProductRepository productRepository;
     private final StockService stockService;
+    private final LogisticsEventProducer logisticsEventProducer;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    @Autowired
+    public ShipmentDocumentService(ShipmentDocumentRepository shipmentRepository,
+                                   FacilityRepository facilityRepository,
+                                   ProductRepository productRepository,
+                                   StockService stockService,
+                                   @Autowired(required = false) LogisticsEventProducer logisticsEventProducer) {
+        this.shipmentRepository = shipmentRepository;
+        this.facilityRepository = facilityRepository;
+        this.productRepository = productRepository;
+        this.stockService = stockService;
+        this.logisticsEventProducer = logisticsEventProducer;
+    }
 
     /**
      * Создать расходную накладную (DRAFT)
@@ -211,6 +225,29 @@ public class ShipmentDocumentService {
 
         shipment = shipmentRepository.save(shipment);
         log.info("Shipment {} shipped by user {}, stock deducted", shipment.getDocumentNumber(), currentUser.getUsername());
+
+        // Send Kafka event for auto-creating receipt at destination
+        if (logisticsEventProducer != null && shipment.getDestinationFacility() != null) {
+            List<ShipmentItemDTO> itemDTOs = shipment.getItems().stream()
+                    .map(item -> ShipmentItemDTO.builder()
+                            .id(item.getId())
+                            .productId(item.getProduct().getId())
+                            .productName(item.getProduct().getName())
+                            .quantity(item.getQuantity())
+                            .build())
+                    .collect(Collectors.toList());
+
+            ShipmentEvent event = ShipmentEvent.builder()
+                    .eventType("DISPATCHED")
+                    .shipmentId(shipment.getId())
+                    .documentNumber(shipment.getDocumentNumber())
+                    .sourceFacilityId(shipment.getSourceFacility().getId())
+                    .destinationFacilityId(shipment.getDestinationFacility().getId())
+                    .items(itemDTOs)
+                    .build();
+
+            logisticsEventProducer.sendShipmentDispatched(event);
+        }
 
         return toDTO(shipment);
     }
