@@ -1,0 +1,142 @@
+# =============================================================================
+# Manual Deploy - выбор компонента и окружения
+# =============================================================================
+
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+      component:
+        description: 'Component to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - api
+          - frontend
+          - telegram-bot
+      force_rebuild:
+        description: 'Force rebuild images'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PROD_PATH: /opt/warehouse
+  YC_REGISTRY: cr.yandex/crpf5fukf1ili7kudopb
+
+jobs:
+  # ===== PRODUCTION =====
+  deploy-production:
+    name: Deploy to Production
+    if: ${{ github.event.inputs.environment == 'production' }}
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy ${{ github.event.inputs.component }}
+        run: |
+          COMPONENT="${{ github.event.inputs.component }}"
+          FORCE="${{ github.event.inputs.force_rebuild }}"
+
+          echo "🚀 Deploying $COMPONENT to Production..."
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << ENDSSH
+
+            cd ${{ env.PROD_PATH }}
+
+            if [ "$FORCE" = "true" ]; then
+              echo "🔄 Force rebuild enabled"
+              sudo docker compose build --no-cache $COMPONENT
+            fi
+
+            if [ "$COMPONENT" = "all" ]; then
+              sudo docker compose pull
+              sudo docker compose up -d
+            else
+              sudo docker compose pull $COMPONENT
+              sudo docker compose up -d $COMPONENT
+            fi
+
+            sudo docker image prune -f
+            echo "✅ Done!"
+            sudo docker compose ps
+          ENDSSH
+
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -sf https://api.wh-lab.ru/actuator/health | jq .status || echo "API check failed"
+          curl -sf -o /dev/null https://wh-lab.ru && echo "Frontend OK" || echo "Frontend check failed"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # ===== STAGING (Local K3s) =====
+  deploy-staging:
+    name: Deploy to Staging
+    if: ${{ github.event.inputs.environment == 'staging' }}
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH to Lab Server
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LAB_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.LAB_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy to K3s Staging
+        run: |
+          COMPONENT="${{ github.event.inputs.component }}"
+          echo "🚀 Deploying $COMPONENT to Staging (K3s)..."
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.LAB_USER }}@${{ secrets.LAB_HOST }} << ENDSSH
+
+            cd ~/warehouse-master
+
+            # Ensure environment is running
+            lab start-warehouse
+
+            if [ "$COMPONENT" = "all" ] || [ "$COMPONENT" = "api" ]; then
+              kubectl apply -f k8s/warehouse/api-deployment.yaml
+              kubectl rollout restart deployment/warehouse-api -n warehouse
+            fi
+
+            if [ "$COMPONENT" = "all" ] || [ "$COMPONENT" = "frontend" ]; then
+              kubectl apply -f k8s/warehouse/frontend-deployment.yaml
+              kubectl rollout restart deployment/warehouse-frontend -n warehouse
+            fi
+
+            kubectl get pods -n warehouse
+            echo "✅ Staging deployment done!"
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
