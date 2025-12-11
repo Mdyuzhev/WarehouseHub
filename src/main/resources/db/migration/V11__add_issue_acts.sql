@@ -22,14 +22,9 @@ CREATE TABLE issue_acts (
     -- Audit fields
     created_by BIGINT REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMP,
+    completed_at TIMESTAMP
 
-    -- Check: only PP facilities allowed
-    CONSTRAINT chk_issue_act_facility_type
-        CHECK (EXISTS (
-            SELECT 1 FROM facilities f
-            WHERE f.id = facility_id AND f.type = 'PP'
-        ))
+    -- Note: facility_type=PP validation in IssueActService
 );
 
 CREATE TABLE issue_act_items (
