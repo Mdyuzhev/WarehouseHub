@@ -5,8 +5,8 @@ import com.warehouse.model.*;
 import com.warehouse.repository.FacilityRepository;
 import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.ReceiptDocumentRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  * State Machine: DRAFT → APPROVED → CONFIRMED → COMPLETED
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ReceiptDocumentService {
 
@@ -31,8 +30,22 @@ public class ReceiptDocumentService {
     private final FacilityRepository facilityRepository;
     private final ProductRepository productRepository;
     private final StockService stockService;
+    private final LogisticsEventProducer logisticsEventProducer;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    @Autowired
+    public ReceiptDocumentService(ReceiptDocumentRepository receiptRepository,
+                                  FacilityRepository facilityRepository,
+                                  ProductRepository productRepository,
+                                  StockService stockService,
+                                  @Autowired(required = false) LogisticsEventProducer logisticsEventProducer) {
+        this.receiptRepository = receiptRepository;
+        this.facilityRepository = facilityRepository;
+        this.productRepository = productRepository;
+        this.stockService = stockService;
+        this.logisticsEventProducer = logisticsEventProducer;
+    }
 
     /**
      * Создать приходную накладную (DRAFT)
@@ -203,6 +216,15 @@ public class ReceiptDocumentService {
         }
 
         log.info("Receipt {} confirmed by user {}, stock updated", receipt.getDocumentNumber(), currentUser.getUsername());
+
+        // If this receipt was auto-created from a shipment, mark shipment as DELIVERED
+        if (logisticsEventProducer != null && receipt.getSourceShipment() != null) {
+            logisticsEventProducer.sendShipmentDelivered(
+                    receipt.getSourceShipment().getId(),
+                    receipt.getSourceShipment().getDocumentNumber()
+            );
+            log.info("Sent DELIVERED event for source shipment {}", receipt.getSourceShipment().getDocumentNumber());
+        }
 
         return toDTO(receipt);
     }
