@@ -30,6 +30,9 @@ public class ReceiptDocumentDTO {
     // Supplier
     private String supplierName;
 
+    // Source shipment (for auto-created receipts)
+    private Long sourceShipmentId;
+
     // Status
     private ReceiptStatus status;
     private String notes;

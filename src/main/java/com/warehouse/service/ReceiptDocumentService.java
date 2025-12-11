@@ -301,6 +301,7 @@ public class ReceiptDocumentService {
                 .facilityCode(receipt.getFacility().getCode())
                 .facilityName(receipt.getFacility().getName())
                 .supplierName(receipt.getSupplierName())
+                .sourceShipmentId(receipt.getSourceShipment() != null ? receipt.getSourceShipment().getId() : null)
                 .status(receipt.getStatus())
                 .notes(receipt.getNotes())
                 .createdAt(receipt.getCreatedAt())

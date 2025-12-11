@@ -25,6 +25,8 @@ public class KafkaConfig {
 
     public static final String AUDIT_TOPIC = "warehouse.audit";
     public static final String NOTIFICATIONS_TOPIC = "warehouse.notifications";
+    public static final String SHIPMENTS_TOPIC = "logistics.shipments";
+    public static final String RECEIPTS_TOPIC = "logistics.receipts";
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
@@ -53,6 +55,22 @@ public class KafkaConfig {
     @Bean
     public NewTopic notificationsTopic() {
         return TopicBuilder.name(NOTIFICATIONS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic shipmentsTopic() {
+        return TopicBuilder.name(SHIPMENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic receiptsTopic() {
+        return TopicBuilder.name(RECEIPTS_TOPIC)
                 .partitions(3)
                 .replicas(1)
                 .build();

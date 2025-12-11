@@ -44,6 +44,14 @@ public class ReceiptDocument {
     private Facility facility;
 
     /**
+     * Исходная отправка (для авто-созданных поступлений через Kafka)
+     * WH-274: Kafka Auto-Documents
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_shipment_id")
+    private ShipmentDocument sourceShipment;
+
+    /**
      * Название поставщика
      */
     @Column(name = "supplier_name", length = 255)
