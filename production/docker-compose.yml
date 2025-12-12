@@ -44,8 +44,8 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_CACHE_TYPE=redis
-      # JWT
-      - JWT_SECRET=kCK/vW4pLPsv6umwGDk5fAa4Ek17qv51GkPTJNZQxRdvcKs3Kx7hQqX75vD3g+jz
+      # JWT (set in .env file)
+      - JWT_SECRET=${JWT_SECRET}
     deploy:
       resources:
         limits:

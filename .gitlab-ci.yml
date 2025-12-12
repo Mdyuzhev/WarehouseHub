@@ -35,15 +35,20 @@ variables:
   K8S_NAMESPACE_LOADTEST: "loadtest"
   K8S_NAMESPACE_NOTIFICATIONS: "notifications"
 
-  # Production
-  PROD_HOST: "130.193.44.34"
+  # Staging Server (local K3s)
+  STAGING_HOST: "192.168.1.74"
+  STAGING_API_PORT: "30080"
+  STAGING_FRONTEND_PORT: "30081"
+  STAGING_API_DEV_PORT: "31080"
+  STAGING_FRONTEND_DEV_PORT: "31081"
+
+  # Production (Yandex Cloud) - host from CI/CD variable $PROD_HOST
   PROD_USER: "ubuntu"
 
-  # Locust
-  LOCUST_MASTER_URL: "http://192.168.1.74:30089"
-
-  # Allure
-  ALLURE_SERVER_URL: "http://192.168.1.74:5050"
+  # Service URLs (computed from STAGING_HOST)
+  LOCUST_MASTER_URL: "http://${STAGING_HOST}:30089"
+  ALLURE_SERVER_URL: "http://${STAGING_HOST}:5050"
+  SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
 
 # =============================================================================
 # DEPLOY STAGING
@@ -64,7 +69,7 @@ deploy-api-staging:
   when: manual
   environment:
     name: staging-api
-    url: http://192.168.1.74:30080
+    url: http://${STAGING_HOST}:${STAGING_API_PORT}
 
 deploy-frontend-staging:
   stage: deploy-staging
@@ -80,7 +85,7 @@ deploy-frontend-staging:
   when: manual
   environment:
     name: staging-frontend
-    url: http://192.168.1.74:30081
+    url: http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}
 
 deploy-all-staging:
   stage: deploy-staging
@@ -98,7 +103,7 @@ deploy-all-staging:
   when: manual
   environment:
     name: staging
-    url: http://192.168.1.74:30080
+    url: http://${STAGING_HOST}:${STAGING_API_PORT}
 
 # =============================================================================
 # DEPLOY PRODUCTION
@@ -108,7 +113,8 @@ deploy-api-prod:
   stage: deploy-prod
   before_script:
     - mkdir -p ~/.ssh
-    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    # SSH key from GitLab CI/CD Variable (Settings > CI/CD > Variables > PROD_SSH_KEY)
+    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
@@ -134,7 +140,7 @@ deploy-frontend-prod:
   stage: deploy-prod
   before_script:
     - mkdir -p ~/.ssh
-    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
@@ -160,7 +166,7 @@ deploy-all-prod:
   stage: deploy-prod
   before_script:
     - mkdir -p ~/.ssh
-    - cp /home/flomaster/.ssh/yc_prod_key ~/.ssh/deploy_key
+    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
     - chmod 600 ~/.ssh/deploy_key
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
@@ -252,7 +258,7 @@ sync-to-github-auto:
 run-e2e-tests-staging:
   stage: test
   variables:
-    BASE_URL: "http://192.168.1.74:30080"
+    BASE_URL: "http://${STAGING_HOST}:${STAGING_API_PORT}"
     PROJECT_ID: "e2e-staging"
   script:
     - echo "🧪 Running E2E Tests on STAGING..."
@@ -269,14 +275,14 @@ run-e2e-tests-staging:
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 E2E STAGING ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
   tags:
     - shell
   when: manual
   environment:
     name: e2e-test-staging
-    url: http://192.168.1.74:30080
+    url: http://${STAGING_HOST}:${STAGING_API_PORT}
 
 # E2E Tests for Production environment
 run-e2e-tests-prod:
@@ -299,7 +305,7 @@ run-e2e-tests-prod:
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 E2E PROD ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5050/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
     - echo "═══════════════════════════════════════════════════════════"
   tags:
     - shell
@@ -312,14 +318,14 @@ run-e2e-tests-prod:
 run-ui-tests-staging:
   stage: test
   variables:
-    BASE_URL: "http://192.168.1.74:30081"
-    SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
+    BASE_URL: "http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}"
+    SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
     PROJECT_ID: "ui-staging"
   script:
     - echo "🎭 Running UI Tests on STAGING..."
     - echo "Target URL - $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
-    - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
+    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
     # Очистка предыдущих результатов
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
@@ -336,7 +342,7 @@ run-ui-tests-staging:
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 STAGING ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
     # Исправление прав для локального запуска
     - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
@@ -345,20 +351,20 @@ run-ui-tests-staging:
   when: manual
   environment:
     name: test-staging
-    url: http://192.168.1.74:30081
+    url: http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}
 
 # UI Tests for Production environment
 run-ui-tests-prod:
   stage: test
   variables:
     BASE_URL: "https://wh-lab.ru"
-    SELENOID_URL: "http://192.168.1.74:4444/wd/hub"
+    SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
     PROJECT_ID: "ui-prod"
   script:
     - echo "🎭 Running UI Tests on PRODUCTION..."
     - echo "Target URL - $BASE_URL"
     # Автоматически поднимаем Selenoid если не запущен
-    - bash -c 'curl -s "http://192.168.1.74:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
+    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
     - echo "✅ Selenoid is ready!"
     # Очистка предыдущих результатов
     - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
@@ -375,7 +381,7 @@ run-ui-tests-prod:
     - echo ""
     - echo "═══════════════════════════════════════════════════════════"
     - echo "📊 PRODUCTION ALLURE REPORT:"
-    - echo "   http://192.168.1.74:5252/#/projects/$PROJECT_ID"
+    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
     - echo "═══════════════════════════════════════════════════════════"
     # Исправление прав для локального запуска
     - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
@@ -451,7 +457,7 @@ deploy-orchestrator-ui:
     - |
       if curl -s http://localhost:8000/health | grep -q "ok"; then
         echo "✅ Orchestrator UI deployed! 🕹️"
-        echo "🌐 URL: http://192.168.1.74:8000"
+        echo "🌐 URL: http://${STAGING_HOST}:8000"
       else
         echo "❌ Health check failed!"
         docker-compose logs
@@ -462,4 +468,4 @@ deploy-orchestrator-ui:
   when: manual
   environment:
     name: staging-ui
-    url: http://192.168.1.74:8000
+    url: http://${STAGING_HOST}:8000

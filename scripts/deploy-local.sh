@@ -63,9 +63,10 @@ rm -f /tmp/warehouse-api.tar
 echo ""
 info "Применение Kubernetes манифестов..."
 
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/warehouse/api-configmap.yaml
+kubectl apply -f k8s/warehouse/api-deployment.yaml
+kubectl apply -f k8s/warehouse/api-service.yaml
+kubectl apply -f k8s/warehouse/api-pdb.yaml 2>/dev/null || true
 
 success "Манифесты применены"
 

@@ -1,21 +1,8 @@
 # WH-195: PostgreSQL для dev-окружения
 # Отдельная БД, изолированная от prod
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-credentials
-  namespace: warehouse-dev
-  labels:
-    app: postgres
-    environment: development
-type: Opaque
-stringData:
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: devpassword123
-  APP_DB_NAME: warehouse_dev
-  # Строка подключения для API
-  DATABASE_URL: "jdbc:postgresql://postgres-service:5432/warehouse_dev"
+#
+# IMPORTANT: Secret is in separate file postgres-secret.yaml (not in git)
+# Copy postgres-secret.yaml.example to postgres-secret.yaml and set passwords
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -30,11 +17,11 @@ data:
     -- Инициализация dev БД
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-    -- Создаём пользователя для приложения
+    -- Создаём пользователя для приложения (пароль из env APP_DB_PASSWORD)
     DO $$
     BEGIN
       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'warehouse_app') THEN
-        CREATE ROLE warehouse_app WITH LOGIN PASSWORD 'devpassword123';
+        CREATE ROLE warehouse_app WITH LOGIN PASSWORD current_setting('app.db_password', true);
       END IF;
     END
     $$;

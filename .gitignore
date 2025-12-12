@@ -23,9 +23,14 @@ secrets.yml
 *.crt
 !*.crt.example
 
-# K8s secrets (локальные копии)
+# K8s secrets (НИКОГДА не коммитить реальные секреты!)
+*-secret.yaml
+*-secrets.yaml
 *-secret.yaml.local
 *-secrets.yaml.local
+# НО .example - можно (это шаблоны)
+!*-secret.yaml.example
+!*-secrets.yaml.example
 
 # Java test properties с паролями
 **/test.properties
