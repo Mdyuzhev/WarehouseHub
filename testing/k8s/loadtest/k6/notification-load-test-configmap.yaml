@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-notification-scripts
+  namespace: loadtest
+data:
+  notification-load-test.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+    import { Counter, Rate, Trend } from 'k6/metrics';
+
+    const notificationsSent = new Counter('notifications_sent');
+    const errorRate = new Rate('errors');
+    const latency = new Trend('notification_latency');
+
+    const BASE_URL = __ENV.BASE_URL || 'http://warehouse-api-service.warehouse-dev.svc.cluster.local:8080';
+
+    export const options = {
+        stages: [
+            { duration: '30s', target: 20 },
+            { duration: '4m', target: 20 },
+            { duration: '30s', target: 0 },
+        ],
+        thresholds: {
+            http_req_duration: ['p(95)<500'],
+            errors: ['rate<0.05'],
+        },
+    };
+
+    export function setup() {
+        const loginRes = http.post(`${BASE_URL}/api/auth/login`,
+            JSON.stringify({ username: 'admin', password: 'admin123' }),
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        if (loginRes.status !== 200) {
+            console.error('Login failed:', loginRes.status);
+            return { token: '', startTime: Date.now(), lastReport: 0 };
+        }
+
+        const token = JSON.parse(loginRes.body).token;
+        console.log('✅ Login successful');
+
+        const tgRes = http.post(`${BASE_URL}/api/notifications`,
+            JSON.stringify({
+                channel: 'TELEGRAM',
+                recipient: '-1003231635846',
+                subject: '🚀 k6 Load Test Started',
+                message: 'Target: Notification Service\nDuration: 5 min\nVU: 20'
+            }),
+            { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }
+        );
+        console.log('✅ Initial Telegram notification sent');
+
+        return { token: token, startTime: Date.now(), lastReport: 0 };
+    }
+
+    export default function(data) {
+        if (!data.token) {
+            sleep(1);
+            return;
+        }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`,
+        };
+
+        const elapsed = Math.floor((Date.now() - data.startTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+
+        // Основная нагрузка IN_MEMORY
+        const start = Date.now();
+        const res = http.post(`${BASE_URL}/api/notifications`,
+            JSON.stringify({
+                channel: 'IN_MEMORY',
+                recipient: `user-${__VU}`,
+                message: `k6 VU:${__VU} iter:${__ITER}`,
+                priority: Math.floor(Math.random() * 10) + 1,
+            }),
+            { headers }
+        );
+        latency.add(Date.now() - start);
+
+        // Проверка без парсинга JSON
+        const success = check(res, {
+            'status 2xx': (r) => r.status >= 200 && r.status < 300
+        });
+
+        errorRate.add(!success);
+        if (success) notificationsSent.add(1);
+
+        // Telegram статус каждые 2 минуты (только VU 1)
+        if (__VU === 1 && mins > 0 && mins % 2 === 0 && mins !== data.lastReport) {
+            data.lastReport = mins;
+
+            const statsRes = http.get(`${BASE_URL}/api/notifications/stats`, { headers });
+            if (statsRes.status === 200 && statsRes.body) {
+                try {
+                    const s = JSON.parse(statsRes.body);
+                    http.post(`${BASE_URL}/api/notifications`,
+                        JSON.stringify({
+                            channel: 'TELEGRAM',
+                            recipient: '-1003231635846',
+                            subject: `📊 ${mins} min elapsed`,
+                            message: `PENDING: ${s.pending||0}\nSENT: ${s.sent||0}\nFAILED: ${s.failed||0}`
+                        }),
+                        { headers }
+                    );
+                    console.log(`📊 Telegram status sent at ${mins} min`);
+                } catch (e) {
+                    console.log('Stats parse error:', e);
+                }
+            }
+        }
+
+        sleep(0.5);
+    }
+
+    export function teardown(data) {
+        if (!data.token) return;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`,
+        };
+
+        const statsRes = http.get(`${BASE_URL}/api/notifications/stats`, { headers });
+        let msg = 'Stats unavailable';
+
+        if (statsRes.status === 200 && statsRes.body) {
+            try {
+                const s = JSON.parse(statsRes.body);
+                const duration = Math.floor((Date.now() - data.startTime) / 1000);
+                msg = `Duration: ${duration}s\nPENDING: ${s.pending||0}\nSENT: ${s.sent||0}\nFAILED: ${s.failed||0}\nDEAD: ${s.dead||0}`;
+            } catch (e) {
+                msg = 'Stats parse error';
+            }
+        }
+
+        http.post(`${BASE_URL}/api/notifications`,
+            JSON.stringify({
+                channel: 'TELEGRAM',
+                recipient: '-1003231635846',
+                subject: '✅ k6 Load Test Complete',
+                message: msg
+            }),
+            { headers }
+        );
+        console.log('✅ Final Telegram notification sent');
+    }
