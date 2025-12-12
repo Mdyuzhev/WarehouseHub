@@ -4,9 +4,16 @@
 
     <div class="filters">
       <label>
-        <input type="checkbox" v-model="showLowStockOnly" @change="filterStock" />
+        <input type="checkbox" v-model="showLowStockOnly" @change="filterStock" data-testid="low-stock-filter" />
         Show low stock only
       </label>
+      <input
+        type="text"
+        v-model="filterText"
+        placeholder="Filter by product name..."
+        class="filter-input"
+        data-testid="filter-input"
+      />
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -14,7 +21,7 @@
       No stock data available
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="stock-table">
       <thead>
         <tr>
           <th>Product</th>
@@ -26,7 +33,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in filteredStock" :key="item.id" :class="{ 'low-stock': item.isLowStock }">
+        <tr v-for="item in filteredStock" :key="item.id" :class="{ 'low-stock': item.isLowStock }" :data-testid="item.isLowStock ? 'low-stock-row' : 'stock-row'">
           <td>{{ item.productName }}</td>
           <td>{{ item.productSku }}</td>
           <td>{{ item.quantity }}</td>
@@ -70,16 +77,25 @@ const facilityStore = useFacilityStore()
 const loading = ref(false)
 const stockData = ref([])
 const showLowStockOnly = ref(false)
+const filterText = ref('')
 const showAdjustModal = ref(false)
 const selectedItem = ref(null)
 const adjustment = ref(0)
 const adjustmentReason = ref('')
 
 const filteredStock = computed(() => {
+  let result = stockData.value
   if (showLowStockOnly.value) {
-    return stockData.value.filter(item => item.isLowStock)
+    result = result.filter(item => item.isLowStock)
   }
-  return stockData.value
+  if (filterText.value.trim()) {
+    const search = filterText.value.toLowerCase()
+    result = result.filter(item =>
+      item.productName?.toLowerCase().includes(search) ||
+      item.productSku?.toLowerCase().includes(search)
+    )
+  }
+  return result
 })
 
 async function loadStock() {
@@ -137,6 +153,16 @@ onMounted(() => {
 
 .filters {
   margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  width: 250px;
 }
 
 .table {

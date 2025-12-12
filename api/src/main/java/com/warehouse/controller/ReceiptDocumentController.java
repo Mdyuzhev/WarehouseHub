@@ -54,7 +54,7 @@ public class ReceiptDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Создать приходную накладную (DRAFT)")
     public ResponseEntity<ReceiptDocumentDTO> createReceipt(@Valid @RequestBody ReceiptCreateRequest request) {
         log.info("Creating receipt document for facility {}", request.getFacilityId());
@@ -73,7 +73,7 @@ public class ReceiptDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить приходную накладную по ID")
     public ResponseEntity<ReceiptDocumentDTO> getReceiptById(@PathVariable Long id) {
         try {
@@ -90,7 +90,7 @@ public class ReceiptDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/facility/{facilityId}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить все приходные накладные для объекта")
     public ResponseEntity<List<ReceiptDocumentDTO>> getReceiptsByFacility(@PathVariable Long facilityId) {
         List<ReceiptDocumentDTO> receipts = receiptService.getByFacility(facilityId);
@@ -102,7 +102,7 @@ public class ReceiptDocumentController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Утвердить приходную накладную (DRAFT → APPROVED)")
     public ResponseEntity<ReceiptDocumentDTO> approveReceipt(@PathVariable Long id) {
         log.info("Approving receipt {}", id);
@@ -125,7 +125,7 @@ public class ReceiptDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Подтвердить приходную накладную (APPROVED → CONFIRMED), обновляет stock")
     public ResponseEntity<ReceiptDocumentDTO> confirmReceipt(
             @PathVariable Long id,
@@ -152,7 +152,7 @@ public class ReceiptDocumentController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Завершить приходную накладную (CONFIRMED → COMPLETED)")
     public ResponseEntity<ReceiptDocumentDTO> completeReceipt(@PathVariable Long id) {
         log.info("Completing receipt {}", id);
@@ -173,7 +173,7 @@ public class ReceiptDocumentController {
      * Доступно: MANAGER, ADMIN
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Удалить приходную накладную (только DRAFT)")
     public ResponseEntity<Void> deleteReceipt(@PathVariable Long id) {
         log.info("Deleting receipt {}", id);

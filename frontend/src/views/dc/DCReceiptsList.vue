@@ -2,7 +2,7 @@
   <div class="receipts-list">
     <div class="header">
       <h1>DC Receipts</h1>
-      <button @click="goToCreate" class="btn btn-primary">Create Receipt</button>
+      <button @click="goToCreate" class="btn btn-primary" data-testid="create-button">Create Receipt</button>
     </div>
 
     <div class="filters">
@@ -31,7 +31,7 @@
       No receipts found
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="receipts-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -44,7 +44,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="receipt in receipts" :key="receipt.id">
+        <tr v-for="receipt in receipts" :key="receipt.id" data-testid="receipt-row">
           <td>{{ receipt.id }}</td>
           <td>{{ receipt.documentNumber }}</td>
           <td>{{ receipt.supplierName }}</td>

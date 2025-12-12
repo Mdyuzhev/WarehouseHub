@@ -23,7 +23,7 @@
             required
             :disabled="loading"
             autocomplete="username"
-            data-testid="username-input"
+            data-testid="username"
           >
         </div>
 
@@ -41,7 +41,7 @@
               required
               :disabled="loading"
               autocomplete="current-password"
-              data-testid="password-input"
+              data-testid="password"
             >
             <button
               type="button"

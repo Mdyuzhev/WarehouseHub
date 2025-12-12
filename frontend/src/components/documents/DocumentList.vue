@@ -8,7 +8,7 @@
       Нет документов
     </div>
 
-    <table v-else class="documents-table">
+    <table v-else class="documents-table" :data-testid="`${type}s-table`">
       <thead>
         <tr>
           <th @click="toggleSort('documentNumber')" class="sortable">
@@ -26,7 +26,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="doc in sortedDocuments" :key="doc.id">
+        <tr v-for="doc in sortedDocuments" :key="doc.id" :data-testid="`${type}-row`">
           <td class="doc-number">{{ doc.documentNumber }}</td>
           <td>{{ formatDate(doc.createdAt) }}</td>
           <td>

@@ -11,12 +11,12 @@
 
         <div class="form-group">
           <label>Customer Name *</label>
-          <input v-model="form.customerName" type="text" required class="form-input" />
+          <input v-model="form.customerName" type="text" required class="form-input" data-testid="customer-name-input" />
         </div>
 
         <div class="form-group">
           <label>Phone *</label>
-          <input v-model="form.customerPhone" type="tel" required class="form-input" />
+          <input v-model="form.customerPhone" type="tel" required class="form-input" data-testid="customer-phone-input" />
         </div>
 
         <div class="form-group">
@@ -28,7 +28,7 @@
       <div class="form-section">
         <div class="section-header">
           <h3>Items</h3>
-          <button type="button" @click="addItem" class="btn btn-sm">Add Item</button>
+          <button type="button" @click="addItem" class="btn btn-sm" data-testid="add-item-button">Add Item</button>
         </div>
 
         <div v-if="form.items.length === 0" class="empty">
@@ -38,7 +38,7 @@
         <div v-for="(item, index) in form.items" :key="index" class="item-row">
           <div class="form-group">
             <label>Product *</label>
-            <select v-model="item.productId" required class="form-input">
+            <select v-model="item.productId" required class="form-input" data-testid="product-select">
               <option value="">Select product</option>
               <option v-for="p in availableProducts" :key="p.id" :value="p.id">
                 {{ p.name }} (Available: {{ getStock(p.id) }})
@@ -55,6 +55,7 @@
               :max="getStock(item.productId)"
               required
               class="form-input"
+              data-testid="quantity-input"
             />
           </div>
 
@@ -65,7 +66,7 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary">
+        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary" data-testid="save-button">
           {{ loading ? 'Creating...' : 'Create & Complete' }}
         </button>
       </div>

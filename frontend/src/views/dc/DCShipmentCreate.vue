@@ -13,7 +13,7 @@
 
         <div class="form-group">
           <label>Destination Facility (WH) *</label>
-          <select v-model="form.destinationFacilityId" required class="form-input">
+          <select v-model="form.destinationFacilityId" required class="form-input" data-testid="destination-select">
             <option value="">Select warehouse</option>
             <option v-for="facility in warehouses" :key="facility.id" :value="facility.id">
               {{ facility.name }} ({{ facility.code }})
@@ -35,7 +35,7 @@
       <div class="form-section">
         <div class="section-header">
           <h3>Items</h3>
-          <button type="button" @click="addItem" class="btn btn-sm">Add Item</button>
+          <button type="button" @click="addItem" class="btn btn-sm" data-testid="add-item-button">Add Item</button>
         </div>
 
         <div v-if="form.items.length === 0" class="empty">
@@ -45,7 +45,7 @@
         <div v-for="(item, index) in form.items" :key="index" class="item-row">
           <div class="form-group">
             <label>Product *</label>
-            <select v-model="item.productId" @change="updateAvailableStock(index)" required class="form-input">
+            <select v-model="item.productId" @change="updateAvailableStock(index)" required class="form-input" data-testid="product-select">
               <option value="">Select product</option>
               <option v-for="product in products" :key="product.id" :value="product.id">
                 {{ product.name }} ({{ product.sku }})
@@ -62,6 +62,7 @@
               :max="item.availableStock || 999999"
               required
               class="form-input"
+              data-testid="quantity-input"
             />
             <small v-if="item.availableStock !== null" class="stock-info">
               Available: {{ item.availableStock }}
@@ -75,7 +76,7 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary">
+        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary" data-testid="save-button">
           {{ loading ? 'Creating...' : 'Create Shipment' }}
         </button>
         <button type="button" @click="goBack" class="btn btn-secondary">Cancel</button>

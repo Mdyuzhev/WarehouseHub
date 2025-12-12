@@ -53,7 +53,7 @@ public class InventoryActController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Создать акт инвентаризации (DRAFT)")
     public ResponseEntity<InventoryActDTO> createInventoryAct(@Valid @RequestBody InventoryActCreateRequest request) {
         log.info("Creating inventory act for facility {}", request.getFacilityId());
@@ -72,7 +72,7 @@ public class InventoryActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить акт инвентаризации по ID")
     public ResponseEntity<InventoryActDTO> getInventoryActById(@PathVariable Long id) {
         try {
@@ -89,7 +89,7 @@ public class InventoryActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/facility/{facilityId}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить все акты инвентаризации для склада")
     public ResponseEntity<List<InventoryActDTO>> getInventoryActsByFacility(@PathVariable Long facilityId) {
         List<InventoryActDTO> inventoryActs = inventoryActService.getByFacility(facilityId);
@@ -102,7 +102,7 @@ public class InventoryActController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Завершить акт инвентаризации (DRAFT → COMPLETED), корректирует остатки")
     public ResponseEntity<InventoryActDTO> completeInventoryAct(@PathVariable Long id) {
         log.info("Completing inventory act {}", id);
@@ -125,7 +125,7 @@ public class InventoryActController {
      * Доступно: MANAGER, ADMIN
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Удалить акт инвентаризации (только DRAFT)")
     public ResponseEntity<Void> deleteInventoryAct(@PathVariable Long id) {
         log.info("Deleting inventory act {}", id);

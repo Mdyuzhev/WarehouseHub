@@ -2,7 +2,7 @@
   <div class="shipments-list">
     <div class="header">
       <h1>WH Shipments</h1>
-      <button @click="goToCreate" class="btn btn-primary">Create Shipment</button>
+      <button @click="goToCreate" class="btn btn-primary" data-testid="create-button">Create Shipment</button>
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -12,7 +12,7 @@
       No shipments found
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="shipments-table">
       <thead>
         <tr>
           <th>Document Number</th>
@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="shipment in shipments" :key="shipment.id">
+        <tr v-for="shipment in shipments" :key="shipment.id" data-testid="shipment-row">
           <td>{{ shipment.documentNumber }}</td>
           <td>{{ shipment.destinationFacilityName }}</td>
           <td>

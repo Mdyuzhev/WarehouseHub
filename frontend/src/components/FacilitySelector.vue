@@ -1,10 +1,10 @@
 <template>
   <div class="facility-selector">
     <div class="dropdown" :class="{ open: isOpen }">
-      <button @click="toggleDropdown" class="dropdown-toggle">
+      <button @click="toggleDropdown" class="dropdown-toggle" data-testid="facility-selector">
         <span v-if="facilityStore.currentFacility" class="facility-display">
           <span class="facility-icon">{{ getFacilityIcon(facilityStore.facilityType) }}</span>
-          <span class="facility-text">
+          <span class="facility-text" data-testid="facility-code">
             {{ facilityStore.currentFacility.code }} — {{ facilityStore.currentFacility.name }}
           </span>
         </span>
@@ -21,6 +21,7 @@
             @click="selectFacility(facility)"
             class="dropdown-item"
             :class="{ active: facilityStore.currentFacility?.id === facility.id }"
+            :data-testid="`facility-option-${facility.code}`"
           >
             <span class="facility-icon">{{ getFacilityIcon(type) }}</span>
             <span class="facility-info">
@@ -36,8 +37,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFacilityStore } from '../stores/facility'
 
+const router = useRouter()
 const facilityStore = useFacilityStore()
 const isOpen = ref(false)
 
@@ -67,6 +70,17 @@ function toggleDropdown() {
 function selectFacility(facility) {
   facilityStore.setCurrentFacility(facility)
   isOpen.value = false
+
+  // Navigate to facility dashboard
+  const dashboardRoutes = {
+    DC: '/dc',
+    WH: '/wh',
+    PP: '/pp'
+  }
+  const targetRoute = dashboardRoutes[facility.type]
+  if (targetRoute) {
+    router.push(targetRoute)
+  }
 }
 
 // Закрыть dropdown при клике вне

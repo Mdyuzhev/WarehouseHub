@@ -10,6 +10,7 @@
       // и не может быть оптимизирован Vite/Rollup
       (function() {
         var host = window.location.hostname;
+        var port = window.location.port;
         var apiUrl;
         var analyticsUrl;
         if (host === 'wh-lab.ru' || host === 'www.wh-lab.ru') {
@@ -19,8 +20,15 @@
           apiUrl = '/api';
           analyticsUrl = 'http://analytics-service.warehouse.svc.cluster.local:8090';
         } else if (host === '192.168.1.74') {
-          apiUrl = 'http://192.168.1.74:30080/api';
-          analyticsUrl = 'http://192.168.1.74:30091';
+          // Dev environment (port 31081) uses API on 31080
+          // Prod environment (port 30081) uses API on 30080
+          if (port === '31081') {
+            apiUrl = 'http://192.168.1.74:31080/api';
+            analyticsUrl = 'http://192.168.1.74:31091';
+          } else {
+            apiUrl = 'http://192.168.1.74:30080/api';
+            analyticsUrl = 'http://192.168.1.74:30091';
+          }
         } else {
           apiUrl = 'http://' + host + ':30080/api';
           analyticsUrl = 'http://' + host + ':30091';

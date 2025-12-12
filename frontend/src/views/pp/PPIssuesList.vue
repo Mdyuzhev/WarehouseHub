@@ -2,7 +2,7 @@
   <div class="issues-list">
     <div class="header">
       <h1>Customer Issues</h1>
-      <button @click="goToCreate" class="btn btn-primary">New Issue</button>
+      <button @click="goToCreate" class="btn btn-primary" data-testid="create-button">New Issue</button>
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -10,7 +10,7 @@
       No customer issues found
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="issues-table">
       <thead>
         <tr>
           <th>Document Number</th>
@@ -22,7 +22,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="issue in issues" :key="issue.id">
+        <tr v-for="issue in issues" :key="issue.id" data-testid="issue-row">
           <td>{{ issue.documentNumber }}</td>
           <td>{{ issue.customerName }}</td>
           <td>{{ issue.customerPhone }}</td>

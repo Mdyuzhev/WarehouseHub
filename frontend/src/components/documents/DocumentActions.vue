@@ -9,6 +9,7 @@
         v-for="action in availableActions"
         :key="action.key"
         :class="['btn', action.class]"
+        :data-testid="`${action.key}-button`"
         @click="handleAction(action.key)"
       >
         {{ action.label }}

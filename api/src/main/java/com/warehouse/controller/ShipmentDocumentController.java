@@ -53,7 +53,7 @@ public class ShipmentDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Создать расходную накладную (DRAFT)")
     public ResponseEntity<ShipmentDocumentDTO> createShipment(@Valid @RequestBody ShipmentCreateRequest request) {
         log.info("Creating shipment document from facility {}", request.getSourceFacilityId());
@@ -72,7 +72,7 @@ public class ShipmentDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить расходную накладную по ID")
     public ResponseEntity<ShipmentDocumentDTO> getShipmentById(@PathVariable Long id) {
         try {
@@ -89,7 +89,7 @@ public class ShipmentDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/facility/{facilityId}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить все расходные накладные для объекта-источника")
     public ResponseEntity<List<ShipmentDocumentDTO>> getShipmentsByFacility(@PathVariable Long facilityId) {
         List<ShipmentDocumentDTO> shipments = shipmentService.getBySourceFacility(facilityId);
@@ -102,7 +102,7 @@ public class ShipmentDocumentController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Утвердить расходную накладную (DRAFT → APPROVED), резервирует stock")
     public ResponseEntity<ShipmentDocumentDTO> approveShipment(@PathVariable Long id) {
         log.info("Approving shipment {}", id);
@@ -125,7 +125,7 @@ public class ShipmentDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping("/{id}/ship")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Отгрузить расходную накладную (APPROVED → SHIPPED), списывает stock")
     public ResponseEntity<ShipmentDocumentDTO> shipShipment(@PathVariable Long id) {
         log.info("Shipping shipment {}", id);
@@ -147,7 +147,7 @@ public class ShipmentDocumentController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping("/{id}/deliver")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Доставить расходную накладную (SHIPPED → DELIVERED)")
     public ResponseEntity<ShipmentDocumentDTO> deliverShipment(@PathVariable Long id) {
         log.info("Delivering shipment {}", id);
@@ -169,7 +169,7 @@ public class ShipmentDocumentController {
      * Доступно: MANAGER, ADMIN
      */
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Отменить расходную накладную (DRAFT/APPROVED), снимает резерв")
     public ResponseEntity<Void> cancelShipment(@PathVariable Long id) {
         log.info("Cancelling shipment {}", id);

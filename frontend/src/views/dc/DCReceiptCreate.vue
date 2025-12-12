@@ -19,6 +19,7 @@
             required
             placeholder="Enter supplier name"
             class="form-input"
+            data-testid="supplier-input"
           />
         </div>
 
@@ -36,7 +37,7 @@
       <div class="form-section">
         <div class="section-header">
           <h3>Items</h3>
-          <button type="button" @click="addItem" class="btn btn-sm">Add Item</button>
+          <button type="button" @click="addItem" class="btn btn-sm" data-testid="add-item-button">Add Item</button>
         </div>
 
         <div v-if="form.items.length === 0" class="empty">
@@ -46,7 +47,7 @@
         <div v-for="(item, index) in form.items" :key="index" class="item-row">
           <div class="form-group">
             <label>Product *</label>
-            <select v-model="item.productId" required class="form-input">
+            <select v-model="item.productId" required class="form-input" data-testid="product-select">
               <option value="">Select product</option>
               <option v-for="product in products" :key="product.id" :value="product.id">
                 {{ product.name }} ({{ product.sku }})
@@ -62,6 +63,7 @@
               min="1"
               required
               class="form-input"
+              data-testid="quantity-input"
             />
           </div>
 
@@ -72,7 +74,7 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary">
+        <button type="submit" :disabled="loading || !isValid" class="btn btn-primary" data-testid="save-button">
           {{ loading ? 'Creating...' : 'Create Receipt' }}
         </button>
         <button type="button" @click="goBack" class="btn btn-secondary">Cancel</button>

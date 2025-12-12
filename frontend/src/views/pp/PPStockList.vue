@@ -4,9 +4,16 @@
 
     <div class="filters">
       <label>
-        <input type="checkbox" v-model="showLowStockOnly" @change="filterStock" />
+        <input type="checkbox" v-model="showLowStockOnly" @change="filterStock" data-testid="low-stock-filter" />
         Show low stock alerts only
       </label>
+      <input
+        type="text"
+        v-model="filterText"
+        placeholder="Filter by product name..."
+        class="filter-input"
+        data-testid="filter-input"
+      />
     </div>
 
     <div v-if="loading" class="loading">Loading...</div>
@@ -14,12 +21,13 @@
       No stock data available
     </div>
 
-    <div v-else class="stock-grid">
+    <div v-else class="stock-grid" data-testid="stock-grid">
       <div
         v-for="item in filteredStock"
         :key="item.id"
         class="stock-card"
         :class="{ 'low-stock': item.isLowStock }"
+        :data-testid="item.isLowStock ? 'low-stock-row' : 'stock-row'"
       >
         <div class="product-name">{{ item.productName }}</div>
         <div class="product-sku">{{ item.productSku }}</div>
@@ -51,12 +59,21 @@ const facilityStore = useFacilityStore()
 const loading = ref(false)
 const stockData = ref([])
 const showLowStockOnly = ref(false)
+const filterText = ref('')
 
 const filteredStock = computed(() => {
+  let result = stockData.value
   if (showLowStockOnly.value) {
-    return stockData.value.filter(item => item.isLowStock)
+    result = result.filter(item => item.isLowStock)
   }
-  return stockData.value
+  if (filterText.value.trim()) {
+    const search = filterText.value.toLowerCase()
+    result = result.filter(item =>
+      item.productName?.toLowerCase().includes(search) ||
+      item.productSku?.toLowerCase().includes(search)
+    )
+  }
+  return result
 })
 
 async function loadStock() {
@@ -89,6 +106,9 @@ h1 {
 
 .filters {
   margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
 }
 
 .filters label {
@@ -96,6 +116,13 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  width: 250px;
 }
 
 .stock-grid {

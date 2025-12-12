@@ -7,7 +7,7 @@
       No receipts found (auto-created from WH shipments)
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="receipts-table">
       <thead>
         <tr>
           <th>Document Number</th>
@@ -18,7 +18,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="receipt in receipts" :key="receipt.id">
+        <tr v-for="receipt in receipts" :key="receipt.id" data-testid="receipt-row">
           <td>{{ receipt.documentNumber }}</td>
           <td>{{ receipt.sourceFacilityName }}</td>
           <td>

@@ -2,7 +2,7 @@
   <div class="shipments-list">
     <div class="header">
       <h1>DC Shipments</h1>
-      <button @click="goToCreate" class="btn btn-primary">Create Shipment</button>
+      <button @click="goToCreate" class="btn btn-primary" data-testid="create-button">Create Shipment</button>
     </div>
 
     <div class="filters">
@@ -22,7 +22,7 @@
       No shipments found
     </div>
 
-    <table v-else class="table">
+    <table v-else class="table" data-testid="shipments-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -35,7 +35,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="shipment in shipments" :key="shipment.id">
+        <tr v-for="shipment in shipments" :key="shipment.id" data-testid="shipment-row">
           <td>{{ shipment.id }}</td>
           <td>{{ shipment.documentNumber }}</td>
           <td>{{ shipment.destinationFacilityName }}</td>

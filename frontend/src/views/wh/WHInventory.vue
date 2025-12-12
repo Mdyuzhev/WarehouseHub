@@ -1,8 +1,8 @@
 <template>
-  <div class="inventory">
+  <div class="inventory" data-testid="inventory-page">
     <div class="header">
       <h1>Inventory Count</h1>
-      <button v-if="!currentInventory" @click="createInventory" class="btn btn-primary">
+      <button v-if="!currentInventory" @click="createInventory" class="btn btn-primary" data-testid="start-inventory-button">
         Start New Inventory
       </button>
     </div>
@@ -25,7 +25,7 @@
 
       <div class="items-section">
         <h3>Items</h3>
-        <table class="table">
+        <table class="table" data-testid="inventory-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -45,10 +45,11 @@
                   type="number"
                   min="0"
                   class="qty-input"
+                  data-testid="actual-quantity-input"
                 />
                 <span v-else>{{ item.actualQuantity }}</span>
               </td>
-              <td :class="getDifferenceClass(item)">
+              <td :class="getDifferenceClass(item)" data-testid="difference">
                 {{ item.actualQuantity - item.systemQuantity }}
               </td>
             </tr>
@@ -61,6 +62,7 @@
           v-if="currentInventory.status === 'DRAFT'"
           @click="completeInventory"
           class="btn btn-primary"
+          data-testid="complete-inventory-button"
         >
           Complete Inventory
         </button>

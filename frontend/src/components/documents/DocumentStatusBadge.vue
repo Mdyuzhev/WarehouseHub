@@ -1,5 +1,5 @@
 <template>
-  <span :class="['status-badge', statusClass]">
+  <span :class="['status-badge', statusClass]" data-testid="status-badge">
     <span class="status-icon">{{ statusIcon }}</span>
     <span class="status-text">{{ statusText }}</span>
   </span>

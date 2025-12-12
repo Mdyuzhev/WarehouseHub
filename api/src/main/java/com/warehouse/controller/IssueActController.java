@@ -53,7 +53,7 @@ public class IssueActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Создать акт выдачи (DRAFT)")
     public ResponseEntity<IssueActDTO> createIssueAct(@Valid @RequestBody IssueActCreateRequest request) {
         log.info("Creating issue act for facility {}", request.getFacilityId());
@@ -72,7 +72,7 @@ public class IssueActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить акт выдачи по ID")
     public ResponseEntity<IssueActDTO> getIssueActById(@PathVariable Long id) {
         try {
@@ -89,7 +89,7 @@ public class IssueActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @GetMapping("/facility/{facilityId}")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить все акты выдачи для ПВЗ")
     public ResponseEntity<List<IssueActDTO>> getIssueActsByFacility(@PathVariable Long facilityId) {
         List<IssueActDTO> issueActs = issueActService.getByFacility(facilityId);
@@ -102,7 +102,7 @@ public class IssueActController {
      * Доступно: EMPLOYEE, MANAGER, ADMIN
      */
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Завершить акт выдачи (DRAFT → COMPLETED), списывает stock")
     public ResponseEntity<IssueActDTO> completeIssueAct(@PathVariable Long id) {
         log.info("Completing issue act {}", id);
@@ -125,7 +125,7 @@ public class IssueActController {
      * Доступно: MANAGER, ADMIN
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_USER', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Удалить акт выдачи (только DRAFT)")
     public ResponseEntity<Void> deleteIssueAct(@PathVariable Long id) {
         log.info("Deleting issue act {}", id);

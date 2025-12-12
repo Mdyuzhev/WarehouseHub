@@ -120,4 +120,13 @@ public abstract class BaseE2ETest {
     protected RequestSpecification request() {
         return given().spec(spec);
     }
+
+    /**
+     * Безопасно извлекает Long из JSON path.
+     * REST-assured возвращает Integer для числовых JSON полей.
+     */
+    protected static Long extractLong(Object value) {
+        if (value == null) return null;
+        return ((Number) value).longValue();
+    }
 }
