@@ -1,175 +1,125 @@
 {
-  "workflows": {
-    "post_deploy_production": {
-      "description": "Обязательные шаги после деплоя в Production",
-      "steps": [
-        "1. Health check (curl actuator/health)",
-        "2. Smoke test (проверить основной функционал)",
-        "3. RELEASE NOTES: Отправить в Telegram (docs/RELEASE_NOTES_PROCEDURE.md)",
-        "4. Обновить документацию с новой версией (docs/DOC_VERSIONING.md)",
-        "5. Закрыть Issue в GitHub Project"
-      ],
-      "release_notes": {
-        "channel": "TELEGRAM",
-        "recipient": "-1003231635846",
-        "chat_name": "WH_lab_notify",
-        "required": true
-      }
-    },
-    "doc_update": {
-      "description": "При любом изменении документации",
-      "steps": [
-        "1. Внести изменения",
-        "2. Обновить версию в шапке",
-        "3. Коммит: docs: Update {DOC} vYYYY.MM.DD"
-      ]
-    }
-  },
   "permissions": {
-    "allow": [
-      "Bash",
-      "Read",
-      "Write",
-      "Edit",
-      "Glob",
-      "Grep",
-      "WebFetch",
-      "WebSearch",
-      "Task",
-      "TodoWrite",
-      "NotebookEdit",
-      "mcp__*",
-      "mcp__ide__getDiagnostics"
-    ]
+    "allow": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "Task"]
   },
-  "preferences": {
-    "language": "russian",
-    "communication_style": "friendly_professional",
-    "humor": {
-      "enabled": true,
-      "style": "добрый сарказм, айтишные шутки",
-      "when": "в начале задачи, при успехе, при ошибках"
-    },
-    "formatting": {
-      "emoji": false,
-      "tables": true,
-      "code_comments": "на русском",
-      "commits": "описание на русском, ссылка на issue #XXX"
-    }
+  "role": "technical_executor",
+  "style": {
+    "brevity": "extreme",
+    "code_first": true,
+    "no_options": true,
+    "no_philosophy": true,
+    "humor": "short_jokes_on_success_or_error"
   },
-  "quick_start": {
-    "description": "Читай документы ПО СИТУАЦИИ, не все подряд!",
-    "always_read": [
-      "docs/PROJECT_STATUS.md"
-    ],
-    "by_task_type": {
-      "deploy": [
-        "docs/DEPLOY_GUIDE.md",
-        "docs/CREDENTIALS.md"
-      ],
-      "issues": [
-        "Смотри GitHub Project"
-      ],
-      "testing": [
-        "docs/TESTING.md",
-        "docs/LOAD_TESTING.md"
-      ],
-      "architecture": [
-        "docs/ARCHITECTURE.md",
-        "docs/COMPONENTS.md"
-      ],
-      "troubleshooting": [
-        "docs/TROUBLESHOOTING_GUIDE.md"
-      ]
-    }
-  },
-  "memory": {
-    "server": "192.168.1.74, 24GB RAM, НЕ собирать Docker локально - OOM",
-    "environments": {
-      "prod": "namespace warehouse, порты 30xxx, deploy manual",
-      "dev": "namespace warehouse-dev, порты 31xxx, deploy auto"
-    },
-    "ci_cd": "GitLab :8080 (локальный) -> GitHub -> Yandex Cloud"
-  },
-  "lab_control": {
-    "description": "Управление ресурсами сервера для экономии RAM",
-    "script": "/home/flomaster/scripts/lab-control.sh",
-    "modes": {
-      "IDLE": {
-        "ram": "4-5GB",
-        "command": "lab stop-session",
-        "services": "K3s control plane, Docker daemon"
-      },
-      "CI_CD": {
-        "ram": "7-9GB",
-        "command": "lab start-ci",
-        "services": "IDLE + GitLab"
-      },
-      "FULL": {
-        "ram": "11-13GB",
-        "command": "lab start-session",
-        "services": "GitLab + Grafana/Prometheus (YouTrack отключён)"
-      }
-    },
-    "commands": {
-      "start-session": "Полная рабочая сессия (без YouTrack)",
-      "stop-session": "Завершение сессии, возврат в IDLE",
-      "start-ci": "Только GitLab для CI/CD",
-      "start-warehouse": "K3s namespace warehouse + warehouse-dev",
-      "stop-warehouse": "Остановить warehouse окружения",
-      "start-gitlab": "Только GitLab",
-      "stop-gitlab": "Остановить GitLab",
-      "status": "Показать текущее состояние"
-    },
-    "rules": [
-      "ПЕРЕД работой - lab start-warehouse",
-      "ПОСЛЕ работы - lab stop-warehouse",
-      "Конец дня - lab stop-session"
-    ]
-  },
-  "git_workflow": {
-    "main": "PROTECTED! Merge только через MR/PR",
-    "process": "feature branch → push GitLab → sync GitHub → auto deploy Yandex Cloud"
-  },
-  "task_workflows": {
-    "story": {
-      "naming": "[Фаза X: Название] Описание",
-      "docs": "Spec.md + Execute.md"
-    },
-    "task": {
-      "naming": "Глагол + объект"
-    },
-    "bugfix": {
-      "naming": "[BugFix] Описание",
-      "parent": "привязать к Story"
-    }
+  "response_format": {
+    "simple_task": "**Решение:** [код] **Проверка:** [команда]",
+    "complex_task": "**Шаги:** 1,2,3 **Проверка:** [что проверить]"
   },
   "critical_rules": [
-    "K3s != Docker — после build нужен k3s ctr import",
-    "Main protected — merge только через MR/PR",
-    "Задачи ведутся в GitHub Project",
-    "Docker build — НЕ локально (OOM), через CI/CD"
+    "K3s deploy: docker save | k3s ctr import (NEVER docker push)",
+    "Flyway: check version with ls db/migration/ BEFORE creating",
+    "main branch: MR only, never direct push",
+    "Server 24GB RAM: NO local Docker build - OOM risk"
   ],
-  "tools": {
-    "github": {
-      "repo": "https://github.com/Mdyuzhev/WaregouseHub",
-      "project": "https://github.com/users/Mdyuzhev/projects/3",
-      "project_id": "PVT_kwHOAoshms4BKZrs",
-      "token_env": "GITHUB_TOKEN",
-      "api": {
-        "issues": "gh issue list / gh issue create",
-        "project": "GraphQL API"
-      }
+  "lab_control": {
+    "before_work": "lab start-warehouse",
+    "after_work": "lab stop-warehouse",
+    "check_status": "lab status"
+  },
+  "tech_stack": {
+    "backend": "Java 17 + Spring Boot 3.2",
+    "frontend": "Vue.js 3.4 + Vite 5",
+    "database": "PostgreSQL 15 + Flyway",
+    "cache": "Redis 7.4.7",
+    "messaging": "Kafka KRaft",
+    "container": "K3s containerd",
+    "tracker": "GitHub Issues + Project"
+  },
+  "environments": {
+    "dev": {
+      "api": "http://192.168.1.74:31080",
+      "frontend": "http://192.168.1.74:31081",
+      "namespace": "warehouse-dev",
+      "ports": "31xxx",
+      "deploy": "auto on develop branch"
     },
-    "gitlab": {
-      "url": "http://192.168.1.74:8080",
-      "project": 1,
-      "role": "CI/CD, синхронизация с GitHub"
+    "prod": {
+      "api": "http://192.168.1.74:30080",
+      "frontend": "http://192.168.1.74:30081",
+      "namespace": "warehouse",
+      "ports": "30xxx",
+      "deploy": "manual via MR to main"
+    },
+    "yandex": {
+      "api": "https://api.wh-lab.ru",
+      "frontend": "https://wh-lab.ru",
+      "deploy": "docker-compose"
     }
   },
-  "repositories": {
-    "api": "/home/flomaster/warehouse-api",
-    "frontend": "/home/flomaster/warehouse-frontend",
-    "master": "/home/flomaster/warehouse-master"
-  }
+  "deploy_k3s": {
+    "steps": [
+      "docker build --no-cache -t IMAGE:TAG .",
+      "sudo k3s ctr images rm docker.io/library/IMAGE:TAG 2>/dev/null || true",
+      "docker save IMAGE:TAG | sudo k3s ctr images import -",
+      "kubectl rollout restart deployment/NAME -n NAMESPACE",
+      "kubectl logs -n NAMESPACE deployment/NAME --tail=50"
+    ],
+    "never": "docker push"
+  },
+  "github": {
+    "repo": "Mdyuzhev/WaregouseHub",
+    "project": "https://github.com/users/Mdyuzhev/projects/3",
+    "commands": {
+      "list": "gh issue list --repo Mdyuzhev/WaregouseHub",
+      "create": "gh issue create --repo Mdyuzhev/WaregouseHub --title \"X\" --body \"Y\"",
+      "close": "gh issue close 123 --repo Mdyuzhev/WaregouseHub"
+    }
+  },
+  "credentials": {
+    "dev": {
+      "user": "admin",
+      "password": "admin123"
+    },
+    "prod_admin": {
+      "user": "admin",
+      "password": "admin123"
+    },
+    "prod_employee": {
+      "user": "employee",
+      "password": "password123"
+    },
+    "sudo": {
+      "user": "flomaster",
+      "password": "Misha2021@1@"
+    }
+  },
+  "code_patterns": {
+    "templates": [
+      "StockController.java - REST endpoints",
+      "StockService.java - business logic",
+      "V4__add_stock_table.sql - Flyway migration"
+    ],
+    "lombok": [
+      "@Data",
+      "@RequiredArgsConstructor"
+    ],
+    "transactions": "@Transactional on service layer",
+    "security": "@PreAuthorize on endpoints"
+  },
+  "git_workflow": {
+    "develop": "auto deploy to warehouse-dev (31xxx)",
+    "main": "manual deploy to warehouse (30xxx) via MR only",
+    "commit_format": "WH-XXX: Short description"
+  },
+  "docs_by_task": {
+    "deploy": "docs/DEPLOY_GUIDE.md",
+    "testing": "docs/TESTING.md",
+    "architecture": "docs/ARCHITECTURE.md",
+    "troubleshooting": "docs/TROUBLESHOOTING_GUIDE.md"
+  },
+  "checklist_before_response": [
+    "Existing pattern in project? Use as template",
+    "Code follows patterns (Lombok, @Transactional)",
+    "Verification command included",
+    "No unnecessary explanations"
+  ]
 }
