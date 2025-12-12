@@ -10,22 +10,19 @@
     "no_philosophy": true,
     "humor": "short_jokes_on_success_or_error"
   },
-  "projects": {
-    "api": "/home/flomaster/warehouse-api",
-    "frontend": "/home/flomaster/warehouse-frontend",
-    "master": "/home/flomaster/warehouse-master",
-    "testing": "/home/flomaster/warehouse-testing"
-  },
+  "monorepo": true,
   "quick_paths": {
-    "controllers": "warehouse-api/src/main/java/com/warehouse/controller",
-    "services": "warehouse-api/src/main/java/com/warehouse/service",
-    "models": "warehouse-api/src/main/java/com/warehouse/model",
-    "migrations": "warehouse-api/src/main/resources/db/migration",
-    "views": "warehouse-frontend/src/views",
-    "components": "warehouse-frontend/src/components",
-    "stores": "warehouse-frontend/src/stores",
-    "k8s": "warehouse-master/k8s",
-    "docs": "warehouse-master/docs"
+    "controllers": "api/src/main/java/com/warehouse/controller",
+    "services": "api/src/main/java/com/warehouse/service",
+    "models": "api/src/main/java/com/warehouse/model",
+    "migrations": "api/src/main/resources/db/migration",
+    "views": "frontend/src/views",
+    "components": "frontend/src/components",
+    "stores": "frontend/src/stores",
+    "e2e": "testing/e2e-tests",
+    "ui-tests": "testing/ui-tests",
+    "k8s": "k8s",
+    "docs": "docs"
   },
   "environments": {
     "dev": {

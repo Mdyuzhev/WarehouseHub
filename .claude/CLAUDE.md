@@ -5,38 +5,37 @@
 
 ---
 
-## 🗺️ Карта проекта
+## 🗺️ Карта проекта (Monorepo)
 
 ```
-/home/flomaster/
-├── warehouse-api/        # Java 17 + Spring Boot 3.2
+warehouse-master/              # GitHub: WaregouseHub
+├── api/                       # Java 17 + Spring Boot 3.2
 │   └── src/main/java/com/warehouse/
-│       ├── controller/   # REST: Auth, Product, Stock, Facility, Documents
-│       ├── service/      # Бизнес-логика (@Transactional)
-│       ├── model/        # JPA entities
-│       ├── dto/          # Request/Response DTO
-│       └── config/       # Security, Redis, Kafka, Metrics
+│       ├── controller/        # REST endpoints
+│       ├── service/           # Бизнес-логика
+│       ├── model/             # JPA entities
+│       └── config/            # Security, Redis, Kafka
 │
-├── warehouse-frontend/   # Vue.js 3.4 + Vite 5
+├── frontend/                  # Vue.js 3.4 + Vite 5
 │   └── src/
-│       ├── views/        # dc/ (распред), pp/ (снабжение), wh/ (склад)
-│       ├── components/   # UI компоненты
-│       ├── stores/       # Pinia state
-│       └── services/     # API клиенты
+│       ├── views/             # dc/, pp/, wh/ screens
+│       ├── components/        # UI компоненты
+│       └── stores/            # Pinia state
 │
-├── warehouse-master/     # Инфраструктура (этот репо)
-│   ├── k8s/              # K8s манифесты
-│   ├── production/       # Yandex Cloud docker-compose
-│   ├── telegram-bot/     # Notification bot
-│   ├── orchestrator-ui/  # 8-bit console
-│   └── docs/             # Документация
+├── testing/                   # Тесты
+│   ├── e2e-tests/             # RestAssured + JUnit5
+│   ├── ui-tests/              # Selenide + JUnit5
+│   ├── loadtest/              # Locust
+│   └── k6-kafka/              # K6 Kafka tests
 │
-└── warehouse-testing/    # Тесты (отдельный репо)
-    ├── e2e-tests/        # RestAssured + JUnit5
-    ├── ui-tests/         # Selenide + JUnit5
-    ├── loadtest/         # Locust
-    └── k6-kafka/         # K6 Kafka tests
+├── k8s/                       # K8s манифесты
+├── production/                # Yandex Cloud docker-compose
+├── docs/                      # Документация
+├── telegram-bot/              # Notification bot
+└── .claude/                   # Agent config
 ```
+
+**GitHub:** https://github.com/Mdyuzhev/WaregouseHub
 
 ---
 
