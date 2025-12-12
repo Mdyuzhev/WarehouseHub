@@ -12,7 +12,6 @@ stages:
   - deploy-staging
   - deploy-prod
   - sync-github
-  - test
 
 # Фейковый job чтобы pipeline был "успешным" и показывал кнопки
 pipeline-init:
@@ -32,7 +31,6 @@ variables:
   # K8s - используем kubeconfig flomaster'а
   KUBECONFIG: "/home/flomaster/.kube/config"
   K8S_NAMESPACE_APP: "warehouse"
-  K8S_NAMESPACE_LOADTEST: "loadtest"
   K8S_NAMESPACE_NOTIFICATIONS: "notifications"
 
   # Staging Server (local K3s)
@@ -44,11 +42,6 @@ variables:
 
   # Production (Yandex Cloud) - host from CI/CD variable $PROD_HOST
   PROD_USER: "ubuntu"
-
-  # Service URLs (computed from STAGING_HOST)
-  LOCUST_MASTER_URL: "http://${STAGING_HOST}:30089"
-  ALLURE_SERVER_URL: "http://${STAGING_HOST}:5050"
-  SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
 
   # Image versioning (#14: use git SHA instead of :latest)
   IMAGE_TAG: "${CI_COMMIT_SHORT_SHA:-latest}"
@@ -66,73 +59,6 @@ variables:
     - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   after_script:
     - rm -f ~/.ssh/deploy_key
-  tags:
-    - shell
-  when: manual
-
-# Template for Allure report upload
-.allure-upload-template:
-  script:
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-
-# Template for E2E tests
-.e2e-test-template:
-  stage: test
-  script:
-    - echo "🧪 Running E2E Tests on $TEST_ENV..."
-    - echo "Target URL - $BASE_URL"
-    - cd /home/flomaster/warehouse-master/e2e-tests
-    - rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
-    # Upload to Allure
-    - export ALLURE_RESULTS_DIR=/home/flomaster/warehouse-master/e2e-tests/target/allure-results
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 E2E $TEST_ENV ALLURE REPORT:"
-    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
-    - echo "═══════════════════════════════════════════════════════════"
-  tags:
-    - shell
-  when: manual
-
-# Template for UI tests
-.ui-test-template:
-  stage: test
-  script:
-    - echo "🎭 Running UI Tests on $TEST_ENV..."
-    - echo "Target URL - $BASE_URL"
-    # Start Selenoid if not running
-    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
-    - echo "✅ Selenoid is ready!"
-    # Clean previous results
-    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    # Run tests
-    - cd /home/flomaster/warehouse-master/ui-tests
-    - sudo rm -rf target/ || true
-    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
-    # Upload to Allure
-    - export ALLURE_RESULTS_DIR=/home/flomaster/warehouse-master/ui-tests/target/allure-results
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 $TEST_ENV ALLURE REPORT:"
-    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
-    - echo "═══════════════════════════════════════════════════════════"
-    # Fix permissions
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
   tags:
     - shell
   when: manual
@@ -310,80 +236,9 @@ sync-to-github-auto:
       optional: true
 
 # =============================================================================
-# TESTING
+# TESTING - moved to warehouse-testing repo
+# See: http://192.168.1.74:8080/root/warehouse-testing
 # =============================================================================
-
-# E2E Tests for Staging environment
-run-e2e-tests-staging:
-  extends: .e2e-test-template
-  variables:
-    BASE_URL: "http://${STAGING_HOST}:${STAGING_API_PORT}"
-    PROJECT_ID: "e2e-staging"
-    TEST_ENV: "STAGING"
-  environment:
-    name: e2e-test-staging
-    url: http://${STAGING_HOST}:${STAGING_API_PORT}
-
-# E2E Tests for Production environment
-run-e2e-tests-prod:
-  extends: .e2e-test-template
-  variables:
-    BASE_URL: "https://api.wh-lab.ru"
-    PROJECT_ID: "e2e-prod"
-    TEST_ENV: "PRODUCTION"
-  environment:
-    name: e2e-test-production
-    url: https://api.wh-lab.ru
-
-# UI Tests for Staging environment
-run-ui-tests-staging:
-  extends: .ui-test-template
-  variables:
-    BASE_URL: "http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}"
-    PROJECT_ID: "ui-staging"
-    TEST_ENV: "STAGING"
-  environment:
-    name: test-staging
-    url: http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}
-
-# UI Tests for Production environment
-run-ui-tests-prod:
-  extends: .ui-test-template
-  variables:
-    BASE_URL: "https://wh-lab.ru"
-    PROJECT_ID: "ui-prod"
-    TEST_ENV: "PRODUCTION"
-  environment:
-    name: test-production
-    url: https://wh-lab.ru
-
-run-load-tests:
-  stage: test
-  variables:
-    TARGET_HOST: "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
-    USERS: "100"
-    SPAWN_RATE: "10"
-    DURATION: "300"
-  script:
-    - echo "🔥 Starting Load Test..."
-    - echo "Target $TARGET_HOST, Users $USERS, Duration $DURATION sec"
-    - |
-      # Запуск теста
-      curl -X POST "$LOCUST_MASTER_URL/swarm" \
-        -d "user_count=$USERS&spawn_rate=$SPAWN_RATE&host=$TARGET_HOST"
-
-      echo "⏳ Test running for ${DURATION}s..."
-      sleep $DURATION
-
-      # Остановка и получение результатов
-      curl -X GET "$LOCUST_MASTER_URL/stop"
-
-      echo "📊 Fetching results..."
-      curl -s "$LOCUST_MASTER_URL/stats/requests" | jq '.stats[] | select(.name == "Aggregated")'
-    - echo "✅ Load test completed"
-  tags:
-    - shell
-  when: manual
 
 # =============================================================================
 # TELEGRAM BOT
