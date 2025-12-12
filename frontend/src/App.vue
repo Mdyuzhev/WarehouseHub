@@ -12,6 +12,8 @@
         <router-link v-if="canAccessStatus" to="/status" class="nav-link" data-testid="nav-status">Статус</router-link>
       </div>
 
+      <FacilitySelector />
+
       <div class="nav-user">
         <div class="user-info">
           <span class="user-name">{{ currentUser?.fullName }}</span>
@@ -27,15 +29,32 @@
 
 <script>
 import auth from './services/auth'
+import FacilitySelector from './components/FacilitySelector.vue'
+import { useFacilityStore } from './stores/facility'
+import { watch } from 'vue'
 
 export default {
   name: 'App',
+
+  components: {
+    FacilitySelector
+  },
 
   data() {
     return {
       currentUser: null,
       authChecked: false
     }
+  },
+
+  mounted() {
+    // Применить theme при загрузке и при смене facility
+    const facilityStore = useFacilityStore()
+    this.applyFacilityTheme(facilityStore.facilityType)
+
+    watch(() => facilityStore.facilityType, (newType) => {
+      this.applyFacilityTheme(newType)
+    })
   },
 
   computed: {
@@ -89,6 +108,10 @@ export default {
   methods: {
     handleLogout() {
       auth.logout()
+      // Очистить выбранный facility при logout
+      const facilityStore = useFacilityStore()
+      facilityStore.clearFacility()
+      this.applyFacilityTheme(null)
       this.$router.push('/login')
     },
 
@@ -99,6 +122,16 @@ export default {
       this.$nextTick(() => {
         this.authChecked = true
       })
+    },
+
+    applyFacilityTheme(facilityType) {
+      // Удалить все классы facility-*
+      document.body.classList.remove('facility-dc', 'facility-wh', 'facility-pp')
+
+      // Добавить класс для текущего типа
+      if (facilityType) {
+        document.body.classList.add(`facility-${facilityType.toLowerCase()}`)
+      }
     }
   }
 }

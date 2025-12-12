@@ -100,6 +100,14 @@
 
 <script>
 import auth from '../services/auth'
+import { useFacilityStore } from '../stores/facility'
+
+// API URL
+function getApi() {
+  // eslint-disable-next-line no-new-func
+  const getUrl = new Function('return window.__API_URL__')
+  return getUrl() || 'http://192.168.1.74:30080/api'
+}
 
 export default {
   name: 'LoginPage',
@@ -132,9 +140,34 @@ export default {
         if (result.success) {
           // Небольшая задержка для гарантии синхронизации localStorage
           await new Promise(resolve => setTimeout(resolve, 50))
-          // Редирект на главную или на страницу, откуда пришли
-          const redirect = this.$route.query.redirect || '/'
-          this.$router.push(redirect)
+
+          // Получить полную информацию о пользователе
+          const userInfo = await this.fetchUserInfo()
+
+          // Если у пользователя есть привязанный facility
+          if (userInfo && userInfo.facilityId && userInfo.facilityType) {
+            const facilityStore = useFacilityStore()
+            // Установить facility в store
+            facilityStore.setCurrentFacility({
+              id: userInfo.facilityId,
+              code: userInfo.facilityCode || `${userInfo.facilityType}-${userInfo.facilityId}`,
+              name: userInfo.facilityName || 'Объект',
+              type: userInfo.facilityType
+            })
+
+            // Redirect на dashboard по типу facility
+            const dashboardRoutes = {
+              DC: '/dc',
+              WH: '/wh',
+              PP: '/pp'
+            }
+            const targetRoute = dashboardRoutes[userInfo.facilityType] || '/'
+            this.$router.push(targetRoute)
+          } else {
+            // Нет привязанного facility — на главную
+            const redirect = this.$route.query.redirect || '/'
+            this.$router.push(redirect)
+          }
         } else {
           this.error = result.error
         }
@@ -144,6 +177,24 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    async fetchUserInfo() {
+      try {
+        const token = localStorage.getItem('warehouse_auth_token')
+        const response = await fetch(`${getApi()}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          return await response.json()
+        }
+      } catch (err) {
+        console.error('Failed to fetch user info:', err)
+      }
+      return null
     },
 
     fillDemo(username, password) {
