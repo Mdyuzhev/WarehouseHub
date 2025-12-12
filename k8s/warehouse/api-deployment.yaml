@@ -28,6 +28,15 @@ spec:
         app: warehouse-api
         component: backend
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: warehouse-api
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: warehouse-api
           # Локальный образ, импортированный в K3s

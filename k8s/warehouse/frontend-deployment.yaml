@@ -11,10 +11,15 @@ metadata:
     app: warehouse-frontend
     component: frontend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: warehouse-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
@@ -34,6 +39,13 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /health

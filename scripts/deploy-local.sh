@@ -18,6 +18,25 @@ success() { echo -e "${GREEN}[OK]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
+# Retry function for flaky commands
+retry() {
+    local max_attempts=$1
+    local delay=$2
+    shift 2
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if "$@"; then
+            return 0
+        fi
+        warn "Attempt $attempt/$max_attempts failed. Retrying in ${delay}s..."
+        sleep $delay
+        attempt=$((attempt + 1))
+    done
+
+    error "Command failed after $max_attempts attempts: $*"
+}
+
 # =============================================================================
 # Проверка окружения
 # =============================================================================
@@ -63,9 +82,9 @@ rm -f /tmp/warehouse-api.tar
 echo ""
 info "Применение Kubernetes манифестов..."
 
-kubectl apply -f k8s/warehouse/api-configmap.yaml
-kubectl apply -f k8s/warehouse/api-deployment.yaml
-kubectl apply -f k8s/warehouse/api-service.yaml
+retry 3 5 kubectl apply -f k8s/warehouse/api-configmap.yaml
+retry 3 5 kubectl apply -f k8s/warehouse/api-deployment.yaml
+retry 3 5 kubectl apply -f k8s/warehouse/api-service.yaml
 kubectl apply -f k8s/warehouse/api-pdb.yaml 2>/dev/null || true
 
 success "Манифесты применены"

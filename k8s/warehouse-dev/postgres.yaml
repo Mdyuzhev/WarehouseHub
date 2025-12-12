@@ -110,7 +110,8 @@ spec:
             timeoutSeconds: 5
       volumes:
         - name: postgres-data
-          emptyDir: {}  # Dev не требует persistent storage
+          persistentVolumeClaim:
+            claimName: postgres-data-pvc
         - name: init-scripts
           configMap:
             name: postgres-init-script
@@ -152,3 +153,20 @@ spec:
       nodePort: 31432
       name: postgres
   type: NodePort
+---
+# PVC для сохранения данных между рестартами
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: warehouse-dev
+  labels:
+    app: postgres
+    environment: development
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path  # K3s default storage class
