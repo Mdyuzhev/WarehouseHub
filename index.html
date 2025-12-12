@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse - Управление складом</title>
+    <script>
+      // Runtime API URL configuration - этот код выполняется ДО загрузки бандла
+      // и не может быть оптимизирован Vite/Rollup
+      (function() {
+        var host = window.location.hostname;
+        var apiUrl;
+        var analyticsUrl;
+        if (host === 'wh-lab.ru' || host === 'www.wh-lab.ru') {
+          apiUrl = 'https://api.wh-lab.ru/api';
+          analyticsUrl = 'https://api.wh-lab.ru/analytics';
+        } else if (host === 'warehouse.local') {
+          apiUrl = '/api';
+          analyticsUrl = 'http://analytics-service.warehouse.svc.cluster.local:8090';
+        } else if (host === '192.168.1.74') {
+          apiUrl = 'http://192.168.1.74:30080/api';
+          analyticsUrl = 'http://192.168.1.74:30091';
+        } else {
+          apiUrl = 'http://' + host + ':30080/api';
+          analyticsUrl = 'http://' + host + ':30091';
+        }
+        window.__API_URL__ = apiUrl;
+        window.__ANALYTICS_URL__ = analyticsUrl;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
