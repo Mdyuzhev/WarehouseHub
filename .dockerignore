@@ -1,0 +1,38 @@
+# =============================================================================
+# .dockerignore — исключения при сборке Docker образа
+# =============================================================================
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Build artifacts (кроме JAR)
+target/
+!target/*.jar
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (не нужна в образе)
+wiki/
+*.md
+!README.md
+
+# Local configuration
+*.local
+.env
+.env.*
+
+# CI/CD files
+.gitlab-ci.yml
