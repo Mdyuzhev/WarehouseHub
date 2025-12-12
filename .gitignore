@@ -1,0 +1,43 @@
+# Build output
+target/
+build/
+*.class
+*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Maven
+.mvn/repository/
+
+# Allure
+allure-results/
+allure-report/
+
+# Selenoid
+infrastructure/selenoid/video/*
+infrastructure/selenoid/logs/*
+!infrastructure/selenoid/video/.gitkeep
+!infrastructure/selenoid/logs/.gitkeep
+
+# Screenshots
+screenshots/
+
+# Python
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

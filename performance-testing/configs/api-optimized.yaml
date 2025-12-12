@@ -1,0 +1,17 @@
+# WH-106: ConfigMap для режима Optimized (с Redis/Kafka)
+# Применить: kubectl apply -f api-optimized.yaml
+# Для переключения: kubectl set env deployment/warehouse-api -n warehouse --from=configmap/api-optimized
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-optimized
+  namespace: warehouse
+  labels:
+    app: warehouse-api
+    mode: optimized
+data:
+  # Включаем Redis кэширование
+  SPRING_CACHE_TYPE: "redis"
+  # Включаем Kafka
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"

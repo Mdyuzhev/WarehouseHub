@@ -1,0 +1,26 @@
+# =============================================================================
+# UI Tests Configuration Example
+# WH-175: Скопируйте в test.properties и настройте под своё окружение
+# =============================================================================
+
+# Base URL приложения
+base.url=http://192.168.1.74:30081
+
+# Selenoid
+selenoid.url=http://selenoid:4444/wd/hub
+
+# Browser settings
+browser=chrome
+browser.size=1920x1080
+headless=true
+timeout=10000
+
+# Test users (defaults: password123 для всех)
+test.user.admin=admin
+test.user.admin.password=password123
+test.user.manager=manager
+test.user.manager.password=password123
+test.user.employee=employee
+test.user.employee.password=password123
+test.user.analyst=analyst
+test.user.analyst.password=password123
