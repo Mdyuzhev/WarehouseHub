@@ -102,6 +102,13 @@ lab stop-warehouse    # ПОСЛЕ работы
 lab status            # Проверка
 ```
 
+### Testing infra (только когда нужно!)
+```bash
+/start-testing        # Selenoid + Allure (~500MB RAM)
+/stop-testing         # Освободить RAM
+/testing-status       # Проверить статус
+```
+
 ---
 
 ## 📝 Паттерны кода

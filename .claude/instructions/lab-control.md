@@ -143,6 +143,30 @@ lab stop-session
 
 ---
 
+## Тестовая инфраструктура
+
+**Запускать только когда нужно!** (~500MB RAM)
+
+```bash
+# Запуск (Selenoid + Allure)
+/start-testing
+
+# Остановка
+/stop-testing
+
+# Статус
+/testing-status
+```
+
+| Сервис | URL | Назначение |
+|--------|-----|------------|
+| Selenoid UI | http://192.168.1.74:8090 | Мониторинг браузеров |
+| Selenoid API | http://192.168.1.74:4444/wd/hub | WebDriver endpoint |
+| Allure UI | http://192.168.1.74:5252 | Отчёты тестов |
+| Allure API | http://192.168.1.74:5050 | API отчётов |
+
+---
+
 ## Мониторинг ресурсов
 
 ```bash
