@@ -1,0 +1,31 @@
+# Упрощенный Dockerfile для быстрой пересборки с готовым jar
+FROM eclipse-temurin:17-jre-alpine AS runtime
+
+WORKDIR /app
+
+# Создаём пользователя для безопасности
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -D appuser
+
+# Копируем готовый JAR напрямую
+COPY target/warehouse-api-0.0.1-SNAPSHOT.jar app.jar
+
+# Устанавливаем владельца
+RUN chown -R appuser:appgroup /app
+
+# Переключаемся на непривилегированного пользователя
+USER appuser
+
+# Порт приложения
+EXPOSE 8080
+
+# Health check для Docker и Kubernetes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+
+# Запуск приложения с оптимизациями для контейнеров
+ENTRYPOINT ["java", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", "app.jar"]

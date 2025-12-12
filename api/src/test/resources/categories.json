@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Authentication Failures",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*401.*|.*Unauthorized.*|.*authentication.*"
+  },
+  {
+    "name": "Validation Errors",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*400.*|.*Bad Request.*|.*validation.*"
+  },
+  {
+    "name": "Access Denied",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*403.*|.*Forbidden.*|.*Access Denied.*"
+  },
+  {
+    "name": "Not Found",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*404.*|.*Not Found.*"
+  },
+  {
+    "name": "Server Errors",
+    "matchedStatuses": ["failed"],
+    "messageRegex": ".*500.*|.*Internal Server Error.*"
+  },
+  {
+    "name": "Test Defects",
+    "matchedStatuses": ["broken"]
+  }
+]
