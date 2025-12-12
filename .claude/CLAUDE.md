@@ -1,172 +1,177 @@
-# Claude Code — Warehouse Project
+# Warehouse Project — Claude Code Config
 
 ## Роль
-
-Технический исполнитель. Получаешь задачу → выдаёшь решение. Не консультант.
-
----
-
-## Стиль ответов
-
-| Правило | Пример |
-|---------|--------|
-| Код первым | Сначала код/команды, потом 1-2 предложения |
-| Без вариантов | Один оптимальный подход, не "можно так или так" |
-| Без философии | Не объяснять что такое REST/SOLID/etc |
-| Юмор разрешён | Короткие шутки при успехе/ошибке |
-
-**Формат простой задачи:**
-```
-**Решение:** [код/команды]
-**Проверка:** [curl/команда]
-```
-
-**Формат сложной задачи:**
-```
-**Шаги:**
-1. [действие]
-2. [действие]
-
-**Проверка:**
-- [что проверить]
-```
+Технический исполнитель. Задача → Решение → Проверка. Без вариантов и философии.
 
 ---
 
-## Критические правила
+## 🗺️ Карта проекта
 
-| Правило | Почему |
-|---------|--------|
-| K3s ≠ Docker registry | `docker save \| k3s ctr import`, НИКОГДА `docker push` |
-| Flyway: проверь версию | `ls db/migration/` перед созданием |
-| main protected | Только через MR, никогда `git push origin main` |
-| Сервер 24GB RAM | НЕ собирать Docker локально — OOM |
-
----
-
-## Управление ресурсами
-
-```bash
-# ПЕРЕД работой
-lab start-warehouse
-
-# ПОСЛЕ работой  
-lab stop-warehouse
-
-# Проверить состояние
-lab status
+```
+/home/flomaster/
+├── warehouse-api/        # Java 17 + Spring Boot 3.2
+│   └── src/main/java/com/warehouse/
+│       ├── controller/   # REST: Auth, Product, Stock, Facility, Documents
+│       ├── service/      # Бизнес-логика (@Transactional)
+│       ├── model/        # JPA entities
+│       ├── dto/          # Request/Response DTO
+│       └── config/       # Security, Redis, Kafka, Metrics
+│
+├── warehouse-frontend/   # Vue.js 3.4 + Vite 5
+│   └── src/
+│       ├── views/        # dc/ (распред), pp/ (снабжение), wh/ (склад)
+│       ├── components/   # UI компоненты
+│       ├── stores/       # Pinia state
+│       └── services/     # API клиенты
+│
+├── warehouse-master/     # Инфраструктура (этот репо)
+│   ├── k8s/              # K8s манифесты
+│   ├── production/       # Yandex Cloud docker-compose
+│   ├── telegram-bot/     # Notification bot
+│   ├── orchestrator-ui/  # 8-bit console
+│   └── docs/             # Документация
+│
+└── warehouse-testing/    # Тесты (отдельный репо)
+    ├── e2e-tests/        # RestAssured + JUnit5
+    ├── ui-tests/         # Selenide + JUnit5
+    ├── loadtest/         # Locust
+    └── k6-kafka/         # K6 Kafka tests
 ```
 
 ---
 
-## Tech Stack
+## ⚡ Окружения
 
-| Слой | Технология |
-|------|------------|
-| Backend | Java 17 + Spring Boot 3.2 |
-| Frontend | Vue.js 3.4 + Vite 5 |
-| Database | PostgreSQL 15 + Flyway |
-| Cache | Redis 7.4.7 |
-| Messaging | Kafka (KRaft) |
-| Container | K3s (containerd) |
-| Tracker | GitHub Issues + Project |
+| Env | API | Frontend | Namespace | Deploy |
+|-----|-----|----------|-----------|--------|
+| **Dev** | :31080 | :31081 | warehouse-dev | auto (develop) |
+| **Prod** | :30080 | :30081 | warehouse | MR → main |
+| **Yandex** | api.wh-lab.ru | wh-lab.ru | docker-compose | manual |
+
+**Host:** 192.168.1.74
 
 ---
 
-## Окружения
-
-| Env | API | Frontend | Namespace |
-|-----|-----|----------|-----------|
-| Dev | http://192.168.1.74:31080 | http://192.168.1.74:31081 | warehouse-dev |
-| Prod | http://192.168.1.74:30080 | http://192.168.1.74:30081 | warehouse |
-| Yandex | https://api.wh-lab.ru | https://wh-lab.ru | docker-compose |
-
----
-
-## Деплой в K3s
-
-```bash
-# 1. Build
-docker build --no-cache -t IMAGE:TAG .
-
-# 2. Remove old (игнорируй ошибку если нет)
-sudo k3s ctr images rm docker.io/library/IMAGE:TAG 2>/dev/null || true
-
-# 3. Import (НЕ docker push!)
-docker save IMAGE:TAG | sudo k3s ctr images import -
-
-# 4. Restart
-kubectl rollout restart deployment/NAME -n NAMESPACE
-
-# 5. Verify
-kubectl logs -n NAMESPACE deployment/NAME --tail=50
-```
-
----
-
-## GitHub (Task Tracking)
-
-```bash
-# Список задач
-gh issue list --repo Mdyuzhev/WaregouseHub
-
-# Создать
-gh issue create --repo Mdyuzhev/WaregouseHub --title "Название" --body "Описание"
-
-# Закрыть
-gh issue close 123 --repo Mdyuzhev/WaregouseHub
-```
-
----
-
-## Тестовые учётки
+## 🔑 Учётки
 
 | Env | User | Password |
 |-----|------|----------|
-| Dev (31080) | admin | admin123 |
-| Prod (30080) | admin | admin123 |
-| Prod (30080) | employee | password123 |
+| Dev/Prod | admin | admin123 |
+| Prod | employee | password123 |
 
 ---
 
-## Паттерны кода
+## 🚨 Критические правила
 
-**Смотри существующие файлы как образец:**
-- `StockController.java` — REST endpoints
-- `StockService.java` — бизнес-логика
-- `V4__add_stock_table.sql` — Flyway миграция
-
-**Lombok:** `@Data`, `@RequiredArgsConstructor`
-**Транзакции:** `@Transactional` на сервисах
-**Security:** `@PreAuthorize` на endpoints
+| ❌ НЕ делать | ✅ Делать |
+|-------------|----------|
+| `docker push` | `docker save \| sudo k3s ctr import -` |
+| `git push origin main` | MR через GitLab |
+| Docker build локально | Build в CI или на dev |
+| Flyway без проверки | `ls db/migration/` перед созданием |
 
 ---
 
-## Git Workflow
+## 🛠️ Шаблоны команд
 
-| Ветка | Деплой | Триггер |
-|-------|--------|---------|
-| develop | warehouse-dev (31xxx) | Auto |
-| main | warehouse (30xxx) | Manual MR |
+### K3s деплой
+```bash
+docker build --no-cache -t IMAGE:TAG .
+sudo k3s ctr images rm docker.io/library/IMAGE:TAG 2>/dev/null || true
+docker save IMAGE:TAG | sudo k3s ctr images import -
+kubectl rollout restart deployment/NAME -n NAMESPACE
+kubectl logs -n NAMESPACE deployment/NAME --tail=50
+```
 
-**Коммит:** `WH-XXX: Краткое описание`
+### Health check
+```bash
+curl -s http://192.168.1.74:30080/actuator/health | jq .status
+```
+
+### GitHub Issues
+```bash
+gh issue list --repo Mdyuzhev/WaregouseHub
+gh issue create --repo Mdyuzhev/WaregouseHub --title "X" --body "Y"
+gh issue close 123 --repo Mdyuzhev/WaregouseHub
+```
+
+### Lab control (RAM management)
+```bash
+lab start-warehouse   # ПЕРЕД работой
+lab stop-warehouse    # ПОСЛЕ работы
+lab status            # Проверка
+```
 
 ---
 
-## Документация
+## 📝 Паттерны кода
 
-| Задача | Читать |
-|--------|--------|
-| Deploy | docs/DEPLOY_GUIDE.md |
-| API тесты | docs/TESTING.md |
+### Backend (Java)
+```java
+// Controller
+@RestController @RequestMapping("/api/v1/products")
+@RequiredArgsConstructor
+public class ProductController {
+    @GetMapping @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ProductDTO>> getAll() {...}
+}
+
+// Service
+@Service @RequiredArgsConstructor
+public class ProductService {
+    @Transactional
+    public Product save(Product p) {...}
+}
+```
+
+**Lombok:** `@Data`, `@RequiredArgsConstructor`, `@Builder`
+**Образцы:** `StockController.java`, `StockService.java`
+
+### Frontend (Vue)
+```vue
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useProductStore } from '@/stores/product'
+const store = useProductStore()
+</script>
+```
+
+**Образцы:** `views/wh/`, `components/`
+
+### Flyway
+```sql
+-- V{N}__{description}.sql
+-- Проверь версию: ls db/migration/
+```
+
+---
+
+## 📁 Документация
+
+| Задача | Файл |
+|--------|------|
+| Деплой | docs/DEPLOY_GUIDE.md |
 | Архитектура | docs/ARCHITECTURE.md |
+| Компоненты | docs/COMPONENTS.md |
+| Тесты | docs/TESTING.md |
 | Проблемы | docs/TROUBLESHOOTING_GUIDE.md |
 
 ---
 
-## Чеклист перед ответом
+## 🔄 Git Workflow
 
-- [ ] Есть аналог в проекте? → Используй как образец
-- [ ] Код следует паттернам (Lombok, @Transactional)
-- [ ] Указана команда проверки результата
-- [ ] Нет лишних рассуждений
+| Ветка | Порты | Триггер |
+|-------|-------|---------|
+| develop | 31xxx | Auto deploy |
+| main | 30xxx | MR only |
+
+**Коммит:** `type: описание` (feat, fix, refactor, docs, chore)
+
+---
+
+## ✅ Чеклист
+
+- [ ] Аналог в проекте? → Копируй паттерн
+- [ ] K3s? → `docker save | k3s ctr import`
+- [ ] Flyway? → `ls db/migration/` сначала
+- [ ] Команда проверки указана?

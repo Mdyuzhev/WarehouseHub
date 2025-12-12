@@ -10,116 +10,65 @@
     "no_philosophy": true,
     "humor": "short_jokes_on_success_or_error"
   },
-  "response_format": {
-    "simple_task": "**Решение:** [код] **Проверка:** [команда]",
-    "complex_task": "**Шаги:** 1,2,3 **Проверка:** [что проверить]"
+  "projects": {
+    "api": "/home/flomaster/warehouse-api",
+    "frontend": "/home/flomaster/warehouse-frontend",
+    "master": "/home/flomaster/warehouse-master",
+    "testing": "/home/flomaster/warehouse-testing"
   },
-  "critical_rules": [
-    "K3s deploy: docker save | k3s ctr import (NEVER docker push)",
-    "Flyway: check version with ls db/migration/ BEFORE creating",
-    "main branch: MR only, never direct push",
-    "Server 24GB RAM: NO local Docker build - OOM risk"
-  ],
-  "lab_control": {
-    "before_work": "lab start-warehouse",
-    "after_work": "lab stop-warehouse",
-    "check_status": "lab status"
-  },
-  "tech_stack": {
-    "backend": "Java 17 + Spring Boot 3.2",
-    "frontend": "Vue.js 3.4 + Vite 5",
-    "database": "PostgreSQL 15 + Flyway",
-    "cache": "Redis 7.4.7",
-    "messaging": "Kafka KRaft",
-    "container": "K3s containerd",
-    "tracker": "GitHub Issues + Project"
+  "quick_paths": {
+    "controllers": "warehouse-api/src/main/java/com/warehouse/controller",
+    "services": "warehouse-api/src/main/java/com/warehouse/service",
+    "models": "warehouse-api/src/main/java/com/warehouse/model",
+    "migrations": "warehouse-api/src/main/resources/db/migration",
+    "views": "warehouse-frontend/src/views",
+    "components": "warehouse-frontend/src/components",
+    "stores": "warehouse-frontend/src/stores",
+    "k8s": "warehouse-master/k8s",
+    "docs": "warehouse-master/docs"
   },
   "environments": {
     "dev": {
       "api": "http://192.168.1.74:31080",
       "frontend": "http://192.168.1.74:31081",
-      "namespace": "warehouse-dev",
-      "ports": "31xxx",
-      "deploy": "auto on develop branch"
+      "namespace": "warehouse-dev"
     },
     "prod": {
       "api": "http://192.168.1.74:30080",
       "frontend": "http://192.168.1.74:30081",
-      "namespace": "warehouse",
-      "ports": "30xxx",
-      "deploy": "manual via MR to main"
+      "namespace": "warehouse"
     },
     "yandex": {
       "api": "https://api.wh-lab.ru",
-      "frontend": "https://wh-lab.ru",
-      "deploy": "docker-compose"
-    }
-  },
-  "deploy_k3s": {
-    "steps": [
-      "docker build --no-cache -t IMAGE:TAG .",
-      "sudo k3s ctr images rm docker.io/library/IMAGE:TAG 2>/dev/null || true",
-      "docker save IMAGE:TAG | sudo k3s ctr images import -",
-      "kubectl rollout restart deployment/NAME -n NAMESPACE",
-      "kubectl logs -n NAMESPACE deployment/NAME --tail=50"
-    ],
-    "never": "docker push"
-  },
-  "github": {
-    "repo": "Mdyuzhev/WaregouseHub",
-    "project": "https://github.com/users/Mdyuzhev/projects/3",
-    "commands": {
-      "list": "gh issue list --repo Mdyuzhev/WaregouseHub",
-      "create": "gh issue create --repo Mdyuzhev/WaregouseHub --title \"X\" --body \"Y\"",
-      "close": "gh issue close 123 --repo Mdyuzhev/WaregouseHub"
+      "frontend": "https://wh-lab.ru"
     }
   },
   "credentials": {
-    "dev": {
-      "user": "admin",
-      "password": "admin123"
-    },
-    "prod_admin": {
-      "user": "admin",
-      "password": "admin123"
-    },
-    "prod_employee": {
-      "user": "employee",
-      "password": "password123"
+    "app": {
+      "admin": "admin123",
+      "employee": "password123"
     },
     "sudo": {
       "user": "flomaster",
       "password": "Misha2021@1@"
     }
   },
-  "code_patterns": {
-    "templates": [
-      "StockController.java - REST endpoints",
-      "StockService.java - business logic",
-      "V4__add_stock_table.sql - Flyway migration"
-    ],
-    "lombok": [
-      "@Data",
-      "@RequiredArgsConstructor"
-    ],
-    "transactions": "@Transactional on service layer",
-    "security": "@PreAuthorize on endpoints"
+  "github": {
+    "repo": "Mdyuzhev/WaregouseHub",
+    "project": "https://github.com/users/Mdyuzhev/projects/3"
   },
-  "git_workflow": {
-    "develop": "auto deploy to warehouse-dev (31xxx)",
-    "main": "manual deploy to warehouse (30xxx) via MR only",
-    "commit_format": "WH-XXX: Short description"
-  },
-  "docs_by_task": {
-    "deploy": "docs/DEPLOY_GUIDE.md",
-    "testing": "docs/TESTING.md",
-    "architecture": "docs/ARCHITECTURE.md",
-    "troubleshooting": "docs/TROUBLESHOOTING_GUIDE.md"
-  },
-  "checklist_before_response": [
-    "Existing pattern in project? Use as template",
-    "Code follows patterns (Lombok, @Transactional)",
-    "Verification command included",
-    "No unnecessary explanations"
-  ]
+  "critical_rules": [
+    "K3s: docker save | k3s ctr import (NEVER docker push)",
+    "Flyway: ls db/migration/ BEFORE creating",
+    "main: MR only, never direct push",
+    "RAM 24GB: NO local Docker build"
+  ],
+  "tech_stack": {
+    "backend": "Java 17 + Spring Boot 3.2",
+    "frontend": "Vue.js 3.4 + Vite 5",
+    "db": "PostgreSQL 15 + Flyway",
+    "cache": "Redis 7.4.7",
+    "mq": "Kafka KRaft",
+    "container": "K3s containerd"
+  }
 }
