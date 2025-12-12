@@ -1,5 +1,6 @@
 package com.warehouse.service;
 
+import com.warehouse.dto.PageResponse;
 import com.warehouse.model.Product;
 import com.warehouse.repository.ProductRepository;
 import io.micrometer.core.instrument.Counter;
@@ -8,11 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @Slf4j
@@ -62,16 +62,16 @@ public class ProductService {
         return saved;
     }
 
-    @Cacheable(value = "products")
-    public List<Product> getAllProducts() {
-        log.info("Fetching all products from database (cache miss)");
-        return productRepository.findAll();
+    @Cacheable(value = "products", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<Product> getAllProducts(Pageable pageable) {
+        log.info("Fetching products page {} from database (cache miss)", pageable.getPageNumber());
+        return PageResponse.from(productRepository.findAll(pageable));
     }
 
-    @Cacheable(value = "productsByCategory", key = "#category")
-    public List<Product> getProductsByCategory(String category) {
+    @Cacheable(value = "productsByCategory", key = "#category + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
+    public PageResponse<Product> getProductsByCategory(String category, Pageable pageable) {
         log.info("Fetching products by category from database (cache miss): {}", category);
-        return productRepository.findByCategory(category);
+        return PageResponse.from(productRepository.findByCategory(category, pageable));
     }
 
     public Product getProductById(Long id) {

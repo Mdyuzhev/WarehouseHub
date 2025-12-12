@@ -1,6 +1,8 @@
 package com.warehouse.repository;
 
 import com.warehouse.model.Stock;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,12 +23,14 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     // Все остатки товара (на всех объектах)
     List<Stock> findByProductId(Long productId);
+    Page<Stock> findByProductId(Long productId, Pageable pageable);
 
     // Все остатки на объекте
     List<Stock> findByFacilityId(Long facilityId);
 
     // Остатки на объекте где quantity > 0
     List<Stock> findByFacilityIdAndQuantityGreaterThan(Long facilityId, Integer minQuantity);
+    Page<Stock> findByFacilityIdAndQuantityGreaterThan(Long facilityId, Integer minQuantity, Pageable pageable);
 
     // Суммарный остаток товара по всем объектам
     @Query("SELECT COALESCE(SUM(s.quantity), 0) FROM Stock s WHERE s.product.id = :productId")
@@ -39,4 +43,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     // Товары с низким остатком на объекте
     @Query("SELECT s FROM Stock s WHERE s.facility.id = :facilityId AND s.quantity < :threshold")
     List<Stock> findLowStockByFacility(@Param("facilityId") Long facilityId, @Param("threshold") Integer threshold);
+
+    @Query("SELECT s FROM Stock s WHERE s.facility.id = :facilityId AND s.quantity < :threshold")
+    Page<Stock> findLowStockByFacility(@Param("facilityId") Long facilityId, @Param("threshold") Integer threshold, Pageable pageable);
 }

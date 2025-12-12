@@ -23,7 +23,7 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 # GitLab API
 GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3")
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "")
 
 # GitLab проекты и джобы
 GITLAB_PROJECTS = {

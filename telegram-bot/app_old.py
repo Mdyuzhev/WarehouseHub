@@ -43,7 +43,7 @@ LOCUST_MASTER_URL = os.getenv("LOCUST_MASTER_URL", "http://locust-master.loadtes
 
 # GitLab и Allure конфигурация
 GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "glpat-Ou0qfvnfGfUOGkbs3nmv8m86MQp1OjEH.01.0w0ojabq3")
+GITLAB_TOKEN = os.getenv("GITLAB_TOKEN", "")
 GITLAB_TRIGGER_TOKEN = os.getenv("GITLAB_TRIGGER_TOKEN", "")
 ALLURE_SERVER_URL = os.getenv("ALLURE_SERVER_URL", "http://192.168.1.74:5050")
 
@@ -87,8 +87,8 @@ pending_load_auth = {}
 load_test_wizard = {}
 
 # Пароли для запуска нагрузочного тестирования
-LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD", "Misha2021@1@")
-LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")
+LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD", "")
+LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "")
 
 # Лимиты для гостевого доступа
 GUEST_MAX_USERS = 20

@@ -23,6 +23,9 @@ secrets.yml
 *.crt
 !*.crt.example
 
+# Documentation with secrets (keep locally, don't commit)
+docs/CREDENTIALS.md
+
 # K8s secrets (НИКОГДА не коммитить реальные секреты!)
 *-secret.yaml
 *-secrets.yaml

@@ -1,5 +1,6 @@
 package com.warehouse.service;
 
+import com.warehouse.dto.PageResponse;
 import com.warehouse.dto.StockDTO;
 import com.warehouse.model.Facility;
 import com.warehouse.model.Product;
@@ -9,13 +10,13 @@ import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.StockRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Сервис для управления остатками товаров на объектах
@@ -62,23 +63,19 @@ public class StockService {
     }
 
     /**
-     * Получить все остатки на объекте
+     * Получить все остатки на объекте (с пагинацией)
      */
-    public List<StockDTO> getStockByFacility(Long facilityId) {
-        return stockRepository.findByFacilityIdAndQuantityGreaterThan(facilityId, 0)
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<StockDTO> getStockByFacility(Long facilityId, Pageable pageable) {
+        Page<Stock> page = stockRepository.findByFacilityIdAndQuantityGreaterThan(facilityId, 0, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     /**
-     * Получить остатки товара на всех объектах
+     * Получить остатки товара на всех объектах (с пагинацией)
      */
-    public List<StockDTO> getStockByProduct(Long productId) {
-        return stockRepository.findByProductId(productId)
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<StockDTO> getStockByProduct(Long productId, Pageable pageable) {
+        Page<Stock> page = stockRepository.findByProductId(productId, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     /**
@@ -208,13 +205,11 @@ public class StockService {
     }
 
     /**
-     * Товары с низким остатком
+     * Товары с низким остатком (с пагинацией)
      */
-    public List<StockDTO> getLowStock(Long facilityId, Integer threshold) {
-        return stockRepository.findLowStockByFacility(facilityId, threshold)
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<StockDTO> getLowStock(Long facilityId, Integer threshold, Pageable pageable) {
+        Page<Stock> page = stockRepository.findLowStockByFacility(facilityId, threshold, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     private StockDTO toDTO(Stock stock) {

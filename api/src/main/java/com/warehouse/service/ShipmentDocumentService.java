@@ -1,15 +1,14 @@
 package com.warehouse.service;
 
-import com.warehouse.dto.ShipmentCreateRequest;
-import com.warehouse.dto.ShipmentDocumentDTO;
-import com.warehouse.dto.ShipmentEvent;
-import com.warehouse.dto.ShipmentItemDTO;
+import com.warehouse.dto.*;
 import com.warehouse.model.*;
 import com.warehouse.repository.FacilityRepository;
 import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.ShipmentDocumentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,14 +121,12 @@ public class ShipmentDocumentService {
     }
 
     /**
-     * Получить все документы по объекту-источнику
+     * Получить все документы по объекту-источнику (с пагинацией)
      */
     @Transactional(readOnly = true)
-    public List<ShipmentDocumentDTO> getBySourceFacility(Long facilityId) {
-        List<ShipmentDocument> shipments = shipmentRepository.findBySourceFacilityId(facilityId);
-        return shipments.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<ShipmentDocumentDTO> getBySourceFacility(Long facilityId, Pageable pageable) {
+        Page<ShipmentDocument> page = shipmentRepository.findBySourceFacilityId(facilityId, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     /**

@@ -2,23 +2,26 @@ package com.warehouse.controller;
 
 import com.warehouse.dto.InventoryActCreateRequest;
 import com.warehouse.dto.InventoryActDTO;
+import com.warehouse.dto.PageResponse;
 import com.warehouse.model.User;
 import com.warehouse.repository.UserRepository;
 import com.warehouse.service.InventoryActService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * REST контроллер для работы с актами инвентаризации
@@ -91,8 +94,12 @@ public class InventoryActController {
     @GetMapping("/facility/{facilityId}")
     @PreAuthorize("hasAnyRole('SUPER_USER', 'EMPLOYEE', 'MANAGER', 'ADMIN')")
     @Operation(summary = "Получить все акты инвентаризации для склада")
-    public ResponseEntity<List<InventoryActDTO>> getInventoryActsByFacility(@PathVariable Long facilityId) {
-        List<InventoryActDTO> inventoryActs = inventoryActService.getByFacility(facilityId);
+    public ResponseEntity<PageResponse<InventoryActDTO>> getInventoryActsByFacility(
+            @PathVariable Long facilityId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        PageResponse<InventoryActDTO> inventoryActs = inventoryActService.getByFacility(facilityId, pageable);
         return ResponseEntity.ok(inventoryActs);
     }
 

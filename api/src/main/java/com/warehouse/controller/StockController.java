@@ -1,15 +1,19 @@
 package com.warehouse.controller;
 
+import com.warehouse.dto.PageResponse;
 import com.warehouse.dto.StockDTO;
 import com.warehouse.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,14 +30,22 @@ public class StockController {
 
     @GetMapping("/facility/{facilityId}")
     @Operation(summary = "Получить все остатки на объекте")
-    public ResponseEntity<List<StockDTO>> getStockByFacility(@PathVariable Long facilityId) {
-        return ResponseEntity.ok(stockService.getStockByFacility(facilityId));
+    public ResponseEntity<PageResponse<StockDTO>> getStockByFacility(
+            @PathVariable Long facilityId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("product.name").ascending());
+        return ResponseEntity.ok(stockService.getStockByFacility(facilityId, pageable));
     }
 
     @GetMapping("/product/{productId}")
     @Operation(summary = "Получить остатки товара на всех объектах")
-    public ResponseEntity<List<StockDTO>> getStockByProduct(@PathVariable Long productId) {
-        return ResponseEntity.ok(stockService.getStockByProduct(productId));
+    public ResponseEntity<PageResponse<StockDTO>> getStockByProduct(
+            @PathVariable Long productId,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("facility.name").ascending());
+        return ResponseEntity.ok(stockService.getStockByProduct(productId, pageable));
     }
 
     @GetMapping("/product/{productId}/facility/{facilityId}")
@@ -102,9 +114,12 @@ public class StockController {
 
     @GetMapping("/facility/{facilityId}/low")
     @Operation(summary = "Получить товары с низким остатком на объекте")
-    public ResponseEntity<List<StockDTO>> getLowStock(
+    public ResponseEntity<PageResponse<StockDTO>> getLowStock(
             @PathVariable Long facilityId,
-            @RequestParam(defaultValue = "10") Integer threshold) {
-        return ResponseEntity.ok(stockService.getLowStock(facilityId, threshold));
+            @RequestParam(defaultValue = "10") Integer threshold,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("quantity").ascending());
+        return ResponseEntity.ok(stockService.getLowStock(facilityId, threshold, pageable));
     }
 }

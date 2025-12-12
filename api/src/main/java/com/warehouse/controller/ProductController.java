@@ -1,8 +1,10 @@
 package com.warehouse.controller;
 
+import com.warehouse.dto.PageResponse;
 import com.warehouse.model.Product;
 import com.warehouse.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,11 +12,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -25,14 +28,17 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Get all products", description = "Returns a list of all products, optionally filtered by category")
-    @ApiResponse(responseCode = "200", description = "List of products")
-    public ResponseEntity<List<Product>> getAllProducts(
-            @RequestParam(required = false) String category) {
+    @Operation(summary = "Get all products", description = "Returns a paginated list of products, optionally filtered by category")
+    @ApiResponse(responseCode = "200", description = "Paginated list of products")
+    public ResponseEntity<PageResponse<Product>> getAllProducts(
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Filter by category") @RequestParam(required = false) String category) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         if (category != null && !category.isEmpty()) {
-            return ResponseEntity.ok(productService.getProductsByCategory(category));
+            return ResponseEntity.ok(productService.getProductsByCategory(category, pageable));
         }
-        return ResponseEntity.ok(productService.getAllProducts());
+        return ResponseEntity.ok(productService.getAllProducts(pageable));
     }
 
     @GetMapping("/{id}")

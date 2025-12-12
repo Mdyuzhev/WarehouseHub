@@ -1,14 +1,14 @@
 package com.warehouse.service;
 
-import com.warehouse.dto.IssueActCreateRequest;
-import com.warehouse.dto.IssueActDTO;
-import com.warehouse.dto.IssueActItemDTO;
+import com.warehouse.dto.*;
 import com.warehouse.model.*;
 import com.warehouse.repository.FacilityRepository;
 import com.warehouse.repository.IssueActRepository;
 import com.warehouse.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,14 +102,12 @@ public class IssueActService {
     }
 
     /**
-     * Получить все акты по facility
+     * Получить все акты по facility (с пагинацией)
      */
     @Transactional(readOnly = true)
-    public List<IssueActDTO> getByFacility(Long facilityId) {
-        List<IssueAct> issueActs = issueActRepository.findByFacilityId(facilityId);
-        return issueActs.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<IssueActDTO> getByFacility(Long facilityId, Pageable pageable) {
+        Page<IssueAct> page = issueActRepository.findByFacilityId(facilityId, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     /**

@@ -2,6 +2,8 @@ package com.warehouse.repository;
 
 import com.warehouse.model.ReceiptDocument;
 import com.warehouse.model.ReceiptStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +24,11 @@ public interface ReceiptDocumentRepository extends JpaRepository<ReceiptDocument
      * Найти документы по объекту
      */
     List<ReceiptDocument> findByFacilityId(Long facilityId);
+
+    /**
+     * Найти документы по объекту (с пагинацией)
+     */
+    Page<ReceiptDocument> findByFacilityId(Long facilityId, Pageable pageable);
 
     /**
      * Найти документы по объекту и статусу

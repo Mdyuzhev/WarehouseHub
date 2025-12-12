@@ -7,6 +7,8 @@ import com.warehouse.repository.ProductRepository;
 import com.warehouse.repository.ReceiptDocumentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,14 +109,12 @@ public class ReceiptDocumentService {
     }
 
     /**
-     * Получить все документы по объекту
+     * Получить все документы по объекту (с пагинацией)
      */
     @Transactional(readOnly = true)
-    public List<ReceiptDocumentDTO> getByFacility(Long facilityId) {
-        List<ReceiptDocument> receipts = receiptRepository.findByFacilityId(facilityId);
-        return receipts.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PageResponse<ReceiptDocumentDTO> getByFacility(Long facilityId, Pageable pageable) {
+        Page<ReceiptDocument> page = receiptRepository.findByFacilityId(facilityId, pageable);
+        return PageResponse.from(page.map(this::toDTO));
     }
 
     /**

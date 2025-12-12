@@ -1,6 +1,8 @@
 package com.warehouse.repository;
 
 import com.warehouse.model.IssueAct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,6 +29,11 @@ public interface IssueActRepository extends JpaRepository<IssueAct, Long> {
      * Найти все акты по facility
      */
     List<IssueAct> findByFacilityId(Long facilityId);
+
+    /**
+     * Найти все акты по facility (с пагинацией)
+     */
+    Page<IssueAct> findByFacilityId(Long facilityId, Pageable pageable);
 
     /**
      * Подсчитать акты по facility за период (для генерации номера)

@@ -2,6 +2,8 @@ package com.warehouse.repository;
 
 import com.warehouse.model.ShipmentDocument;
 import com.warehouse.model.ShipmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +24,11 @@ public interface ShipmentDocumentRepository extends JpaRepository<ShipmentDocume
      * Найти документы по объекту-источнику
      */
     List<ShipmentDocument> findBySourceFacilityId(Long sourceFacilityId);
+
+    /**
+     * Найти документы по объекту-источнику (с пагинацией)
+     */
+    Page<ShipmentDocument> findBySourceFacilityId(Long sourceFacilityId, Pageable pageable);
 
     /**
      * Найти документы по объекту-получателю
