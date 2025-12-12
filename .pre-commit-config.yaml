@@ -1,0 +1,74 @@
+# Pre-commit hooks for Warehouse project
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-c, .yamllint.yaml]
+        files: \.(yaml|yml)$
+        exclude: ^(node_modules|target|build|.gradle)/
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        files: \.sh$
+        exclude: ^(node_modules|target|build)/
+        args: [-x]  # Follow sourced files
+
+  # Trailing whitespace, EOF, etc.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*\.md|.*\.lock)$
+      - id: end-of-file-fixer
+        exclude: ^(.*\.lock)$
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom tags in K8s manifests
+        exclude: ^(node_modules|target|build)/
+      - id: check-json
+        exclude: ^(node_modules|target|build)/
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
+      - id: check-merge-conflict
+
+  # Python formatting (for analytics-service, telegram-bot)
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^(analytics-service|telegram-bot)/.*\.py$
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black]
+        files: ^(analytics-service|telegram-bot)/.*\.py$
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        entry: hadolint
+        args: [--ignore, DL3008, --ignore, DL3013]  # Ignore pin versions for apt/pip
+
+  # GitLab CI linting (basic syntax check)
+  - repo: local
+    hooks:
+      - id: gitlab-ci-lint
+        name: GitLab CI YAML syntax
+        entry: python3 -c "import yaml; yaml.safe_load(open('.gitlab-ci.yml'))"
+        language: system
+        files: ^\.gitlab-ci\.yml$
+        pass_filenames: false

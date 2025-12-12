@@ -50,6 +50,93 @@ variables:
   ALLURE_SERVER_URL: "http://${STAGING_HOST}:5050"
   SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
 
+  # Image versioning (#14: use git SHA instead of :latest)
+  IMAGE_TAG: "${CI_COMMIT_SHORT_SHA:-latest}"
+
+# =============================================================================
+# TEMPLATES (reusable job definitions)
+# =============================================================================
+
+# Template for SSH deploy to production
+.prod-ssh-template:
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
+    - chmod 600 ~/.ssh/deploy_key
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  after_script:
+    - rm -f ~/.ssh/deploy_key
+  tags:
+    - shell
+  when: manual
+
+# Template for Allure report upload
+.allure-upload-template:
+  script:
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+
+# Template for E2E tests
+.e2e-test-template:
+  stage: test
+  script:
+    - echo "🧪 Running E2E Tests on $TEST_ENV..."
+    - echo "Target URL - $BASE_URL"
+    - cd /home/flomaster/warehouse-master/e2e-tests
+    - rm -rf target/ || true
+    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
+    # Upload to Allure
+    - export ALLURE_RESULTS_DIR=/home/flomaster/warehouse-master/e2e-tests/target/allure-results
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 E2E $TEST_ENV ALLURE REPORT:"
+    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
+    - echo "═══════════════════════════════════════════════════════════"
+  tags:
+    - shell
+  when: manual
+
+# Template for UI tests
+.ui-test-template:
+  stage: test
+  script:
+    - echo "🎭 Running UI Tests on $TEST_ENV..."
+    - echo "Target URL - $BASE_URL"
+    # Start Selenoid if not running
+    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
+    - echo "✅ Selenoid is ready!"
+    # Clean previous results
+    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    # Run tests
+    - cd /home/flomaster/warehouse-master/ui-tests
+    - sudo rm -rf target/ || true
+    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
+    # Upload to Allure
+    - export ALLURE_RESULTS_DIR=/home/flomaster/warehouse-master/ui-tests/target/allure-results
+    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
+    - bash -c 'cd $ALLURE_RESULTS_DIR 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
+    - sleep 2
+    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
+    - echo ""
+    - echo "═══════════════════════════════════════════════════════════"
+    - echo "📊 $TEST_ENV ALLURE REPORT:"
+    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
+    - echo "═══════════════════════════════════════════════════════════"
+    # Fix permissions
+    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
+  tags:
+    - shell
+  when: manual
+
 # =============================================================================
 # DEPLOY STAGING
 # =============================================================================
@@ -110,13 +197,8 @@ deploy-all-staging:
 # =============================================================================
 
 deploy-api-prod:
+  extends: .prod-ssh-template
   stage: deploy-prod
-  before_script:
-    - mkdir -p ~/.ssh
-    # SSH key from GitLab CI/CD Variable (Settings > CI/CD > Variables > PROD_SSH_KEY)
-    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
-    - chmod 600 ~/.ssh/deploy_key
-    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
     - |
       echo "🚀 Deploying API to Production..."
@@ -127,22 +209,13 @@ deploy-api-prod:
         sudo docker image prune -f
         echo "✅ API deployed!"
       ENDSSH
-  after_script:
-    - rm -f ~/.ssh/deploy_key
-  tags:
-    - shell
-  when: manual
   environment:
     name: production-api
     url: https://api.wh-lab.ru
 
 deploy-frontend-prod:
+  extends: .prod-ssh-template
   stage: deploy-prod
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
-    - chmod 600 ~/.ssh/deploy_key
-    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
     - |
       echo "🚀 Deploying Frontend to Production..."
@@ -153,22 +226,13 @@ deploy-frontend-prod:
         sudo docker image prune -f
         echo "✅ Frontend deployed!"
       ENDSSH
-  after_script:
-    - rm -f ~/.ssh/deploy_key
-  tags:
-    - shell
-  when: manual
   environment:
     name: production-frontend
     url: https://wh-lab.ru
 
 deploy-all-prod:
+  extends: .prod-ssh-template
   stage: deploy-prod
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "$PROD_SSH_KEY" > ~/.ssh/deploy_key
-    - chmod 600 ~/.ssh/deploy_key
-    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
   script:
     - |
       echo "🚀 Deploying ALL to Production..."
@@ -179,11 +243,6 @@ deploy-all-prod:
         sudo docker image prune -f
         echo "✅ All services deployed!"
       ENDSSH
-  after_script:
-    - rm -f ~/.ssh/deploy_key
-  tags:
-    - shell
-  when: manual
   environment:
     name: production
     url: https://wh-lab.ru
@@ -256,138 +315,44 @@ sync-to-github-auto:
 
 # E2E Tests for Staging environment
 run-e2e-tests-staging:
-  stage: test
+  extends: .e2e-test-template
   variables:
     BASE_URL: "http://${STAGING_HOST}:${STAGING_API_PORT}"
     PROJECT_ID: "e2e-staging"
-  script:
-    - echo "🧪 Running E2E Tests on STAGING..."
-    - echo "Target URL - $BASE_URL"
-    - cd /home/flomaster/warehouse-master/e2e-tests
-    - rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
-    # Upload to Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/e2e-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 E2E STAGING ALLURE REPORT:"
-    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
-    - echo "═══════════════════════════════════════════════════════════"
-  tags:
-    - shell
-  when: manual
+    TEST_ENV: "STAGING"
   environment:
     name: e2e-test-staging
     url: http://${STAGING_HOST}:${STAGING_API_PORT}
 
 # E2E Tests for Production environment
 run-e2e-tests-prod:
-  stage: test
+  extends: .e2e-test-template
   variables:
     BASE_URL: "https://api.wh-lab.ru"
     PROJECT_ID: "e2e-prod"
-  script:
-    - echo "🧪 Running E2E Tests on PRODUCTION..."
-    - echo "Target URL - $BASE_URL"
-    - cd /home/flomaster/warehouse-master/e2e-tests
-    - rm -rf target/ || true
-    - ./mvnw test -Dbase.url=$BASE_URL --batch-mode || true
-    # Upload to Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/e2e-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 E2E PROD ALLURE REPORT:"
-    - echo "   ${ALLURE_SERVER_URL}/allure-docker-service/projects/$PROJECT_ID/reports/latest"
-    - echo "═══════════════════════════════════════════════════════════"
-  tags:
-    - shell
-  when: manual
+    TEST_ENV: "PRODUCTION"
   environment:
     name: e2e-test-production
     url: https://api.wh-lab.ru
 
 # UI Tests for Staging environment
 run-ui-tests-staging:
-  stage: test
+  extends: .ui-test-template
   variables:
     BASE_URL: "http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}"
-    SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
     PROJECT_ID: "ui-staging"
-  script:
-    - echo "🎭 Running UI Tests on STAGING..."
-    - echo "Target URL - $BASE_URL"
-    # Автоматически поднимаем Selenoid если не запущен
-    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
-    - echo "✅ Selenoid is ready!"
-    # Очистка предыдущих результатов
-    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    # Запуск тестов
-    - cd /home/flomaster/warehouse-master/ui-tests
-    - sudo rm -rf target/ || true
-    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
-    # Загрузка результатов в Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 STAGING ALLURE REPORT:"
-    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
-    - echo "═══════════════════════════════════════════════════════════"
-    # Исправление прав для локального запуска
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
-  tags:
-    - shell
-  when: manual
+    TEST_ENV: "STAGING"
   environment:
     name: test-staging
     url: http://${STAGING_HOST}:${STAGING_FRONTEND_PORT}
 
 # UI Tests for Production environment
 run-ui-tests-prod:
-  stage: test
+  extends: .ui-test-template
   variables:
     BASE_URL: "https://wh-lab.ru"
-    SELENOID_URL: "http://${STAGING_HOST}:4444/wd/hub"
     PROJECT_ID: "ui-prod"
-  script:
-    - echo "🎭 Running UI Tests on PRODUCTION..."
-    - echo "Target URL - $BASE_URL"
-    # Автоматически поднимаем Selenoid если не запущен
-    - bash -c 'curl -s "http://${STAGING_HOST}:4444/status" | grep -q "total" || (cd /home/flomaster/warehouse-master/selenoid && docker-compose up -d && sleep 10)'
-    - echo "✅ Selenoid is ready!"
-    # Очистка предыдущих результатов
-    - curl -s -X DELETE "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    # Запуск тестов
-    - cd /home/flomaster/warehouse-master/ui-tests
-    - sudo rm -rf target/ || true
-    - /home/flomaster/warehouse-master/ui-tests/mvnw test -Dbase.url=$BASE_URL -Dselenoid.url=$SELENOID_URL -Dbrowser=chrome -Dbrowser.size=1920x1080 --batch-mode || true
-    # Загрузка результатов в Allure
-    - curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/projects" -H "Content-Type:application/json" -d "{\"id\":\"$PROJECT_ID\"}" || true
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/clean-results?project_id=$PROJECT_ID" || true
-    - bash -c 'cd /home/flomaster/warehouse-master/ui-tests/target/allure-results 2>/dev/null && for f in *; do [ -f "$f" ] && curl -s -X POST "$ALLURE_SERVER_URL/allure-docker-service/send-results?project_id=$PROJECT_ID" -F "files[]=@$f" >/dev/null; done' || true
-    - sleep 2
-    - curl -s -X GET "$ALLURE_SERVER_URL/allure-docker-service/generate-report?project_id=$PROJECT_ID"
-    - echo ""
-    - echo "═══════════════════════════════════════════════════════════"
-    - echo "📊 PRODUCTION ALLURE REPORT:"
-    - echo "   http://${STAGING_HOST}:5252/#/projects/$PROJECT_ID"
-    - echo "═══════════════════════════════════════════════════════════"
-    # Исправление прав для локального запуска
-    - chown -R flomaster:flomaster /home/flomaster/warehouse-master/ui-tests/target/ || true
-  tags:
-    - shell
-  when: manual
+    TEST_ENV: "PRODUCTION"
   environment:
     name: test-production
     url: https://wh-lab.ru
@@ -427,17 +392,17 @@ run-load-tests:
 deploy-telegram-bot:
   stage: deploy-staging
   script:
-    - echo "🤖 Deploying Telegram Bot..."
+    - echo "🤖 Deploying Telegram Bot ($IMAGE_TAG)..."
     - cd telegram-bot
-    - docker build -t gitlab-telegram-bot:latest .
-    - docker save gitlab-telegram-bot:latest -o /tmp/bot.tar
-    - sudo k3s ctr images rm docker.io/library/gitlab-telegram-bot:latest || true
+    - docker build -t gitlab-telegram-bot:$IMAGE_TAG .
+    - docker save gitlab-telegram-bot:$IMAGE_TAG -o /tmp/bot.tar
+    - sudo k3s ctr images rm docker.io/library/gitlab-telegram-bot:$IMAGE_TAG 2>/dev/null || true
     - sudo k3s ctr images import /tmp/bot.tar
     - rm /tmp/bot.tar
     - kubectl apply -f ../k8s/notifications/
     - kubectl rollout restart deployment/gitlab-telegram-bot -n $K8S_NAMESPACE_NOTIFICATIONS
     - kubectl rollout status deployment/gitlab-telegram-bot -n $K8S_NAMESPACE_NOTIFICATIONS --timeout=60s
-    - echo "✅ Telegram Bot deployed"
+    - echo "✅ Telegram Bot deployed (version $IMAGE_TAG)"
   tags:
     - shell
   when: manual

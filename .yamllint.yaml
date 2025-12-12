@@ -1,0 +1,39 @@
+# YAMLLint configuration
+# Used by pre-commit hooks
+
+extends: default
+
+rules:
+  # Allow long lines in K8s manifests (base64 secrets, etc.)
+  line-length:
+    max: 200
+    level: warning
+
+  # Allow inline comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Allow document start without ---
+  document-start: disable
+
+  # Be lenient with indentation (K8s uses 2 spaces)
+  indentation:
+    spaces: 2
+    indent-sequences: whatever
+
+  # Allow empty values
+  empty-values: disable
+
+  # Truthy values
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+
+ignore: |
+  node_modules/
+  target/
+  build/
+  .gradle/
+  vendor/
+  # Ignore files with templating
+  **/templates/**
