@@ -103,3 +103,8 @@ labor_cost_report.json
 *.log
 *.tmp
 *.bak
+
+# Empty test directories (artifacts from gitlab-runner, need sudo to delete)
+e2e-tests/
+ui-tests/
+selenoid/
