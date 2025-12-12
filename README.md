@@ -1,217 +1,138 @@
 # WarehouseHub
 
-**Warehouse Management System** - полнофункциональная система управления складом с микросервисной архитектурой, развёрнутая в Kubernetes.
+**Warehouse Management System** — система управления складом с поддержкой распределённых центров (DC → WH → PP).
 
-## Обзор
+## Статус проекта
 
-Проект представляет собой комплексное решение для автоматизации складских операций, включающее:
+| Компонент | Статус | Описание |
+|-----------|--------|----------|
+| **Backend API** | ✅ Ready | REST API, документооборот, Kafka интеграция |
+| **Frontend** | ✅ Ready | 22 экрана для DC/WH/PP, facility selector |
+| **Testing** | ✅ Ready | E2E, UI, Load tests |
+| **Infrastructure** | ✅ Ready | K8s, CI/CD, Monitoring |
 
-- REST API на Spring Boot
-- SPA-интерфейс на Vue.js
-- Автоматизированное тестирование (E2E, нагрузочное, UI)
-- CI/CD пайплайны
-- Мониторинг и алертинг
-- Telegram-бот для уведомлений
+**Завершённые фазы:**
+- Phase 1: Core API (Products, Stock, Facilities)
+- Phase 2: Документооборот (Receipt, Shipment, Issue, Inventory Acts) + Kafka
+- Phase 3: Frontend (Navigation, Documents, Facility Screens)
 
-## Архитектура
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Production                                │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│  │  Frontend   │───▶│   API       │───▶│ PostgreSQL  │         │
-│  │  (Vue.js)   │    │(Spring Boot)│    │             │         │
-│  └─────────────┘    └─────────────┘    └─────────────┘         │
-│                            │                                     │
-│                            ▼                                     │
-│                     ┌─────────────┐                             │
-│                     │    Redis    │                             │
-│                     │   (Cache)   │                             │
-│                     └─────────────┘                             │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Структура репозитория
+## Monorepo Structure
 
 ```
-warehouse-master/
-├── k8s/                      # Kubernetes манифесты
-│   ├── warehouse/            # Production namespace
-│   ├── warehouse-dev/        # Development namespace
-│   ├── loadtest/             # Нагрузочное тестирование
-│   ├── monitoring/           # Prometheus + Grafana
-│   └── notifications/        # Telegram Bot
+WaregouseHub/
+├── api/                    # Java 17 + Spring Boot 3.2
+│   └── src/main/java/com/warehouse/
+│       ├── controller/     # REST endpoints
+│       ├── service/        # Business logic
+│       ├── model/          # JPA entities
+│       └── config/         # Security, Redis, Kafka
 │
-├── e2e-tests/                # E2E тесты (RestAssured + Allure)
-│   └── src/test/java/        # Java тесты
+├── frontend/               # Vue.js 3.4 + Vite 5
+│   └── src/
+│       ├── views/          # dc/, wh/, pp/ screens
+│       ├── components/     # UI components
+│       └── stores/         # Pinia state
 │
-├── PerformanceTesting/       # Нагрузочное тестирование
-│   ├── configs/              # Конфигурации k6
-│   └── scripts/              # Скрипты тестов
+├── testing/                # Tests
+│   ├── e2e-tests/          # RestAssured + JUnit5 + Allure
+│   ├── ui-tests/           # Selenide + JUnit5
+│   ├── loadtest/           # Locust
+│   └── k6-kafka/           # K6 Kafka tests
 │
-├── ui-tests/                 # UI тесты (Selenoid)
+├── k8s/                    # Kubernetes manifests
+│   ├── warehouse/          # Production
+│   ├── warehouse-dev/      # Development
+│   └── monitoring/         # Prometheus + Grafana
 │
-├── telegram-bot/             # Telegram бот для уведомлений
-│   ├── app.py                # Основной код
-│   └── Dockerfile
-│
-├── docs/                     # Документация
-│   ├── ARCHITECTURE.md
-│   ├── COMPONENTS.md
-│   ├── DEPLOY_GUIDE.md
-│   ├── TESTING.md
-│   └── TROUBLESHOOTING_GUIDE.md
-│
-├── .gitlab-ci.yml            # CI/CD пайплайн
-└── .claude/                  # AI-агент контекст
+├── production/             # Yandex Cloud (docker-compose)
+├── docs/                   # Documentation
+├── telegram-bot/           # Notification bot
+└── .claude/                # AI agent config
 ```
 
-## Технологический стек
+## Tech Stack
 
-### Backend
-- Java 17
-- Spring Boot 3.x
-- Spring Security + JWT
-- Spring Data JPA
-- PostgreSQL 15
-- Redis (кэширование)
+| Layer | Technology |
+|-------|------------|
+| Backend | Java 17, Spring Boot 3.2, Spring Security, JPA |
+| Frontend | Vue.js 3.4, Vite 5, Pinia, Axios |
+| Database | PostgreSQL 15, Flyway migrations |
+| Cache | Redis 7.4 |
+| Messaging | Kafka (KRaft mode) |
+| Container | K3s (containerd) |
+| CI/CD | GitLab CI + GitHub Actions |
+| Monitoring | Prometheus, Grafana, Loki |
+| Testing | JUnit5, RestAssured, Selenide, k6, Locust |
 
-### Frontend
-- Vue.js 3
-- Vite
-- Pinia (state management)
-- Axios
+## Environments
 
-### Infrastructure
-- Kubernetes (K3s)
-- Docker
-- GitLab CI/CD
-- Nginx Ingress
+| Env | API | Frontend | Deploy |
+|-----|-----|----------|--------|
+| Dev | http://192.168.1.74:31080 | http://192.168.1.74:31081 | Auto (develop) |
+| Prod | http://192.168.1.74:30080 | http://192.168.1.74:30081 | Manual (main) |
+| Cloud | https://api.wh-lab.ru | https://wh-lab.ru | GitHub Actions |
 
-### Testing
-- JUnit 5 + RestAssured (E2E)
-- k6 (нагрузочное)
-- Locust (нагрузочное)
-- Selenoid (UI)
-- Allure (отчёты)
+## Features
 
-### Monitoring
-- Prometheus
-- Grafana
-- Loki (логи)
+### Logistics Flow
+```
+Supplier → DC (Distribution Center) → WH (Warehouse) → PP (Pickup Point) → Customer
+```
 
-## Функциональность
+- **Receipt Documents** — приход товаров (supplier → DC, DC → WH, WH → PP)
+- **Shipment Documents** — отгрузка товаров (DC → WH, WH → PP)
+- **Issue Acts** — выдача клиентам (PP only)
+- **Inventory Acts** — инвентаризация и корректировка остатков
 
-### Управление товарами
-- CRUD операции
-- Категоризация
-- Поиск и фильтрация
-- Массовый импорт/экспорт
+### Kafka Integration
+- Auto-create Receipt при отправке Shipment
+- Auto-update Shipment.DELIVERED при подтверждении Receipt
 
-### Складские операции
-- Приёмка товаров
-- Отгрузка
-- Инвентаризация
-- Перемещение между зонами
+### Frontend Features
+- Facility selector с группировкой DC/WH/PP
+- Color themes по типу facility
+- Document workflows с статусами
+- Stock management
 
-### Аналитика
-- Остатки в реальном времени
-- История движения
-- Отчёты по периодам
-
-### Пользователи и роли
-- SUPER_USER - полный доступ
-- ADMIN - управление пользователями
-- MANAGER - складские операции
-- EMPLOYEE - базовые операции
-
-## Быстрый старт
-
-### Требования
-- Docker & Docker Compose
-- Kubernetes cluster (опционально)
-- Java 17+ (для разработки)
-- Node.js 18+ (для фронтенда)
-
-### Локальный запуск
+## Quick Start
 
 ```bash
-# Клонировать репозиторий
+# Clone
 git clone https://github.com/Mdyuzhev/WaregouseHub.git
 cd WaregouseHub
 
-# Запуск через Docker Compose
-docker-compose up -d
+# Run API
+cd api && ./mvnw spring-boot:run
 
-# Или деплой в Kubernetes
+# Run Frontend
+cd frontend && npm install && npm run dev
+
+# Or deploy to K8s
 kubectl apply -f k8s/warehouse/
 ```
 
-### Переменные окружения
+## API Endpoints
 
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=warehouse
-DB_USER=warehouse
-DB_PASSWORD=***
+| Group | Base Path | Description |
+|-------|-----------|-------------|
+| Auth | /api/v1/auth | Login, register, me |
+| Products | /api/v1/products | CRUD товаров |
+| Facilities | /api/v1/facilities | DC, WH, PP управление |
+| Stock | /api/v1/stock | Остатки, резервы |
+| Receipts | /api/v1/receipt-documents | Приходные накладные |
+| Shipments | /api/v1/shipment-documents | Расходные накладные |
+| Issues | /api/v1/issue-acts | Акты выдачи |
+| Inventory | /api/v1/inventory-acts | Акты инвентаризации |
 
-# JWT
-JWT_SECRET=***
+## Documentation
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-## CI/CD
-
-Проект использует GitLab CI/CD с ручными триггерами:
-
-| Job | Описание |
-|-----|----------|
-| `deploy-api-staging` | Деплой API в staging |
-| `deploy-frontend-staging` | Деплой Frontend в staging |
-| `deploy-all-prod` | Деплой в production |
-| `run-e2e-tests` | E2E тесты + Allure отчёт |
-| `run-load-tests` | Нагрузочное тестирование |
-
-## Тестирование
-
-### E2E тесты
-```bash
-cd e2e-tests
-./mvnw test -Dtest="*E2ETest"
-```
-
-### Нагрузочные тесты (k6)
-```bash
-k6 run PerformanceTesting/scripts/load-test.js
-```
-
-### UI тесты
-```bash
-cd ui-tests
-./mvnw test
-```
-
-## Документация
-
-- [Архитектура](docs/ARCHITECTURE.md)
-- [Компоненты](docs/COMPONENTS.md)
-- [Руководство по деплою](docs/DEPLOY_GUIDE.md)
-- [Тестирование](docs/TESTING.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Components](docs/COMPONENTS.md)
+- [Deploy Guide](docs/DEPLOY_GUIDE.md)
+- [Testing](docs/TESTING.md)
 - [Troubleshooting](docs/TROUBLESHOOTING_GUIDE.md)
 
-## Связанные репозитории
-
-| Репозиторий | Описание |
-|-------------|----------|
-| warehouse-api | Spring Boot REST API |
-| warehouse-frontend | Vue.js SPA |
-
-## Лицензия
+## License
 
 Private repository. All rights reserved.
 
