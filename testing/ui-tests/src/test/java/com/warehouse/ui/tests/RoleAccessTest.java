@@ -1,6 +1,7 @@
 package com.warehouse.ui.tests;
 
 import com.warehouse.ui.config.BaseTest;
+import com.warehouse.ui.config.Selectors;
 import com.warehouse.ui.pages.LoginPage;
 import com.warehouse.ui.pages.ProductsPage;
 import io.qameta.allure.*;
@@ -91,8 +92,8 @@ public class RoleAccessTest extends BaseTest {
     void testUnauthenticatedRedirect() {
         // При открытии приложения без авторизации
         // Должна отображаться форма входа (редирект на страницу логина)
-        $("[data-testid='username-input']").shouldBe(visible);
-        $("[data-testid='password-input']").shouldBe(visible);
-        $("[data-testid='login-button']").shouldBe(visible);
+        Selectors.waitForLoginForm();
+        Selectors.password().shouldBe(visible, Selectors.PAGE_LOAD_TIMEOUT);
+        Selectors.loginButton().shouldBe(visible, Selectors.PAGE_LOAD_TIMEOUT);
     }
 }

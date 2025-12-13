@@ -29,9 +29,11 @@ WarehouseHub/
 │       ├── router/                # 22 routes
 │       └── assets/                # facility-themes.css
 │
-├── testing/                       # E2E тесты (82 passing)
-│   ├── e2e-tests/                 # REST-assured + JUnit 5
-│   └── TESTING.md                 # Гайд по написанию тестов
+├── testing/                       # Тесты
+│   ├── e2e-tests/                 # E2E API тесты (REST-assured)
+│   ├── ui-tests/                  # UI тесты (Selenide)
+│   ├── TESTING.md                 # Гайд по E2E тестам
+│   └── UI_TESTING_GUIDE.md        # Гайд по UI тестам
 │
 ├── docs/                          # Документация (оптимизировано)
 │   ├── README.md                  # Навигация
@@ -184,6 +186,68 @@ private static final Long TEST_FACILITY_ID = 4L;  // PP-C-001
 
 **Полный гайд:** `testing/TESTING.md`
 
+---
+
+## 🖥️ UI Тесты (Selenide)
+
+### Запуск
+
+```bash
+cd testing/ui-tests
+./mvnw test                                    # Все UI тесты
+./mvnw test -Dtest="LoginTest"                 # Один класс
+./mvnw test -Dtest="DCTest,WHTest,PPTest"      # Несколько классов
+./mvnw test -Dgroups="dc"                      # По тегу
+```
+
+### Структура
+
+| Path | Описание |
+|------|----------|
+| `config/Selectors.java` | Централизованные селекторы с fallback |
+| `config/TestUsers.java` | Тестовые пользователи |
+| `pages/*.java` | Page Objects |
+| `tests/*.java` | Тестовые классы |
+
+### Критически важно для UI тестов
+
+```java
+// 1. ВСЕГДА используй fallback селекторы
+$("[data-testid='button'], .btn-primary, button[type='submit']")
+
+// 2. Custom timeout для SPA (Vue рендерит медленно)
+element.shouldBe(visible, Duration.ofSeconds(15));
+
+// 3. Используй Selectors хелперы
+Selectors.waitForFacilitySelector();
+Selectors.loginAndSelectFacility(username, password, loginPage, dashboardPage, "DC-C-001");
+```
+
+### Порядок работы с UI тестами
+
+```
+1. Прочитай Vue компонент → найди/добавь data-testid
+2. Пересобери и задеплой frontend (ОБЯЗАТЕЛЬНО!)
+3. Напиши тест с fallback селекторами
+4. Запусти тесты
+5. Собери Allure отчёт
+```
+
+### Деплой frontend после изменений
+
+```bash
+cd frontend
+docker build --no-cache -t warehouse-frontend:latest .
+sudo k3s ctr images rm docker.io/library/warehouse-frontend:latest 2>/dev/null || true
+docker save warehouse-frontend:latest | sudo k3s ctr images import -
+kubectl rollout restart deployment/warehouse-frontend -n warehouse-dev
+kubectl rollout status deployment/warehouse-frontend -n warehouse-dev --timeout=120s
+```
+
+**Полный гайд:** `testing/UI_TESTING_GUIDE.md`
+
+---
+
 ### API Integration Tests
 
 ```bash
@@ -217,11 +281,14 @@ cd api
 ### Testing
 | Type | Path |
 |------|------|
-| E2E Tests | testing/e2e-tests/src/test/java/com/warehouse/e2e/tests/ |
+| E2E API Tests | testing/e2e-tests/src/test/java/com/warehouse/e2e/tests/ |
+| UI Tests | testing/ui-tests/src/test/java/com/warehouse/ui/ |
+| UI Selectors | testing/ui-tests/.../config/Selectors.java |
+| UI Pages | testing/ui-tests/.../pages/ |
 | API Integration | api/src/test/java/com/warehouse/integration/ |
 | Test Profile | api/src/test/resources/application-test.properties |
-| Base Class | testing/e2e-tests/.../base/BaseE2ETest.java |
-| Guide | testing/TESTING.md |
+| E2E Guide | testing/TESTING.md |
+| UI Guide | testing/UI_TESTING_GUIDE.md |
 
 ### Test Profile (application-test.properties)
 - H2 in-memory DB (create-drop)
@@ -340,8 +407,9 @@ void employeeCreatesDocument() {
 | `docs/README.md` | Навигация по документации |
 | `docs/TASK_TEMPLATE.md` | Как правильно ставить задачи |
 | `docs/ARCHITECTURE.md` | Архитектура системы |
-| `testing/TESTING.md` | Гайд по E2E тестам |
+| `testing/TESTING.md` | Гайд по E2E API тестам |
+| `testing/UI_TESTING_GUIDE.md` | Гайд по UI тестам (Selenide) |
 
 ---
 
-*Updated: 2025-12-13 — E2E tests (82), API integration tests (10), test profile refactored*
+*Updated: 2025-12-13 — E2E tests (82), UI tests (Selenide), API integration tests (10)*
