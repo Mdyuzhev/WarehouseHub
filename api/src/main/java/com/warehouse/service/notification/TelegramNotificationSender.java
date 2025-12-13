@@ -50,7 +50,7 @@ public class TelegramNotificationSender implements NotificationSender {
         body.put("parse_mode", "HTML");
 
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(url, body, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(java.util.Objects.requireNonNull(url), body, String.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             log.error("Telegram send failed: {}", e.getMessage());

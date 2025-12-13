@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.*;
 @Epic("API")
 @Feature("Stock Management")
 @DisplayName("Stock Controller Integration Tests")
+@SuppressWarnings("null")
 class StockControllerIntegrationTest {
 
     @LocalServerPort
@@ -96,21 +97,21 @@ class StockControllerIntegrationTest {
         // Setup test facility
         testFacility = facilityRepository.findByCode("TEST-WH-STOCK").orElse(null);
         if (testFacility == null) {
-            testFacility = facilityRepository.save(Facility.builder()
+            testFacility = java.util.Objects.requireNonNull(facilityRepository.save(Facility.builder()
                     .code("TEST-WH-STOCK")
                     .name("Test Stock Warehouse")
                     .type(FacilityType.WH)
                     .status("ACTIVE")
-                    .build());
+                    .build()));
         }
 
         // Setup initial stock
-        stockRepository.save(Stock.builder()
+        stockRepository.save(java.util.Objects.requireNonNull(Stock.builder()
                 .product(testProduct)
                 .facility(testFacility)
                 .quantity(100)
                 .reserved(0)
-                .build());
+                .build()));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.warehouse.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,7 +49,7 @@ public class RateLimitingService {
         }
 
         if (attempts == 1) {
-            redisTemplate.expire(key, Duration.ofMinutes(windowMinutes));
+            redisTemplate.expire(key, java.util.Objects.requireNonNull(Duration.ofMinutes(windowMinutes)));
         }
 
         boolean allowed = attempts <= maxLoginAttempts;

@@ -65,10 +65,11 @@ public class StockNotificationService {
                 .build();
     }
 
+    @SuppressWarnings("null")
     private void sendNotification(StockNotification notification) {
         try {
-            kafkaTemplate.send(KafkaConfig.NOTIFICATIONS_TOPIC,
-                    notification.getProductId().toString(), notification)
+            String key = java.util.Objects.requireNonNull(notification.getProductId()).toString();
+            kafkaTemplate.send(KafkaConfig.NOTIFICATIONS_TOPIC, key, notification)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
                             log.error("Failed to send stock notification: {}", ex.getMessage());

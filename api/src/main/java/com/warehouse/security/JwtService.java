@@ -56,7 +56,8 @@ public class JwtService {
 
                 // Add facility code if facilityId exists and repository is available
                 if (user.getFacilityId() != null && facilityRepository != null) {
-                    facilityRepository.findById(user.getFacilityId())
+                    Long facilityId = java.util.Objects.requireNonNull(user.getFacilityId());
+                    facilityRepository.findById(facilityId)
                             .ifPresent(facility -> extraClaims.put("facilityCode", facility.getCode()));
                 }
             }

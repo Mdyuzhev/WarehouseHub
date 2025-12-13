@@ -43,7 +43,7 @@ public class KafkaConfig {
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+        return new KafkaTemplate<>(java.util.Objects.requireNonNull(producerFactory()));
     }
 
     @Bean
@@ -61,7 +61,7 @@ public class KafkaConfig {
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(java.util.Objects.requireNonNull(consumerFactory()));
         return factory;
     }
 

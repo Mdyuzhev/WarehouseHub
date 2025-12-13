@@ -36,7 +36,7 @@ public class RedisConfig {
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisHost);
+        config.setHostName(java.util.Objects.requireNonNull(redisHost));
         config.setPort(redisPort);
         return new LettuceConnectionFactory(config);
     }
@@ -54,15 +54,17 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        Duration defaultTtl = java.util.Objects.requireNonNull(Duration.ofMinutes(10));
+        Duration productsTtl = java.util.Objects.requireNonNull(Duration.ofMinutes(5));
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10))
+                .entryTtl(defaultTtl)
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
 
-        return RedisCacheManager.builder(connectionFactory)
+        return RedisCacheManager.builder(java.util.Objects.requireNonNull(connectionFactory))
                 .cacheDefaults(config)
-                .withCacheConfiguration("products", RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
-                .withCacheConfiguration("productsByCategory", RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
+                .withCacheConfiguration("products", RedisCacheConfiguration.defaultCacheConfig().entryTtl(productsTtl))
+                .withCacheConfiguration("productsByCategory", RedisCacheConfiguration.defaultCacheConfig().entryTtl(productsTtl))
                 .build();
     }
 }

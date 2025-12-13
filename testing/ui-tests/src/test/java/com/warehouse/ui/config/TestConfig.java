@@ -20,7 +20,7 @@ public interface TestConfig extends Config {
     String baseUrl();
 
     @Key("selenoid.url")
-    @DefaultValue("http://selenoid:4444/wd/hub")
+    @DefaultValue("http://192.168.1.74:4444/wd/hub")
     String selenoidUrl();
 
     @Key("browser")
@@ -44,19 +44,19 @@ public interface TestConfig extends Config {
     String adminUsername();
 
     @Key("test.user.admin.password")
-    @DefaultValue("password123")
+    @DefaultValue("admin123")
     String adminPassword();
 
     @Key("test.user.manager")
-    @DefaultValue("manager")
+    @DefaultValue("admin")
     String managerUsername();
 
     @Key("test.user.manager.password")
-    @DefaultValue("password123")
+    @DefaultValue("admin123")
     String managerPassword();
 
     @Key("test.user.employee")
-    @DefaultValue("employee")
+    @DefaultValue("wh_north_op")
     String employeeUsername();
 
     @Key("test.user.employee.password")
@@ -64,10 +64,10 @@ public interface TestConfig extends Config {
     String employeePassword();
 
     @Key("test.user.analyst")
-    @DefaultValue("analyst")
+    @DefaultValue("admin")
     String analystUsername();
 
     @Key("test.user.analyst.password")
-    @DefaultValue("password123")
+    @DefaultValue("admin123")
     String analystPassword();
 }

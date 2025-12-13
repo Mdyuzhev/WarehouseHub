@@ -22,6 +22,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationService Tests")
+@SuppressWarnings("null")
 class NotificationServiceTest {
 
     @Mock
@@ -59,7 +60,7 @@ class NotificationServiceTest {
     @DisplayName("Должен создать уведомление со статусом PENDING")
     void shouldCreateNotificationWithPendingStatus() {
         // Given
-        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(java.util.Objects.requireNonNull(notification));
 
         // When
         Notification result = notificationService.send(request);
@@ -80,7 +81,7 @@ class NotificationServiceTest {
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
             Notification saved = invocation.getArgument(0);
             saved.setId(1L);
-            return saved;
+            return java.util.Objects.requireNonNull(saved);
         });
 
         // When

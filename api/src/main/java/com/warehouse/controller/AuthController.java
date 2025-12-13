@@ -151,6 +151,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @SuppressWarnings("null")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             return ResponseEntity.badRequest()
@@ -162,7 +163,7 @@ public class AuthController {
                     .body(Map.of("error", "Email already exists"));
         }
 
-        User user = User.builder()
+        User newUser = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
@@ -171,13 +172,13 @@ public class AuthController {
                 .enabled(true)
                 .build();
 
-        userRepository.save(user);
+        User savedUser = java.util.Objects.requireNonNull(userRepository.save(newUser));
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of(
                     "message", "User registered successfully",
-                    "username", user.getUsername(),
-                    "role", user.getRole()
+                    "username", savedUser.getUsername(),
+                    "role", savedUser.getRole()
                 ));
     }
 

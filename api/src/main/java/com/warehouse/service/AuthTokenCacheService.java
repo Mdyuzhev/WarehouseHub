@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @ConditionalOnBean(RedisTemplate.class)
 @Slf4j
+@SuppressWarnings("null")
 public class AuthTokenCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;

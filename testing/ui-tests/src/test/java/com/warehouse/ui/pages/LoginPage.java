@@ -12,7 +12,7 @@ import static com.codeborne.selenide.Selenide.$;
  */
 public class LoginPage {
 
-    // Элементы формы входа
+    // Элементы формы входа (data-testid из production HTML)
     private final SelenideElement usernameInput = $("[data-testid='username-input']");
     private final SelenideElement passwordInput = $("[data-testid='password-input']");
     private final SelenideElement loginButton = $("[data-testid='login-button']");
@@ -79,5 +79,10 @@ public class LoginPage {
     @Step("Нажать кнопку 'Выход' для завершения сессии")
     public void logout() {
         logoutButton.shouldBe(visible, enabled).click();
+    }
+
+    @Step("Проверить видимость сообщения об ошибке")
+    public boolean isErrorVisible() {
+        return errorMessage.isDisplayed();
     }
 }

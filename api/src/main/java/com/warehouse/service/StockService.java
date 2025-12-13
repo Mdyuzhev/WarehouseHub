@@ -24,6 +24,7 @@ import java.time.Instant;
  */
 @Service
 @Slf4j
+@SuppressWarnings("null")
 public class StockService {
 
     private final StockRepository stockRepository;

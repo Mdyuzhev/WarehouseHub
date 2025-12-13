@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
+@SuppressWarnings("null")
 public class ShipmentDocumentService {
 
     private final ShipmentDocumentRepository shipmentRepository;

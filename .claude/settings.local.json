@@ -1,6 +1,16 @@
 {
   "permissions": {
-    "allow": ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "Task"]
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "Task",
+      "mcp__ide__getDiagnostics"
+    ]
   },
   "role": "technical_executor",
   "style": {

@@ -41,7 +41,7 @@ public class TokenBlacklistService {
         long ttlMillis = expirationDate.getTime() - System.currentTimeMillis();
 
         if (ttlMillis > 0) {
-            redisTemplate.opsForValue().set(key, "blacklisted", Duration.ofMillis(ttlMillis));
+            redisTemplate.opsForValue().set(key, "blacklisted", java.util.Objects.requireNonNull(Duration.ofMillis(ttlMillis)));
             log.info("Token blacklisted, TTL: {} seconds", ttlMillis / 1000);
         }
     }

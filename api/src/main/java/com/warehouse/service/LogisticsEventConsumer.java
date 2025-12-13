@@ -65,15 +65,18 @@ public class LogisticsEventConsumer {
      * Обработка DISPATCHED события
      * Создаёт Receipt на destination facility
      */
+    @SuppressWarnings("null")
     private void handleShipmentDispatched(ShipmentEvent event) {
         try {
             // Find destination facility
-            Facility destinationFacility = facilityRepository.findById(event.getDestinationFacilityId())
+            Long destFacilityId = java.util.Objects.requireNonNull(event.getDestinationFacilityId());
+            Facility destinationFacility = facilityRepository.findById(destFacilityId)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Destination facility not found: " + event.getDestinationFacilityId()));
 
             // Find shipment
-            ShipmentDocument shipment = shipmentRepository.findById(event.getShipmentId())
+            Long shipmentId = java.util.Objects.requireNonNull(event.getShipmentId());
+            ShipmentDocument shipment = shipmentRepository.findById(shipmentId)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Shipment not found: " + event.getShipmentId()));
 
@@ -92,7 +95,8 @@ public class LogisticsEventConsumer {
 
             // Add items from shipment
             for (ShipmentItemDTO shipmentItem : event.getItems()) {
-                Product product = productRepository.findById(shipmentItem.getProductId())
+                Long productId = java.util.Objects.requireNonNull(shipmentItem.getProductId());
+                Product product = productRepository.findById(productId)
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "Product not found: " + shipmentItem.getProductId()));
 
@@ -105,9 +109,9 @@ public class LogisticsEventConsumer {
                 receipt.addItem(receiptItem);
             }
 
-            receiptRepository.save(receipt);
+            ReceiptDocument savedReceipt = java.util.Objects.requireNonNull(receiptRepository.save(receipt));
             log.info("Auto-created receipt {} for shipment {} at facility {}",
-                    receiptNumber, event.getDocumentNumber(), destinationFacility.getCode());
+                    savedReceipt.getDocumentNumber(), event.getDocumentNumber(), destinationFacility.getCode());
 
         } catch (Exception e) {
             log.error("Failed to auto-create receipt for shipment {}: {}",
@@ -121,7 +125,8 @@ public class LogisticsEventConsumer {
      */
     private void handleShipmentDelivered(ShipmentEvent event) {
         try {
-            ShipmentDocument shipment = shipmentRepository.findById(event.getShipmentId())
+            Long shipmentId = java.util.Objects.requireNonNull(event.getShipmentId());
+            ShipmentDocument shipment = shipmentRepository.findById(shipmentId)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Shipment not found: " + event.getShipmentId()));
 

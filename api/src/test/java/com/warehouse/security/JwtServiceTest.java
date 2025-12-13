@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JwtService Tests")
+@SuppressWarnings("null")
 class JwtServiceTest {
 
     private JwtService jwtService;
@@ -37,8 +38,8 @@ class JwtServiceTest {
         secretKey = "bXlTdXBlclNlY3JldEtleUZvckpXVFRva2VuR2VuZXJhdGlvbjEyMzQ1Njc4OTA=";
         jwtExpiration = 3600000L; // 1 hour
 
-        ReflectionTestUtils.setField(jwtService, "secretKey", secretKey);
-        ReflectionTestUtils.setField(jwtService, "jwtExpiration", jwtExpiration);
+        ReflectionTestUtils.setField(jwtService, "secretKey", java.util.Objects.requireNonNull(secretKey));
+        ReflectionTestUtils.setField(jwtService, "jwtExpiration", java.util.Objects.requireNonNull(jwtExpiration));
     }
 
     @Test

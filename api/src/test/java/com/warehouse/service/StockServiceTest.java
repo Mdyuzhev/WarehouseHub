@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
  * WH-296: Stock Service Unit Tests
  */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class StockServiceTest {
 
     @Mock
@@ -100,7 +101,7 @@ class StockServiceTest {
         when(stockRepository.save(any(Stock.class))).thenAnswer(inv -> {
             Stock s = inv.getArgument(0);
             s.setId(1L);
-            return s;
+            return java.util.Objects.requireNonNull(s);
         });
 
         StockDTO result = stockService.setStock(1L, 1L, 50);
@@ -115,9 +116,9 @@ class StockServiceTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(testProduct));
         when(facilityRepository.findById(1L)).thenReturn(Optional.of(testFacility));
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L)).thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
-        StockDTO result = stockService.setStock(1L, 1L, 200);
+        stockService.setStock(1L, 1L, 200);
 
         assertEquals(200, testStock.getQuantity());
         verify(stockRepository).save(testStock);
@@ -127,7 +128,7 @@ class StockServiceTest {
     void adjustStock_shouldIncreaseQuantity() {
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L))
                 .thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
         stockService.adjustStock(1L, 1L, 20);
 
@@ -138,7 +139,7 @@ class StockServiceTest {
     void adjustStock_shouldDecreaseQuantity() {
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L))
                 .thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
         stockService.adjustStock(1L, 1L, -50);
 
@@ -168,7 +169,7 @@ class StockServiceTest {
     void reserve_shouldIncreaseReserved() {
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L))
                 .thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
         stockService.reserve(1L, 1L, 30);
 
@@ -189,7 +190,7 @@ class StockServiceTest {
     void releaseReservation_shouldDecreaseReserved() {
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L))
                 .thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
         stockService.releaseReservation(1L, 1L, 5, false);
 
@@ -201,7 +202,7 @@ class StockServiceTest {
     void releaseReservation_shouldDecreaseQuantityWhenShipped() {
         when(stockRepository.findByProductIdAndFacilityId(1L, 1L))
                 .thenReturn(Optional.of(testStock));
-        when(stockRepository.save(any(Stock.class))).thenReturn(testStock);
+        when(stockRepository.save(any(Stock.class))).thenReturn(java.util.Objects.requireNonNull(testStock));
 
         stockService.releaseReservation(1L, 1L, 10, true);
 

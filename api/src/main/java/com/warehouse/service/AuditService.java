@@ -103,7 +103,7 @@ public class AuditService {
 
     private void sendAuditEvent(AuditEvent event) {
         try {
-            kafkaTemplate.send(KafkaConfig.AUDIT_TOPIC, event.getEntityType(), event)
+            kafkaTemplate.send(KafkaConfig.AUDIT_TOPIC, java.util.Objects.requireNonNull(event.getEntityType()), event)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
                             log.error("Failed to send audit event: {}", ex.getMessage());

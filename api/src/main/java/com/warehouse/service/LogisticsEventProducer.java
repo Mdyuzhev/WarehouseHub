@@ -31,13 +31,12 @@ public class LogisticsEventProducer {
      * Триггерит авто-создание Receipt на destination facility
      */
     @Async
+    @SuppressWarnings("null")
     public void sendShipmentDispatched(ShipmentEvent event) {
         try {
-            kafkaTemplate.send(
-                    KafkaConfig.SHIPMENTS_TOPIC,
-                    event.getShipmentId().toString(),
-                    event
-            ).whenComplete((result, ex) -> {
+            String key = java.util.Objects.requireNonNull(event.getShipmentId()).toString();
+            kafkaTemplate.send(KafkaConfig.SHIPMENTS_TOPIC, key, event)
+            .whenComplete((result, ex) -> {
                 if (ex != null) {
                     log.error("Failed to send shipment dispatched event for shipment {}: {}",
                             event.getShipmentId(), ex.getMessage());
@@ -55,6 +54,7 @@ public class LogisticsEventProducer {
      * Отправить событие "Shipment delivered" (Receipt confirmed)
      */
     @Async
+    @SuppressWarnings("null")
     public void sendShipmentDelivered(Long shipmentId, String documentNumber) {
         try {
             ShipmentEvent event = ShipmentEvent.builder()
@@ -63,11 +63,9 @@ public class LogisticsEventProducer {
                     .documentNumber(documentNumber)
                     .build();
 
-            kafkaTemplate.send(
-                    KafkaConfig.SHIPMENTS_TOPIC,
-                    shipmentId.toString(),
-                    event
-            ).whenComplete((result, ex) -> {
+            String key = java.util.Objects.requireNonNull(shipmentId).toString();
+            kafkaTemplate.send(KafkaConfig.SHIPMENTS_TOPIC, key, event)
+            .whenComplete((result, ex) -> {
                 if (ex != null) {
                     log.error("Failed to send shipment delivered event for shipment {}: {}",
                             shipmentId, ex.getMessage());

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FacilityService Tests")
+@SuppressWarnings("null")
 class FacilityServiceTest {
 
     @Mock
@@ -36,7 +37,6 @@ class FacilityServiceTest {
 
     private Facility dcFacility;
     private Facility whFacility;
-    private Facility ppFacility;
 
     @BeforeEach
     void setUp() {
@@ -62,16 +62,6 @@ class FacilityServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        ppFacility = Facility.builder()
-                .id(3L)
-                .code("PP-C-001-01")
-                .type(FacilityType.PP)
-                .name("Pickup Point 1")
-                .parentId(2L)
-                .address("789 Delivery Rd")
-                .status("ACTIVE")
-                .createdAt(LocalDateTime.now())
-                .build();
     }
 
     @Test
@@ -122,7 +112,7 @@ class FacilityServiceTest {
             facility.setId(10L);
             facility.setCreatedAt(LocalDateTime.now());
             facility.setStatus("ACTIVE");
-            return facility;
+            return java.util.Objects.requireNonNull(facility);
         });
 
         // When
@@ -174,7 +164,7 @@ class FacilityServiceTest {
             facility.setId(20L);
             facility.setCreatedAt(LocalDateTime.now());
             facility.setStatus("ACTIVE");
-            return facility;
+            return java.util.Objects.requireNonNull(facility);
         });
 
         // When
@@ -247,7 +237,7 @@ class FacilityServiceTest {
             facility.setId(30L);
             facility.setCreatedAt(LocalDateTime.now());
             facility.setStatus("ACTIVE");
-            return facility;
+            return java.util.Objects.requireNonNull(facility);
         });
 
         // When

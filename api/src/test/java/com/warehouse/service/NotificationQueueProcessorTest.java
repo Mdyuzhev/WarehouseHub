@@ -12,14 +12,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +27,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationQueueProcessor Tests")
+@SuppressWarnings("null")
 class NotificationQueueProcessorTest {
 
     @Mock
@@ -63,8 +62,8 @@ class NotificationQueueProcessorTest {
     void shouldProcessPendingNotifications() {
         // Given
         when(notificationRepository.findPendingOrderByPriority(any(Pageable.class)))
-                .thenReturn(Collections.singletonList(notification));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                .thenReturn(Collections.singletonList(java.util.Objects.requireNonNull(notification)));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> java.util.Objects.requireNonNull((Notification) invocation.getArgument(0)));
 
         // When
         queueProcessor.processQueue();
@@ -74,7 +73,7 @@ class NotificationQueueProcessorTest {
         verify(notificationRepository, atLeastOnce()).save(captor.capture());
 
         List<Notification> savedNotifications = captor.getAllValues();
-        Notification finalNotification = savedNotifications.get(savedNotifications.size() - 1);
+        Notification finalNotification = java.util.Objects.requireNonNull(savedNotifications.get(savedNotifications.size() - 1));
 
         assertThat(finalNotification.getStatus()).isEqualTo(NotificationStatus.SENT);
         assertThat(finalNotification.getSentAt()).isNotNull();
@@ -93,8 +92,8 @@ class NotificationQueueProcessorTest {
         queueProcessor = new NotificationQueueProcessor(notificationRepository, Collections.singletonList(failingSender));
 
         when(notificationRepository.findPendingOrderByPriority(any(Pageable.class)))
-                .thenReturn(Collections.singletonList(notification));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                .thenReturn(Collections.singletonList(java.util.Objects.requireNonNull(notification)));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> java.util.Objects.requireNonNull((Notification) invocation.getArgument(0)));
 
         // When
         queueProcessor.processQueue();
@@ -123,8 +122,8 @@ class NotificationQueueProcessorTest {
         queueProcessor = new NotificationQueueProcessor(notificationRepository, Collections.singletonList(failingSender));
 
         when(notificationRepository.findPendingOrderByPriority(any(Pageable.class)))
-                .thenReturn(Collections.singletonList(notification));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                .thenReturn(Collections.singletonList(java.util.Objects.requireNonNull(notification)));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> java.util.Objects.requireNonNull((Notification) invocation.getArgument(0)));
 
         // When
         queueProcessor.processQueue();
@@ -133,7 +132,7 @@ class NotificationQueueProcessorTest {
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository, atLeastOnce()).save(captor.capture());
 
-        Notification finalNotification = captor.getAllValues().get(captor.getAllValues().size() - 1);
+        Notification finalNotification = java.util.Objects.requireNonNull(captor.getAllValues().get(captor.getAllValues().size() - 1));
         assertThat(finalNotification.getStatus()).isEqualTo(NotificationStatus.DEAD);
         assertThat(finalNotification.getErrorMessage()).isNotNull();
     }
@@ -160,8 +159,8 @@ class NotificationQueueProcessorTest {
         notification.setChannel(NotificationChannel.TELEGRAM); // Sender для Telegram не зарегистрирован
 
         when(notificationRepository.findPendingOrderByPriority(any(Pageable.class)))
-                .thenReturn(Collections.singletonList(notification));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                .thenReturn(Collections.singletonList(java.util.Objects.requireNonNull(notification)));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> java.util.Objects.requireNonNull((Notification) invocation.getArgument(0)));
 
         // When
         queueProcessor.processQueue();
@@ -170,7 +169,7 @@ class NotificationQueueProcessorTest {
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository, atLeastOnce()).save(captor.capture());
 
-        Notification finalNotification = captor.getAllValues().get(captor.getAllValues().size() - 1);
+        Notification finalNotification = java.util.Objects.requireNonNull(captor.getAllValues().get(captor.getAllValues().size() - 1));
         assertThat(finalNotification.getStatus()).isEqualTo(NotificationStatus.DEAD);
         assertThat(finalNotification.getErrorMessage()).contains("Sender для канала");
     }
