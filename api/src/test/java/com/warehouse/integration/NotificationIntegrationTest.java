@@ -8,6 +8,7 @@ import com.warehouse.model.NotificationStatus;
 import com.warehouse.repository.NotificationRepository;
 import com.warehouse.service.NotificationService;
 import com.warehouse.service.notification.InMemoryNotificationSender;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,26 +16,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /**
  * Integration тесты для Notification Service
  * Проверяют end-to-end работу сервиса с реальной БД
  *
- * DISABLED: @Transactional + @Scheduled async = тесты не видят данные из другой транзакции
- * TODO: Рефакторинг - убрать @Transactional или вызывать processQueue() вручную
+ * Тесты вызывают processQueue() синхронно без @Transactional,
+ * что позволяет данным коммититься и быть видимыми для processor.
  */
 @SpringBootTest
 @Import(TestSchedulingConfig.class)
 @ActiveProfiles("test")
 @DisplayName("Notification Integration Tests")
-@org.junit.jupiter.api.Disabled("WH-270: @Transactional + async scheduler - tests don't see uncommitted data")
 class NotificationIntegrationTest {
 
     @Autowired
@@ -55,9 +52,14 @@ class NotificationIntegrationTest {
         inMemorySender.clear();
     }
 
+    @AfterEach
+    void tearDown() {
+        // Очистить тестовые данные из БД
+        notificationRepository.deleteAll();
+    }
+
     @Test
     @DisplayName("End-to-end: Уведомление должно быть обработано и отправлено")
-    @Transactional
     void shouldProcessNotificationEndToEnd() {
         // Given: Создаём запрос на уведомление
         NotificationRequest request = NotificationRequest.builder()
@@ -77,7 +79,8 @@ class NotificationIntegrationTest {
         queueProcessor.processQueue();
 
         // Then: Проверяем что уведомление обработано
-        Notification processed = notificationRepository.findById(created.getId()).orElseThrow();
+        Long createdId = java.util.Objects.requireNonNull(created.getId());
+        Notification processed = notificationRepository.findById(createdId).orElseThrow();
         assertThat(processed.getStatus()).isEqualTo(NotificationStatus.SENT);
         assertThat(processed.getSentAt()).isNotNull();
         assertThat(processed.getErrorMessage()).isNull();
@@ -90,7 +93,6 @@ class NotificationIntegrationTest {
 
     @Test
     @DisplayName("Должен обработать уведомления с высоким приоритетом первыми")
-    @Transactional
     void shouldProcessHighPriorityFirst() {
         // Given: Создаём 3 уведомления с разным приоритетом
         NotificationRequest lowPriority = NotificationRequest.builder()
@@ -115,9 +117,9 @@ class NotificationIntegrationTest {
                 .build();
 
         // When: Отправляем в порядке: low, medium, high
-        Notification low = notificationService.send(lowPriority);
-        Notification medium = notificationService.send(mediumPriority);
-        Notification high = notificationService.send(highPriority);
+        notificationService.send(lowPriority);
+        notificationService.send(mediumPriority);
+        notificationService.send(highPriority);
 
         // Вызываем processQueue() вручную несколько раз чтобы обработать все
         queueProcessor.processQueue();
@@ -134,11 +136,6 @@ class NotificationIntegrationTest {
                 .findFirst()
                 .orElseThrow();
 
-        Notification sentMedium = sentNotifications.stream()
-                .filter(n -> n.getRecipient().equals("medium-priority-user"))
-                .findFirst()
-                .orElseThrow();
-
         Notification sentLow = sentNotifications.stream()
                 .filter(n -> n.getRecipient().equals("low-priority-user"))
                 .findFirst()
@@ -150,7 +147,6 @@ class NotificationIntegrationTest {
 
     @Test
     @DisplayName("Должен создать несколько уведомлений и обработать их")
-    @Transactional
     void shouldProcessMultipleNotifications() {
         // Given: Создаём 5 уведомлений
         for (int i = 0; i < 5; i++) {

@@ -184,6 +184,24 @@ private static final Long TEST_FACILITY_ID = 4L;  // PP-C-001
 
 **Полный гайд:** `testing/TESTING.md`
 
+### API Integration Tests
+
+```bash
+cd api
+./mvnw test -Dtest="*IntegrationTest"          # Все integration тесты
+./mvnw test -Dtest="NotificationIntegrationTest"  # Один класс
+```
+
+| Test Class | Tests |
+|------------|-------|
+| NotificationIntegrationTest | 3 |
+| StockControllerIntegrationTest | 7 |
+
+**Важно для Integration тестов:**
+- НЕ использовать `@Transactional` на тестах — данные не видны в других транзакциях
+- Использовать `@AfterEach` для cleanup: `repository.deleteAll()`
+- Вызывать async processors синхронно: `queueProcessor.processQueue()`
+
 ---
 
 ## 📁 Ключевые пути
@@ -200,9 +218,16 @@ private static final Long TEST_FACILITY_ID = 4L;  // PP-C-001
 | Type | Path |
 |------|------|
 | E2E Tests | testing/e2e-tests/src/test/java/com/warehouse/e2e/tests/ |
+| API Integration | api/src/test/java/com/warehouse/integration/ |
+| Test Profile | api/src/test/resources/application-test.properties |
 | Base Class | testing/e2e-tests/.../base/BaseE2ETest.java |
-| Config | testing/e2e-tests/.../config/TestConfig.java |
 | Guide | testing/TESTING.md |
+
+### Test Profile (application-test.properties)
+- H2 in-memory DB (create-drop)
+- Flyway disabled
+- Redis disabled (autoconfigure exclude)
+- Kafka disabled (autoconfigure exclude)
 
 ### Docs
 | Type | Path |
@@ -319,4 +344,4 @@ void employeeCreatesDocument() {
 
 ---
 
-*Updated: 2025-12-12 — E2E tests passing (82), docs optimized*
+*Updated: 2025-12-13 — E2E tests (82), API integration tests (10), test profile refactored*
