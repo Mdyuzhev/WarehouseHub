@@ -52,4 +52,3 @@ INITIAL_BACKOFF_SECONDS = int(os.getenv("INITIAL_BACKOFF_SECONDS", "5"))
 # Warehouse Robot
 # =============================================================================
 ROBOT_API_URL = os.getenv("ROBOT_API_URL", "")
-ROBOT_PASSWORD = os.getenv("ROBOT_PASSWORD", "1")

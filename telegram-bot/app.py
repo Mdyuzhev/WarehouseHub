@@ -29,8 +29,6 @@ from bot.handlers import (
     handle_robot_menu, handle_robot_status, handle_robot_stats,
     handle_robot_scenarios, handle_robot_duration_select, handle_robot_start, handle_robot_stop,
     handle_robot_speed_select, handle_robot_environment_select,
-    request_robot_password, handle_robot_password_input,
-    is_pending_robot_password,
     handle_robot_schedule_menu, handle_robot_schedule_env, handle_robot_schedule_time,
     handle_robot_schedule_create, handle_robot_scheduled_list, handle_robot_cancel_scheduled,
     request_schedule_time_input, handle_schedule_time_input, is_pending_schedule_time,
@@ -178,14 +176,9 @@ async def telegram_polling():
 
 async def process_command(chat_id: int, text: str):
     """Main command router."""
-    log_text = "[HIDDEN]" if is_pending_robot_password(chat_id) else text
-    logger.info(f"Command received: chat_id={chat_id}, text='{log_text}'")
+    logger.info(f"Command received: chat_id={chat_id}, text='{text}'")
 
     # Pending input states
-    if is_pending_robot_password(chat_id):
-        await handle_robot_password_input(send_message_async, chat_id, text)
-        return
-
     if is_pending_schedule_time(chat_id):
         await handle_schedule_time_input(send_message_async, chat_id, text)
         return
@@ -279,7 +272,7 @@ async def process_callback(callback_query: dict):
         parts = data.replace("robot_env_", "").rsplit("_", 2)
         if len(parts) == 3:
             scenario, duration_str, environment = parts
-            await request_robot_password(send_message_async, chat_id, scenario, int(duration_str), environment)
+            await handle_robot_speed_select(send_message_async, chat_id, scenario, int(duration_str), environment, message_id)
     elif data.startswith("robot_speed_"):
         parts = data.replace("robot_speed_", "").rsplit("_", 3)
         if len(parts) == 4:

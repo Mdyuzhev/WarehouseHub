@@ -89,7 +89,7 @@ class RobotService:
         return []
 
     def start_scenario(
-        self, scenario: str, speed: str = "normal", environment: str = "staging", duration: int = 0
+        self, scenario: str, speed: str = "normal", environment: str = "home", duration: int = 0
     ) -> Optional[Dict[str, Any]]:
         """
         Запустить сценарий.
@@ -97,7 +97,7 @@ class RobotService:
         Args:
             scenario: Название сценария (receiving, shipping, inventory)
             speed: Скорость выполнения (slow=15с пауза, normal=5с пауза, fast=1с пауза)
-            environment: Окружение (staging или prod)
+            environment: Окружение (home или prod)
             duration: Продолжительность повторения в минутах (0 = один раз)
 
         Returns:
@@ -130,7 +130,7 @@ class RobotService:
         return None
 
     def schedule_scenario(
-        self, scenario: str, scheduled_time: str, speed: str = "normal", environment: str = "staging"
+        self, scenario: str, scheduled_time: str, speed: str = "normal", environment: str = "home"
     ) -> Optional[Dict[str, Any]]:
         """
         Запланировать сценарий на указанное время.
@@ -139,7 +139,7 @@ class RobotService:
             scenario: Название сценария (receiving, shipping, inventory)
             scheduled_time: Время запуска (HH:MM или ISO datetime)
             speed: Скорость выполнения (slow, normal, fast)
-            environment: Окружение (staging или prod)
+            environment: Окружение (home или prod)
 
         Returns:
             Результат планирования или None при ошибке

@@ -74,14 +74,14 @@ def get_robot_duration_keyboard(scenario: str) -> dict:
 def get_robot_environment_keyboard(scenario: str, duration: int = 0) -> dict:
     return {
         "inline_keyboard": [
-            [{"text": "🔧 STAGING (тест)", "callback_data": f"robot_env_{scenario}_{duration}_staging"}],
-            [{"text": "🚀 PROD (боевой)", "callback_data": f"robot_env_{scenario}_{duration}_prod"}],
+            [{"text": "🏠 HOME (сервер)", "callback_data": f"robot_env_{scenario}_{duration}_home"}],
+            [{"text": "☁️ PROD (облако)", "callback_data": f"robot_env_{scenario}_{duration}_prod"}],
             [{"text": "⬅️ Назад", "callback_data": f"robot_run_{scenario}"}],
         ]
     }
 
 
-def get_robot_speed_keyboard(scenario: str, duration: int, environment: str = "staging") -> dict:
+def get_robot_speed_keyboard(scenario: str, duration: int, environment: str = "home") -> dict:
     return {
         "inline_keyboard": [
             [{"text": "🐢 Медленно (15с)", "callback_data": f"robot_speed_{scenario}_{duration}_{environment}_slow"}],
@@ -106,14 +106,14 @@ def get_robot_schedule_scenario_keyboard() -> dict:
 def get_robot_schedule_env_keyboard(scenario: str) -> dict:
     return {
         "inline_keyboard": [
-            [{"text": "🔧 STAGING (тест)", "callback_data": f"robot_schedenv_{scenario}_staging"}],
-            [{"text": "🚀 PROD (боевой)", "callback_data": f"robot_schedenv_{scenario}_prod"}],
+            [{"text": "🏠 HOME (сервер)", "callback_data": f"robot_schedenv_{scenario}_home"}],
+            [{"text": "☁️ PROD (облако)", "callback_data": f"robot_schedenv_{scenario}_prod"}],
             [{"text": "⬅️ Назад", "callback_data": "robot_schedule"}],
         ]
     }
 
 
-def get_robot_schedule_time_keyboard(scenario: str, environment: str = "staging") -> dict:
+def get_robot_schedule_time_keyboard(scenario: str, environment: str = "home") -> dict:
     return {
         "inline_keyboard": [
             [

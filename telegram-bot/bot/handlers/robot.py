@@ -5,10 +5,9 @@
 """
 
 import logging
-from typing import Dict, Any, Set
+from typing import Dict, Any
 
 from services import robot_service
-from config import ROBOT_PASSWORD
 from bot.messages import (
     format_robot_menu,
     format_robot_status,
@@ -31,30 +30,8 @@ from bot.keyboards import (
 
 logger = logging.getLogger(__name__)
 
-# Ожидание ввода пароля для робота
-_pending_robot_password: Set[int] = set()
-
-# Хранилище выбранного сценария для пользователя
-_pending_robot_scenario: Dict[int, str] = {}
-
-# Хранилище выбранной продолжительности для пользователя
-_pending_robot_duration: Dict[int, int] = {}
-
-# Хранилище выбранного окружения для пользователя
-_pending_robot_environment: Dict[int, str] = {}
-
 # Ожидание ввода времени для расписания
 _pending_schedule_time: Dict[int, Dict[str, str]] = {}  # chat_id -> {scenario, environment}
-
-
-def is_pending_robot_password(chat_id: int) -> bool:
-    """Проверяет, ожидается ли ввод пароля для робота."""
-    return chat_id in _pending_robot_password
-
-
-def is_pending_robot_scenario(chat_id: int) -> bool:
-    """Проверяет, выбран ли сценарий для запуска."""
-    return chat_id in _pending_robot_scenario
 
 
 def is_pending_schedule_time(chat_id: int) -> bool:
@@ -299,82 +276,7 @@ async def handle_robot_environment_select(send_message, chat_id: int, scenario: 
         )
 
 
-async def request_robot_password(send_message, chat_id: int, scenario: str, duration: int = 0, environment: str = "staging") -> None:
-    """
-    Запросить пароль для запуска сценария.
-
-    Args:
-        send_message: Функция отправки сообщения
-        chat_id: ID чата
-        scenario: Название сценария
-        duration: Продолжительность в минутах
-        environment: Окружение (staging/prod)
-    """
-    _pending_robot_password.add(chat_id)
-    _pending_robot_scenario[chat_id] = scenario
-    _pending_robot_duration[chat_id] = duration
-    _pending_robot_environment[chat_id] = environment
-
-    scenario_names = {
-        "receiving": "Приёмка",
-        "shipping": "Отгрузка",
-        "inventory": "Инвентаризация",
-    }
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
-    duration_labels = {
-        0: "один раз",
-        5: "5 минут",
-        30: "30 минут",
-        60: "1 час",
-    }
-
-    text = (
-        f"🔐 *Введите пароль для запуска*\n\n"
-        f"Сценарий: {scenario_names.get(scenario, scenario)}\n"
-        f"Продолжительность: {duration_labels.get(duration, f'{duration} мин')}\n"
-        f"Окружение: {env_label}"
-    )
-
-    await send_message(
-        chat_id=chat_id,
-        text=text,
-        parse_mode="Markdown",
-    )
-
-
-async def handle_robot_password_input(send_message, chat_id: int, password: str) -> None:
-    """
-    Обработать ввод пароля для запуска сценария.
-
-    Args:
-        send_message: Функция отправки сообщения
-        chat_id: ID чата
-        password: Введённый пароль
-    """
-    _pending_robot_password.discard(chat_id)
-    scenario = _pending_robot_scenario.pop(chat_id, None)
-    duration = _pending_robot_duration.pop(chat_id, 0)
-    environment = _pending_robot_environment.pop(chat_id, "staging")
-
-    if not scenario:
-        await send_message(
-            chat_id=chat_id,
-            text="❌ Сценарий не выбран. Начните сначала.",
-        )
-        return
-
-    if password != ROBOT_PASSWORD:
-        await send_message(
-            chat_id=chat_id,
-            text="❌ Неверный пароль!",
-        )
-        return
-
-    # Показываем выбор скорости
-    await handle_robot_speed_select(send_message, chat_id, scenario, duration, environment)
-
-
-async def handle_robot_speed_select(send_message, chat_id: int, scenario: str, duration: int = 0, environment: str = "staging") -> None:
+async def handle_robot_speed_select(send_message, chat_id: int, scenario: str, duration: int = 0, environment: str = "home", message_id: int = None) -> None:
     """
     Показать выбор скорости выполнения (пауза между повторениями).
 
@@ -383,14 +285,15 @@ async def handle_robot_speed_select(send_message, chat_id: int, scenario: str, d
         chat_id: ID чата
         scenario: Название сценария
         duration: Продолжительность в минутах
-        environment: Окружение (staging/prod)
+        environment: Окружение (home/prod)
+        message_id: ID сообщения для редактирования
     """
     scenario_names = {
         "receiving": "Приёмка",
         "shipping": "Отгрузка",
         "inventory": "Инвентаризация",
     }
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
+    env_label = "🏠 HOME" if environment == "home" else "☁️ PROD"
     duration_labels = {
         0: "один раз",
         5: "5 минут",
@@ -408,16 +311,25 @@ async def handle_robot_speed_select(send_message, chat_id: int, scenario: str, d
 
     keyboard = get_robot_speed_keyboard(scenario, duration, environment)
 
-    await send_message(
-        chat_id=chat_id,
-        text=text,
-        parse_mode="Markdown",
-        reply_markup=keyboard,
-    )
+    if message_id:
+        await send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=keyboard,
+            edit_message_id=message_id,
+        )
+    else:
+        await send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=keyboard,
+        )
 
 
 async def handle_robot_start(
-    send_message, chat_id: int, scenario: str, duration: int, speed: str, environment: str = "staging", message_id: int = None
+    send_message, chat_id: int, scenario: str, duration: int, speed: str, environment: str = "home", message_id: int = None
 ) -> None:
     """
     Запустить сценарий робота.
@@ -428,10 +340,10 @@ async def handle_robot_start(
         scenario: Название сценария
         duration: Продолжительность в минутах (0 = один раз)
         speed: Скорость выполнения (slow=15с, normal=5с, fast=1с)
-        environment: Окружение (staging/prod)
+        environment: Окружение (home/prod)
         message_id: ID сообщения для редактирования
     """
-    env_label = "STAGING" if environment == "staging" else "PROD"
+    env_label = "HOME" if environment == "home" else "PROD"
     logger.info(f"Starting robot scenario: {scenario} (duration={duration}min, speed={speed}, env={environment}) for chat {chat_id}")
 
     result = robot_service.start_scenario(scenario, speed, environment, duration)
@@ -557,7 +469,7 @@ async def handle_robot_schedule_env(send_message, chat_id: int, scenario: str, m
 
 
 async def handle_robot_schedule_time(
-    send_message, chat_id: int, scenario: str, environment: str = "staging", message_id: int = None
+    send_message, chat_id: int, scenario: str, environment: str = "home", message_id: int = None
 ) -> None:
     """Показать выбор времени для расписания."""
     scenario_names = {
@@ -565,7 +477,7 @@ async def handle_robot_schedule_time(
         "shipping": "Отгрузка",
         "inventory": "Инвентаризация",
     }
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
+    env_label = "🏠 HOME" if environment == "home" else "☁️ PROD"
 
     text = (
         f"⏰ *Когда запустить?*\n\n"
@@ -594,14 +506,14 @@ async def handle_robot_schedule_time(
 
 
 async def handle_robot_schedule_create(
-    send_message, chat_id: int, scenario: str, minutes: int, environment: str = "staging", message_id: int = None
+    send_message, chat_id: int, scenario: str, minutes: int, environment: str = "home", message_id: int = None
 ) -> None:
     """Создать запланированную задачу."""
     from datetime import datetime, timedelta
 
     scheduled_time = datetime.now() + timedelta(minutes=minutes)
     time_str = scheduled_time.strftime("%H:%M")
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
+    env_label = "🏠 HOME" if environment == "home" else "☁️ PROD"
 
     logger.info(f"Scheduling robot scenario: {scenario} at {time_str} (env={environment}) for chat {chat_id}")
 
@@ -640,10 +552,10 @@ async def handle_robot_schedule_create(
         )
 
 
-async def request_schedule_time_input(send_message, chat_id: int, scenario: str, environment: str = "staging") -> None:
+async def request_schedule_time_input(send_message, chat_id: int, scenario: str, environment: str = "home") -> None:
     """Запросить ввод времени для расписания."""
     _pending_schedule_time[chat_id] = {"scenario": scenario, "environment": environment}
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
+    env_label = "🏠 HOME" if environment == "home" else "☁️ PROD"
 
     text = (
         f"⏰ *Введите время запуска (МСК)*\n\n"
@@ -673,8 +585,8 @@ async def handle_schedule_time_input(send_message, chat_id: int, time_str: str) 
         return
 
     scenario = pending.get("scenario")
-    environment = pending.get("environment", "staging")
-    env_label = "🔧 STAGING" if environment == "staging" else "🚀 PROD"
+    environment = pending.get("environment", "home")
+    env_label = "🏠 HOME" if environment == "home" else "☁️ PROD"
 
     # Валидация формата времени
     import re
@@ -725,8 +637,8 @@ async def handle_robot_scheduled_list(send_message, chat_id: int, message_id: in
             scenario = task.get("scenario", "")
             scheduled = task.get("scheduled_time", "")[:16].replace("T", " ")
             task_id = task.get("task_id", "")
-            environment = task.get("environment", "staging")
-            env_emoji = "🔧" if environment == "staging" else "🚀"
+            environment = task.get("environment", "home")
+            env_emoji = "🏠" if environment == "home" else "☁️"
             emoji = {"receiving": "📦", "shipping": "🚚", "inventory": "📋"}.get(scenario, "🤖")
             text += f"{emoji} {scenario} {env_emoji} — {scheduled} (`{task_id}`)\n"
         text += "\nНажмите на задачу для отмены:"

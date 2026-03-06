@@ -157,7 +157,7 @@ def format_robot_stats(stats: dict) -> str:
 {result_details}""".strip()
 
 
-def format_robot_started(scenario: str, speed: str, environment: str = "staging", duration: int = 0) -> str:
+def format_robot_started(scenario: str, speed: str, environment: str = "home", duration: int = 0) -> str:
     scenario_names = {
         "receiving": "📦 Приёмка товара",
         "shipping": "🚚 Отгрузка",
@@ -170,8 +170,8 @@ def format_robot_started(scenario: str, speed: str, environment: str = "staging"
         "fast": "🚀 Быстро (1с)",
     }
     env_names = {
-        "staging": "🔧 STAGING",
-        "prod": "🚀 PROD",
+        "home": "🏠 HOME",
+        "prod": "☁️ PROD",
     }
     duration_names = {0: "один раз", 5: "5 минут", 30: "30 минут", 60: "1 час"}
 
