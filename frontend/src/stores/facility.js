@@ -9,7 +9,7 @@ import { ref, computed } from 'vue'
 function getApi() {
   // eslint-disable-next-line no-new-func
   const getUrl = new Function('return window.__API_URL__')
-  return getUrl() || 'http://192.168.1.74:30080/api'
+  return getUrl() || '/api'
 }
 
 const FACILITY_KEY = 'warehouse_current_facility'

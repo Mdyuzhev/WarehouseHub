@@ -106,7 +106,7 @@ import { useFacilityStore } from '../stores/facility'
 function getApi() {
   // eslint-disable-next-line no-new-func
   const getUrl = new Function('return window.__API_URL__')
-  return getUrl() || 'http://192.168.1.74:30080/api'
+  return getUrl() || '/api'
 }
 
 export default {

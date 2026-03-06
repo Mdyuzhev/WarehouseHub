@@ -16,7 +16,7 @@ export function getApiUrl() {
   // Runtime определение - ВСЕГДА читаем из глобальной переменной
   // Используем eval чтобы Rollup точно не смог оптимизировать
   // eslint-disable-next-line no-eval
-  return eval('window.__API_URL__') || 'http://192.168.1.74:30080/api'
+  return eval('window.__API_URL__') || '/api'
 }
 
 /**
