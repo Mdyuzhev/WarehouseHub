@@ -119,7 +119,7 @@ jobs:
           username: ${{ secrets.HOMELAB_USER }}
           key: ${{ secrets.HOMELAB_SSH_KEY }}
           script: |
-            cd /opt/warehouse
+            cd /home/flomaster/projects/WarehouseHub
             git pull origin main
             docker compose up --build -d
             docker image prune -f
