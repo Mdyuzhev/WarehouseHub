@@ -38,75 +38,73 @@ env:
   PROD_PATH: /opt/warehouse
 
 jobs:
-  deploy:
-    name: Deploy to Yandex Cloud
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Deploy to Production
-        run: |
-          COMPONENT="${{ github.event.inputs.component || 'all' }}"
-          echo "🚀 Deploying $COMPONENT to Production..."
-
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << ENDSSH
-            cd ${{ env.PROD_PATH }}
-
-            if [ "$COMPONENT" = "all" ]; then
-              sudo docker compose pull
-              sudo docker compose up -d
-            else
-              sudo docker compose pull $COMPONENT
-              sudo docker compose up -d $COMPONENT
-            fi
-
-            sudo docker image prune -f
-
-            echo "✅ Deployment completed!"
-            sudo docker compose ps
-          ENDSSH
-
-      - name: Health Check
-        run: |
-          echo "🏥 Running health check..."
-          sleep 10
-
-          # Check API
-          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.wh-lab.ru/actuator/health || echo "000")
-          if [ "$API_STATUS" = "200" ]; then
-            echo "✅ API is healthy"
-          else
-            echo "⚠️ API returned status: $API_STATUS"
-          fi
-
-          # Check Frontend
-          FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://wh-lab.ru || echo "000")
-          if [ "$FRONTEND_STATUS" = "200" ]; then
-            echo "✅ Frontend is healthy"
-          else
-            echo "⚠️ Frontend returned status: $FRONTEND_STATUS"
-          fi
-
-      - name: Cleanup
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "❌ Deployment failed!"
-          echo "Check the logs above for details."
+  # deploy-yandex:
+  #   name: Deploy to Yandex Cloud
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup SSH
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/deploy_key
+  #         chmod 600 ~/.ssh/deploy_key
+  #         ssh-keyscan -H ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+  #
+  #     - name: Deploy to Production
+  #       run: |
+  #         COMPONENT="${{ github.event.inputs.component || 'all' }}"
+  #         echo "Deploying $COMPONENT to Production..."
+  #
+  #         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+  #           ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << ENDSSH
+  #           cd ${{ env.PROD_PATH }}
+  #
+  #           if [ "$COMPONENT" = "all" ]; then
+  #             sudo docker compose pull
+  #             sudo docker compose up -d
+  #           else
+  #             sudo docker compose pull $COMPONENT
+  #             sudo docker compose up -d $COMPONENT
+  #           fi
+  #
+  #           sudo docker image prune -f
+  #
+  #           echo "Deployment completed!"
+  #           sudo docker compose ps
+  #         ENDSSH
+  #
+  #     - name: Health Check
+  #       run: |
+  #         echo "Running health check..."
+  #         sleep 10
+  #
+  #         API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.wh-lab.ru/actuator/health || echo "000")
+  #         if [ "$API_STATUS" = "200" ]; then
+  #           echo "API is healthy"
+  #         else
+  #           echo "API returned status: $API_STATUS"
+  #         fi
+  #
+  #         FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://wh-lab.ru || echo "000")
+  #         if [ "$FRONTEND_STATUS" = "200" ]; then
+  #           echo "Frontend is healthy"
+  #         else
+  #           echo "Frontend returned status: $FRONTEND_STATUS"
+  #         fi
+  #
+  #     - name: Cleanup
+  #       if: always()
+  #       run: rm -f ~/.ssh/deploy_key
+  #
+  #     - name: Notify on failure
+  #       if: failure()
+  #       run: |
+  #         echo "Deployment failed!"
+  #         echo "Check the logs above for details."
 
   deploy-homelab:
     name: Deploy to Homelab
