@@ -116,7 +116,7 @@ jobs:
 
       - name: Deploy
         run: |
-          cd /home/flomaster/projects/WarehouseHub
+          cd /opt/warehouse
           git pull origin main
           docker compose up --build -d
           docker image prune -f
