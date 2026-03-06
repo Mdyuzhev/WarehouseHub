@@ -12,7 +12,7 @@
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon events">📊</div>
+        <div class="stat-icon events"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg></div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.total_events }}</div>
           <div class="stat-label">Всего событий</div>
@@ -20,7 +20,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon audit">✏️</div>
+        <div class="stat-icon audit"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg></div>
         <div class="stat-content">
           <div class="stat-value">{{ auditTotal }}</div>
           <div class="stat-label">Аудит операций</div>
@@ -28,7 +28,7 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon notifications">🔔</div>
+        <div class="stat-icon notifications"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg></div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.notifications?.total || 0 }}</div>
           <div class="stat-label">Уведомлений</div>
@@ -36,7 +36,7 @@
       </div>
 
       <div class="stat-card warning">
-        <div class="stat-icon stock">⚠️</div>
+        <div class="stat-icon stock"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg></div>
         <div class="stat-content">
           <div class="stat-value">{{ stockAlerts }}</div>
           <div class="stat-label">Алерты склада</div>
@@ -75,7 +75,7 @@
           </TransitionGroup>
 
           <div v-if="events.length === 0" class="feed-empty">
-            <span class="empty-icon">📭</span>
+            <span class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.75H6.912a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H15M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859M12 3v8.25m0 0-3-3m3 3 3-3"/></svg></span>
             <p>Ожидание событий...</p>
           </div>
         </div>
@@ -137,12 +137,12 @@
           <h3>Алерты склада</h3>
           <div class="alerts-breakdown">
             <div class="alert-item low-stock">
-              <span class="alert-icon">📉</span>
+              <span class="alert-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg></span>
               <span class="alert-label">Low Stock</span>
               <span class="alert-value">{{ stats.notifications?.low_stock || 0 }}</span>
             </div>
             <div class="alert-item out-of-stock">
-              <span class="alert-icon">🚫</span>
+              <span class="alert-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/></svg></span>
               <span class="alert-label">Out of Stock</span>
               <span class="alert-value">{{ stats.notifications?.out_of_stock || 0 }}</span>
             </div>
@@ -428,16 +428,16 @@ export default {
 
     getEventIcon(event) {
       if (event.type === 'notification') {
-        return event.event === 'OUT_OF_STOCK' ? '🚫' : '📉'
+        return event.event === 'OUT_OF_STOCK' ? '\u2716' : '\u2193'
       }
       const icons = {
-        'CREATE': '➕',
-        'UPDATE': '✏️',
-        'DELETE': '🗑️',
-        'LOGIN': '🔓',
-        'LOGOUT': '🔒'
+        'CREATE': '+',
+        'UPDATE': '\u270E',
+        'DELETE': '\u2716',
+        'LOGIN': '\u2192',
+        'LOGOUT': '\u2190'
       }
-      return icons[event.event] || '📋'
+      return icons[event.event] || '\u2022'
     },
 
     formatEventTitle(event) {
@@ -551,7 +551,6 @@ export default {
 }
 
 .stat-icon {
-  font-size: 2rem;
   width: 48px;
   height: 48px;
   display: flex;
@@ -679,7 +678,7 @@ export default {
 }
 
 .event-user::before {
-  content: '👤 ';
+  content: '\2192 ';
 }
 
 .feed-empty {
@@ -692,8 +691,8 @@ export default {
 }
 
 .empty-icon {
-  font-size: 3rem;
   margin-bottom: 0.5rem;
+  color: #9ca3af;
 }
 
 /* Feed animation */
@@ -842,7 +841,9 @@ export default {
 }
 
 .alert-icon {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .alert-label {

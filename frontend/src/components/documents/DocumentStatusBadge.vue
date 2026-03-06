@@ -39,14 +39,14 @@ export default {
 
     statusIcon() {
       const icons = {
-        'DRAFT': '✏️',
-        'APPROVED': '✓',
-        'CONFIRMED': '✓✓',
-        'COMPLETED': '✓✓✓',
-        'SHIPPED': '🚚',
-        'DELIVERED': '📦'
+        'DRAFT': '\u270E',
+        'APPROVED': '\u2713',
+        'CONFIRMED': '\u2713\u2713',
+        'COMPLETED': '\u2713\u2713\u2713',
+        'SHIPPED': '\u2192',
+        'DELIVERED': '\u2713'
       }
-      return icons[this.status] || '•'
+      return icons[this.status] || '\u2022'
     },
 
     statusText() {

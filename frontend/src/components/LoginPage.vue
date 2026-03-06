@@ -3,7 +3,7 @@
     <div class="login-container">
       <!-- Логотип и заголовок -->
       <div class="login-header">
-        <div class="logo">🏭</div>
+        <div class="logo"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z"/></svg></div>
         <h1>Warehouse</h1>
         <p class="subtitle">Система управления складом</p>
       </div>
@@ -12,7 +12,7 @@
       <form class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="username">
-            <span class="icon">👤</span>
+            <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; vertical-align: middle;"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg></span>
             Имя пользователя
           </label>
           <input
@@ -29,7 +29,7 @@
 
         <div class="form-group">
           <label for="password">
-            <span class="icon">🔒</span>
+            <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; vertical-align: middle;"><path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg></span>
             Пароль
           </label>
           <div class="password-input">
@@ -49,14 +49,15 @@
               :disabled="loading"
               @click="showPassword = !showPassword"
             >
-              {{ showPassword ? '🙈' : '👁️' }}
+              <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+              <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
             </button>
           </div>
         </div>
 
         <!-- Сообщение об ошибке -->
         <div v-if="error" class="error-message" data-testid="error-message">
-          <span class="icon">⚠️</span>
+          <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; vertical-align: middle;"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg></span>
           {{ error }}
         </div>
 
@@ -66,29 +67,6 @@
           {{ loading ? 'Вход...' : 'Войти в систему' }}
         </button>
       </form>
-
-      <!-- Подсказка с тестовыми учётками -->
-      <div class="demo-accounts">
-        <p class="demo-title">🔑 Тестовые аккаунты:</p>
-        <div class="demo-list">
-          <button class="demo-btn" @click="fillDemo('ivanov', 'password123')">
-            <span class="role super">Super</span>
-            ivanov / password123 (Иванов А.П.)
-          </button>
-          <button class="demo-btn" @click="fillDemo('petrova', 'password123')">
-            <span class="role admin">Admin</span>
-            petrova / password123 (Петрова М.С.)
-          </button>
-          <button class="demo-btn" @click="fillDemo('sidorov', 'password123')">
-            <span class="role manager">Manager</span>
-            sidorov / password123 (Сидоров Д.А.)
-          </button>
-          <button class="demo-btn" @click="fillDemo('kozlova', 'password123')">
-            <span class="role employee">Employee</span>
-            kozlova / password123 (Козлова А.В.)
-          </button>
-        </div>
-      </div>
 
       <!-- Футер -->
       <div class="login-footer">
@@ -197,11 +175,6 @@ export default {
       return null
     },
 
-    fillDemo(username, password) {
-      this.username = username
-      this.password = password
-      this.error = null
-    }
   }
 }
 </script>
@@ -236,8 +209,8 @@ export default {
 }
 
 .logo {
-  font-size: 4rem;
   margin-bottom: 0.5rem;
+  color: #00d4ff;
 }
 
 .login-header h1 {
@@ -324,10 +297,12 @@ export default {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1.25rem;
   padding: 0.25rem;
   opacity: 0.7;
   transition: opacity 0.2s;
+  color: #ccc;
+  display: flex;
+  align-items: center;
 }
 
 .toggle-password:hover {
@@ -392,80 +367,6 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-.demo-accounts {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.demo-title {
-  color: #888;
-  font-size: 0.85rem;
-  margin: 0 0 0.75rem 0;
-  text-align: center;
-}
-
-.demo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.demo-btn {
-  width: 100%;
-  padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  color: #aaa;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  text-align: left;
-}
-
-.demo-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
-}
-
-.role {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.role.super {
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
-}
-
-.role.admin {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-}
-
-.role.manager {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-}
-
-.role.user {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-}
-
-.role.employee {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-}
-
 .login-footer {
   margin-top: auto;
   padding-top: 2rem;
@@ -484,8 +385,9 @@ export default {
     min-height: calc(100vh - 2rem);
   }
 
-  .logo {
-    font-size: 3rem;
+  .logo svg {
+    width: 48px;
+    height: 48px;
   }
 
   .login-header h1 {
