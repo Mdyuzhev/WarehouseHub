@@ -127,6 +127,27 @@ services:
       retries: 5
       start_period: 60s
 
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    container_name: warehouse-telegram-bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - STAGING_API_URL=http://api:8080
+      - STAGING_FRONTEND_URL=http://frontend:80
+      - PROMETHEUS_URL=http://prometheus:9090
+      - REDIS_STAGING_HOST=redis
+      - KAFKA_STAGING_BROKERS=kafka:9092
+      - HOMELAB_HOST=192.168.1.74
+      - DEPLOY_PASSWORD=${DEPLOY_PASSWORD}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - api
+
   prometheus:
     image: prom/prometheus:v2.50.1
     container_name: warehouse-prometheus
