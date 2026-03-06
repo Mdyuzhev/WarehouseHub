@@ -17,10 +17,7 @@ def format_money(value: float) -> str:
 def format_health_message(health_data: dict) -> str:
     staging_api = health_data["staging_api"]
     staging_fe = health_data["staging_fe"]
-    prod_api = health_data["prod_api"]
-    prod_fe = health_data["prod_fe"]
     k8s = health_data["k8s"]
-    prod = health_data["prod"]
 
     def status_icon(s):
         return "✅" if s.get("status") == "UP" else "❌"
@@ -28,11 +25,9 @@ def format_health_message(health_data: dict) -> str:
     def latency_str(s):
         return f" ({s.get('latency_ms', '?')}ms)" if s.get('latency_ms') else ""
 
-    msg = f"""
-<b>🏥 Статус серверов</b>
+    msg = f"""<b>🏥 Статус Homelab</b>
 <i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
 
-<b>━━━ 🧪 STAGING ━━━</b>
 {status_icon(staging_api)} <b>API:</b> {staging_api.get('status')}{latency_str(staging_api)}
 {status_icon(staging_fe)} <b>Frontend:</b> {staging_fe.get('status')}{latency_str(staging_fe)}
 """
@@ -45,26 +40,14 @@ def format_health_message(health_data: dict) -> str:
             msg += f"  {icon} {pod['name'][:25]}{restarts}\n"
 
     if k8s.get("node"):
-        msg += f"\n<b>💻 Ресурсы:</b>\n"
-        msg += f"  CPU: {k8s['node'].get('cpu_percent', '?')} | RAM: {k8s['node'].get('memory_percent', '?')}\n"
+        msg += f"\n<b>💻 Ресурсы API:</b>\n"
+        msg += f"  CPU: {k8s['node'].get('cpu_percent', '?')} | JVM RAM: {k8s['node'].get('memory_percent', '?')}\n"
 
-    msg += f"""
-<b>━━━ 🚀 PRODUCTION ━━━</b>
-{status_icon(prod_api)} <b>API:</b> {prod_api.get('status')}{latency_str(prod_api)}
-{status_icon(prod_fe)} <b>Frontend:</b> {prod_fe.get('status')}{latency_str(prod_fe)}
-"""
-
-    if prod.get("containers"):
-        msg += "\n<b>🐳 Контейнеры:</b>\n"
-        for c in prod["containers"][:6]:
-            icon = "🟢" if c["status"] == "UP" else "🔴"
-            msg += f"  {icon} {c['name']}\n"
-
-    all_up = all(s.get("status") == "UP" for s in [staging_api, staging_fe, prod_api, prod_fe])
+    all_up = all(s.get("status") == "UP" for s in [staging_api, staging_fe])
     if all_up:
         msg += "\n✨ <b>Все сервисы работают!</b>"
     else:
-        msg += "\n⚠️ <b>Есть проблемы с сервисами!</b>"
+        msg += "\n⚠️ <b>Есть проблемы!</b>"
 
     return msg.strip()
 
