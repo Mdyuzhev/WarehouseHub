@@ -19,11 +19,16 @@ class RobotService:
         self.base_url = base_url or ROBOT_API_URL
         self.timeout = 30.0
 
+    def _is_configured(self) -> bool:
+        return bool(self.base_url)
+
     def _get_client(self) -> httpx.Client:
         return httpx.Client(timeout=self.timeout)
 
     def get_info(self) -> Optional[Dict[str, Any]]:
         """Получить информацию о роботе."""
+        if not self._is_configured():
+            return None
         try:
             with self._get_client() as client:
                 response = client.get(f"{self.base_url}/")
@@ -35,6 +40,8 @@ class RobotService:
 
     def get_health(self) -> Optional[Dict[str, Any]]:
         """Проверить здоровье робота."""
+        if not self._is_configured():
+            return None
         try:
             with self._get_client() as client:
                 response = client.get(f"{self.base_url}/health")
@@ -46,6 +53,8 @@ class RobotService:
 
     def get_status(self) -> Optional[Dict[str, Any]]:
         """Получить текущий статус робота."""
+        if not self._is_configured():
+            return None
         try:
             with self._get_client() as client:
                 response = client.get(f"{self.base_url}/status")
@@ -57,6 +66,8 @@ class RobotService:
 
     def get_stats(self) -> Optional[Dict[str, Any]]:
         """Получить статистику выполнения."""
+        if not self._is_configured():
+            return None
         try:
             with self._get_client() as client:
                 response = client.get(f"{self.base_url}/stats")

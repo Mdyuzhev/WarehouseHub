@@ -1,6 +1,6 @@
 """
-Конфигурация Telegram бота.
-Все настройки в одном месте, как завещал дядюшка Боб! 🧙‍♂️
+Telegram bot configuration.
+Docker-compose environment.
 """
 
 import os
@@ -8,8 +8,7 @@ import os
 # =============================================================================
 # Logging
 # =============================================================================
-# JSON format для K8s (Loki/ELK/Fluentd)
-LOG_FORMAT = os.getenv("LOG_FORMAT", "text")  # "json" или "text"
+LOG_FORMAT = os.getenv("LOG_FORMAT", "text")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # =============================================================================
@@ -17,168 +16,40 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 # =============================================================================
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-GITLAB_WEBHOOK_SECRET = os.getenv("GITLAB_WEBHOOK_SECRET", "")
 
 # =============================================================================
-# URLs - Staging (K8s internal DNS)
+# URLs - Homelab (docker-compose)
 # =============================================================================
-STAGING_API_URL = os.getenv(
-    "STAGING_API_URL",
-    "http://warehouse-api-service.warehouse.svc.cluster.local:8080"
-)
-STAGING_FRONTEND_URL = os.getenv(
-    "STAGING_FRONTEND_URL",
-    "http://warehouse-frontend-service.warehouse.svc.cluster.local"
-)
+STAGING_API_URL = os.getenv("STAGING_API_URL", "http://api:8080")
+STAGING_FRONTEND_URL = os.getenv("STAGING_FRONTEND_URL", "http://frontend:80")
 
 # =============================================================================
 # URLs - Production (Yandex Cloud)
 # =============================================================================
 PROD_API_URL = os.getenv("PROD_API_URL", "https://api.wh-lab.ru")
 PROD_FRONTEND_URL = os.getenv("PROD_FRONTEND_URL", "https://wh-lab.ru")
-PROD_HOST = os.getenv("PROD_HOST", "130.193.44.34")
 
 # =============================================================================
-# Locust (namespace loadtest)
-# =============================================================================
-LOCUST_MASTER_URL = os.getenv(
-    "LOCUST_MASTER_URL",
-    "http://locust-master.loadtest.svc.cluster.local:8089"
-)
-
-# =============================================================================
-# GitLab
-# =============================================================================
-GITLAB_URL = os.getenv("GITLAB_URL", "http://192.168.1.74:8080")
-# ⚠️ КРИТИЧНО: Токен должен быть в K8s Secret, НЕ в коде!
-# Старый токен был скомпрометирован и отозван (WH-171)
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
-if not GITLAB_TOKEN:
-    import logging
-    logging.warning("GITLAB_TOKEN not set! GitLab integrations will fail.")
-GITLAB_TRIGGER_TOKEN = os.getenv("GITLAB_TRIGGER_TOKEN", "")
-
-# Project IDs
-GITLAB_PROJECTS = {
-    "warehouse-master": 4,
-    "warehouse-frontend": 3,
-    "warehouse-api": 1,
-}
-
-# Job mappings for triggers
-GITLAB_JOBS = {
-    # Deploy jobs
-    "deploy_api_staging": {"project": "warehouse-master", "job": "deploy-api-staging"},
-    "deploy_frontend_staging": {"project": "warehouse-master", "job": "deploy-frontend-staging"},
-    "deploy_all_staging": {"project": "warehouse-master", "job": "deploy-all-staging"},
-    "deploy_api_prod": {"project": "warehouse-master", "job": "deploy-api-prod"},
-    "deploy_frontend_prod": {"project": "warehouse-master", "job": "deploy-frontend-prod"},
-    "deploy_all_prod": {"project": "warehouse-master", "job": "deploy-all-prod"},
-    # E2E tests (API tests via RestAssured)
-    "run_e2e_tests_staging": {"project": "warehouse-master", "job": "run-e2e-tests-staging"},
-    "run_e2e_tests_prod": {"project": "warehouse-master", "job": "run-e2e-tests-prod"},
-    # UI tests (Selenide)
-    "run_ui_tests_staging": {"project": "warehouse-master", "job": "run-ui-tests-staging"},
-    "run_ui_tests_prod": {"project": "warehouse-master", "job": "run-ui-tests-prod"},
-    # Load tests
-    "run_load": {"project": "warehouse-master", "job": "run-load-tests"},
-}
-
-# =============================================================================
-# Allure
-# =============================================================================
-# Внутренний URL для API запросов (статистика)
-ALLURE_SERVER_URL = os.getenv("ALLURE_SERVER_URL", "http://192.168.1.74:5050")
-# Внешний URL для ссылок в сообщениях (cloudflared tunnel)
-ALLURE_PUBLIC_URL = os.getenv("ALLURE_PUBLIC_URL", "https://advertiser-dark-remaining-sail.trycloudflare.com")
-
-# =============================================================================
-# Claude Proxy
-# =============================================================================
-CLAUDE_PROXY_URL = os.getenv("CLAUDE_PROXY_URL", "http://192.168.1.74:8765")
-
-# =============================================================================
-# Passwords (для авторизации деплоя, НТ и Claude)
-# WH-172: Пароли перенесены в K8s Secret, здесь только os.getenv()
-# =============================================================================
-DEPLOY_PASSWORD = os.getenv("DEPLOY_PASSWORD")
-LOAD_TEST_PASSWORD = os.getenv("LOAD_TEST_PASSWORD")
-LOAD_TEST_GUEST_PASSWORD = os.getenv("LOAD_TEST_GUEST_PASSWORD", "Guest")  # Guest - не секрет
-
-# =============================================================================
-# WH-180: Health Check таймауты (секунды)
+# Health Check timeouts
 # =============================================================================
 HEALTH_CHECK_TIMEOUT = float(os.getenv("HEALTH_CHECK_TIMEOUT", "5.0"))
 PROMETHEUS_TIMEOUT = float(os.getenv("PROMETHEUS_TIMEOUT", "3.0"))
 
 # =============================================================================
-# WH-181: Лимиты и константы (вместо магических чисел)
+# Prometheus (docker-compose)
 # =============================================================================
-# Guest mode limits
-GUEST_MAX_USERS = int(os.getenv("GUEST_MAX_USERS", "20"))
-GUEST_MAX_DURATION = int(os.getenv("GUEST_MAX_DURATION", "300"))  # 5 минут
+PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
+PROMETHEUS_QUERY_WINDOW = os.getenv("PROMETHEUS_QUERY_WINDOW", "5m")
 
+# =============================================================================
 # App lifecycle
+# =============================================================================
 GRACEFUL_SHUTDOWN_TIMEOUT = float(os.getenv("GRACEFUL_SHUTDOWN_TIMEOUT", "5.0"))
 MAX_BACKOFF_SECONDS = int(os.getenv("MAX_BACKOFF_SECONDS", "60"))
 INITIAL_BACKOFF_SECONDS = int(os.getenv("INITIAL_BACKOFF_SECONDS", "5"))
 
-# Prometheus query window
-PROMETHEUS_QUERY_WINDOW = os.getenv("PROMETHEUS_QUERY_WINDOW", "5m")
-
-# =============================================================================
-# Prometheus (внутри K8s)
-# =============================================================================
-PROMETHEUS_URL = os.getenv(
-    "PROMETHEUS_URL",
-    "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
-)
-
-# =============================================================================
-# YouTrack
-# WH-172: Пароль перенесён в K8s Secret
-# =============================================================================
-YOUTRACK_URL = os.getenv("YOUTRACK_URL", "http://192.168.1.74:8088")
-YOUTRACK_USER = os.getenv("YOUTRACK_USER", "admin")
-YOUTRACK_PASSWORD = os.getenv("YOUTRACK_PASSWORD")  # WH-172: в K8s Secret
-YOUTRACK_PROJECT = os.getenv("YOUTRACK_PROJECT", "WH")
-
 # =============================================================================
 # Warehouse Robot
 # =============================================================================
-ROBOT_API_URL = os.getenv(
-    "ROBOT_API_URL",
-    "http://warehouse-robot-service.warehouse.svc.cluster.local:8070"
-)
+ROBOT_API_URL = os.getenv("ROBOT_API_URL", "")
 ROBOT_PASSWORD = os.getenv("ROBOT_PASSWORD", "1")
-
-# =============================================================================
-# WH-217: Load Testing Passwords (per environment)
-# =============================================================================
-LOAD_TEST_STAGING_PASSWORD = os.getenv("LOAD_TEST_STAGING_PASSWORD", "1")  # простой для staging
-LOAD_TEST_PROD_PASSWORD = os.getenv("LOAD_TEST_PROD_PASSWORD")  # обязателен для prod
-
-# =============================================================================
-# WH-217: Load Testing Cooldown
-# =============================================================================
-COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "30"))
-
-# =============================================================================
-# WH-217: Cleanup Service Endpoints
-# =============================================================================
-# Redis
-REDIS_STAGING_HOST = os.getenv("REDIS_STAGING_HOST", "redis.warehouse.svc.cluster.local")
-REDIS_STAGING_PORT = int(os.getenv("REDIS_STAGING_PORT", "6379"))
-REDIS_PROD_HOST = os.getenv("REDIS_PROD_HOST", "localhost")  # через SSH tunnel
-REDIS_PROD_PORT = int(os.getenv("REDIS_PROD_PORT", "6379"))
-
-# Kafka
-KAFKA_STAGING_BROKERS = os.getenv("KAFKA_STAGING_BROKERS", "kafka.warehouse.svc.cluster.local:9092")
-KAFKA_PROD_BROKERS = os.getenv("KAFKA_PROD_BROKERS", "130.193.44.34:29092")
-
-# PostgreSQL
-POSTGRES_STAGING_URL = os.getenv(
-    "POSTGRES_STAGING_URL",
-    "postgresql://warehouse:password@postgresql.warehouse.svc.cluster.local:5432/warehouse"
-)
-POSTGRES_PROD_URL = os.getenv("POSTGRES_PROD_URL", "")  # В K8s Secret

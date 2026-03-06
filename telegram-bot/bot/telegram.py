@@ -181,6 +181,26 @@ async def get_updates(offset: int = 0, timeout: int = 30) -> list:
         raise  # Пробрасываем исключение для обработки в polling loop
 
 
+async def delete_webhook() -> bool:
+    """Deletes any active webhook to allow polling."""
+    if not TELEGRAM_BOT_TOKEN:
+        return False
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url)
+            if response.status_code == 200:
+                logger.info("Webhook deleted successfully")
+                return True
+            else:
+                logger.warning(f"deleteWebhook returned {response.status_code}")
+                return False
+    except Exception as e:
+        logger.error(f"Failed to delete webhook: {e}")
+        return False
+
+
 async def edit_message_text(
     chat_id: int,
     message_id: int,

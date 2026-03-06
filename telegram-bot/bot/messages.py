@@ -1,180 +1,20 @@
 """
-Сообщения и юмор бота.
-Все шутки, форматирование и мемы живут здесь! 🎭
+Message formatters for the bot.
 """
 
-import random
 from datetime import datetime
 
 
 def format_money(value: float) -> str:
-    """
-    Форматирует денежную сумму с разделителями тысяч.
-
-    Примеры:
-        7553018.76 -> "7 553 018.76 ₽"
-        1234.50 -> "1 234.50 ₽"
-        500.00 -> "500.00 ₽"
-    """
-    # Форматируем число с разделителями тысяч (пробелами)
     formatted = f"{value:,.2f}".replace(",", " ")
     return f"{formatted} ₽"
 
-# =============================================================================
-# JOKES - Юмористические фразы 🎭
-# =============================================================================
-
-JOKES = {
-    "start": [
-        "Привет, кожаный мешок! 🤖 Я бот, который следит за твоим кодом лучше, чем ты сам.",
-        "О, новый раб CI/CD пришёл! Добро пожаловать! 👋",
-        "Здравствуй, человек. Надеюсь, твои пайплайны не так сломаны, как твоя жизнь. 😏",
-        "Приветствую! Я тот, кто видит все твои failed pipelines в 3 часа ночи. 🌙",
-    ],
-    "health_good": [
-        "Всё работает! Даже странно... 🤔",
-        "Серверы живы! В отличие от твоего sleep schedule. 😴",
-        "Зелёненькое! Как и должно быть. Наслаждайся, пока можешь. ✨",
-        "Удивительно, но всё ОК! Это точно наш проект? 🧐",
-    ],
-    "health_bad": [
-        "Хьюстон, у нас проблемы! 🚨",
-        "Что-то сломалось... Опять. Как обычно. 💔",
-        "RED ALERT! Кто-то опять запушил в пятницу вечером? 🔥",
-        "Пора паниковать! Или кофе. Лучше кофе. ☕",
-    ],
-    "load_test_start": [
-        "Запускаю нагрузку! Сервера, держитесь! 💪",
-        "Время стресс-теста! Как твоя жизнь, только для серверов. 🏋️",
-        "Поехали! Надеюсь, сервер крепче твоих нервов. 🎢",
-        "Unleashing the LOAD! Пристегнись! 🚀",
-    ],
-    "load_test_stop": [
-        "Тест остановлен. Сервера выдохнули. 😮‍💨",
-        "Всё, хватит мучать железо на сегодня. 🛑",
-        "Нагрузка снята. Можно расслабиться. 🧘",
-    ],
-    "e2e_start": [
-        "Запускаю E2E тесты! Надеюсь, ты ничего не сломал... 🤞",
-        "Поехали проверять! Сейчас узнаем, кто тут накосячил. 🔍",
-        "E2E тесты в деле! Время узнать правду о твоём коде. 🎯",
-        "Тестируем API! Скрестил пальцы за тебя. 🤖",
-    ],
-    "e2e_success": [
-        "ВСЕ ТЕСТЫ ПРОШЛИ! 🎉 Ты красавчик! (или тестов мало...)",
-        "Зелёненькое! Редкое зрелище в наши дни. ✅",
-        "100% passed! Кажется, сегодня можно спать спокойно. 😌",
-        "Тесты в порядке! Чудеса случаются! ✨",
-    ],
-    "e2e_failure": [
-        "Упс... Кто-то сломал тесты! Не ты ли? 🤔",
-        "FAILED! Время искать виноватого. Спойлер: это ты. 💀",
-        "Тесты упали. Классика. Кофе? ☕",
-        "Красненькое! Надеюсь, это не прод... 🔴",
-    ],
-    "deploy_start": [
-        "Поехали деплоить! Держитесь, сервера! 🚀",
-        "Запускаю деплой... Надеюсь, ты всё проверил! 🤞",
-        "Деплой пошёл! Время пить кофе и ждать... ☕",
-        "Отправляю код на сервера! Скрестил пальцы! 🎯",
-    ],
-    "deploy_success": [
-        "Деплой успешен! 🎉 Всё взлетело!",
-        "Готово! Сервера обновлены! ✅",
-        "Задеплоено! Идём проверять... 🔍",
-        "Успех! Ты молодец (ну или CI молодец)! 🏆",
-    ],
-    "deploy_error": [
-        "Деплой упал... 😱 Кто-то будет дебажить!",
-        "Ой-ой-ой! Что-то пошло не так! 🔥",
-        "Провал! Но не паникуем. Паникуем? 😅",
-        "Деплой failed. Время смотреть логи! 📜",
-    ],
-    "claude_start": [
-        "Окей, сейчас разберусь... 🤔",
-        "Принято! Погнали работать! 💪",
-        "Задача получена, выполняю... 🚀",
-        "Есть, босс! Уже делаю! 🤖",
-    ],
-    "claude_done": [
-        "Готово! Я молодец? 😏",
-        "Сделано! Чего ещё изволите? 🎩",
-        "Выполнено! Следующая задача? 💪",
-        "Всё, справился! 🏆",
-    ],
-    "claude_error": [
-        "Упс, что-то пошло не так... 😅",
-        "Хьюстон, у нас проблема! 🚨",
-        "Не получилось, но я старался! 😬",
-    ],
-    # PM функции
-    "pm_menu": [
-        "PM Dashboard! Где мы сейчас и куда идём... 📊",
-        "Время проверить статус проекта! 🎯",
-        "Добро пожаловать в PM-панель! Тут всё серьёзно. Ну почти. 📋",
-        "PM mode activated! Давай посмотрим что творится... 🔍",
-    ],
-    "pm_audit": [
-        "Сейчас посмотрим, что там накопилось... 📋",
-        "Аудит time! Кто тут без задач ходит? 🔍",
-        "Проверяем беклог... Надеюсь, там не 100500 сторей! 😅",
-        "Загружаю список дел... Держись крепче! 📝",
-    ],
-    "pm_report": [
-        "Отчёт готов! Как на планёрке, только без кофе. ☕",
-        "Вот что мы наработали! (или не наработали...) 📈",
-        "Статистика подъехала! 📊",
-        "Смотрим активность... Кто молодец, а кто — ну такое. 🤔",
-    ],
-    "pm_agent_busy": [
-        "Агент трудится! Не мешай гению! 🤖💪",
-        "Claude занят делом. В отличие от некоторых... 😏",
-        "Работа кипит! Скоро будет результат! ⚙️",
-    ],
-    "pm_agent_idle": [
-        "Агент скучает... Дай ему задачу! 😴",
-        "Claude свободен и готов к подвигам! 🦸",
-        "Никого нет дома... То есть агент свободен! 🏠",
-    ],
-}
-
-# Dev jokes для команды /joke
-DEV_JOKES = [
-    "Почему программисты путают Хэллоуин и Рождество? Потому что Oct 31 = Dec 25 🎃🎄",
-    "Есть только 10 типов людей: те кто понимают двоичный код и те кто нет.",
-    "— Сколько программистов нужно, чтобы вкрутить лампочку?\n— Ни одного, это hardware проблема!",
-    "Почему Java разработчик носит очки? Потому что не видит C# 😎",
-    "localhost всегда рядом... только на него можно положиться 💔",
-    "Мой код работает, и я не знаю почему. Мой код не работает, и я не знаю почему.",
-    "git push --force: Потому что чужие коммиты - это чужие проблемы 🔥",
-    "Production - это просто dev environment, который кто-то случайно задеплоил.",
-    "99 багов в коде, 99 багов...\nПофикси один, собери...\n127 багов в коде! 🐛",
-    "Заказчик: 'Добавьте простую кнопку'\nРазработчик: *плачет в REST API*",
-    "Документация? Я думал, код самодокументирующийся! 📚",
-    "Senior developer - это junior, который гуглит быстрее.",
-    "QA: 'Нашёл баг'\nDev: 'Это фича'\nQA: 'Фича не работает'\nDev: '...'",
-    "Код ревью: процесс, где ты узнаёшь, что всё неправильно, но никто не знает как правильно.",
-    "Agile - это когда дедлайн каждые две недели, а не раз в год.",
-]
-
-
-def get_random_joke(category: str) -> str:
-    """Возвращает случайную шутку из категории."""
-    jokes = JOKES.get(category, JOKES["start"])
-    return random.choice(jokes)
-
-
-def get_random_dev_joke() -> str:
-    """Возвращает случайный dev-анекдот."""
-    return random.choice(DEV_JOKES)
-
 
 # =============================================================================
-# Message Formatters - Форматирование сообщений
+# Health
 # =============================================================================
 
 def format_health_message(health_data: dict) -> str:
-    """Форматирует сообщение о здоровье серверов."""
     staging_api = health_data["staging_api"]
     staging_fe = health_data["staging_fe"]
     prod_api = health_data["prod_api"]
@@ -192,38 +32,34 @@ def format_health_message(health_data: dict) -> str:
 <b>🏥 Статус серверов</b>
 <i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
 
-<b>━━━ 🧪 STAGING (K3s) ━━━</b>
+<b>━━━ 🧪 STAGING ━━━</b>
 {status_icon(staging_api)} <b>API:</b> {staging_api.get('status')}{latency_str(staging_api)}
 {status_icon(staging_fe)} <b>Frontend:</b> {staging_fe.get('status')}{latency_str(staging_fe)}
 """
 
-    # K8s pods
     if k8s.get("pods"):
-        msg += "\n<b>📦 Поды:</b>\n"
+        msg += "\n<b>📦 Сервисы:</b>\n"
         for pod in k8s["pods"][:6]:
             icon = "🟢" if pod["status"] == "Running" else "🔴"
             restarts = f" (↻{pod['restarts']})" if pod['restarts'] != "0" else ""
             msg += f"  {icon} {pod['name'][:25]}{restarts}\n"
 
-    # K8s node resources
     if k8s.get("node"):
-        msg += f"\n<b>💻 Ресурсы ноды:</b>\n"
+        msg += f"\n<b>💻 Ресурсы:</b>\n"
         msg += f"  CPU: {k8s['node'].get('cpu_percent', '?')} | RAM: {k8s['node'].get('memory_percent', '?')}\n"
 
     msg += f"""
-<b>━━━ 🚀 PRODUCTION (YC) ━━━</b>
+<b>━━━ 🚀 PRODUCTION ━━━</b>
 {status_icon(prod_api)} <b>API:</b> {prod_api.get('status')}{latency_str(prod_api)}
 {status_icon(prod_fe)} <b>Frontend:</b> {prod_fe.get('status')}{latency_str(prod_fe)}
 """
 
-    # Prod containers
     if prod.get("containers"):
         msg += "\n<b>🐳 Контейнеры:</b>\n"
         for c in prod["containers"][:6]:
             icon = "🟢" if c["status"] == "UP" else "🔴"
             msg += f"  {icon} {c['name']}\n"
 
-    # Итоговый статус
     all_up = all(s.get("status") == "UP" for s in [staging_api, staging_fe, prod_api, prod_fe])
     if all_up:
         msg += "\n✨ <b>Все сервисы работают!</b>"
@@ -233,356 +69,37 @@ def format_health_message(health_data: dict) -> str:
     return msg.strip()
 
 
-def format_load_test_stats(stats: dict, target: str, users: int, duration: int, elapsed: int) -> str:
-    """Форматирует статистику нагрузочного теста."""
-    target_name = "🧪 STAGING" if target == "staging" else "🚀 PRODUCTION"
-    remaining = max(0, duration - elapsed)
-
-    msg = f"""
-<b>📊 Статистика нагрузочного теста</b>
-
-<b>Конфигурация:</b>
-📍 Цель: {target_name}
-👥 Пользователей: {users}
-⏱ Прошло: {elapsed // 60}м {elapsed % 60}с / {duration // 60}м
-
-<b>Результаты:</b>
-📨 Запросов: {stats.get('total_requests', 0):,}
-❌ Ошибок: {stats.get('total_failures', 0):,}
-⚡ RPS: {stats.get('current_rps', 0)}
-📈 Avg: {stats.get('avg_response_time', 0)}ms
-📉 Min: {stats.get('min_response_time', 0)}ms
-📊 Max: {stats.get('max_response_time', 0)}ms
-"""
-
-    # Вердикт
-    error_rate = 0
-    if stats.get('total_requests', 0) > 0:
-        error_rate = (stats.get('total_failures', 0) / stats.get('total_requests', 1)) * 100
-
-    if error_rate < 1:
-        msg += "\n✅ <b>Вердикт:</b> Отлично!"
-    elif error_rate < 5:
-        msg += "\n⚠️ <b>Вердикт:</b> Норм, но есть ошибки"
-    else:
-        msg += "\n❌ <b>Вердикт:</b> Много ошибок!"
-
-    return msg.strip()
-
-
-def format_e2e_report(stats: dict, duration_sec: int) -> str:
-    """Форматирует отчёт E2E тестирования."""
-    return format_test_report(stats, duration_sec, "E2E", "")
-
-
-def format_test_report(stats: dict, duration_sec: int, test_type: str = "E2E", env: str = "") -> str:
-    """
-    Форматирует отчёт тестирования (E2E, UI).
-
-    Args:
-        stats: Статистика из Allure (passed, failed, broken, skipped, total)
-        duration_sec: Длительность в секундах
-        test_type: Тип теста (E2E, UI)
-        env: Среда (STAGING, PROD) или пустая строка
-    """
-    passed = stats.get("passed", 0)
-    failed = stats.get("failed", 0)
-    broken = stats.get("broken", 0)
-    skipped = stats.get("skipped", 0)
-    total = stats.get("total", 0)
-
-    duration_min = duration_sec // 60
-    duration_s = duration_sec % 60
-
-    # Прогресс-бар
-    if total > 0:
-        pass_percent = (passed / total) * 100
-        bar_filled = int(pass_percent / 10)
-        bar_empty = 10 - bar_filled
-        progress_bar = "🟩" * bar_filled + "🟥" * bar_empty
-    else:
-        progress_bar = "⬜" * 10
-        pass_percent = 0
-
-    all_passed = failed == 0 and broken == 0
-    status_emoji = "✅" if all_passed else "❌"
-    verdict = "ВСЁ ЗЕЛЁНОЕ!" if all_passed else "ЕСТЬ ПРОБЛЕМЫ!"
-
-    # Тип теста с emoji
-    type_emoji = {"E2E": "📝", "UI": "🎭"}.get(test_type, "🧪")
-    env_str = f" ({env})" if env else ""
-
-    msg = f"""
-<b>{type_emoji} ОТЧЁТ {test_type} ТЕСТИРОВАНИЯ{env_str}</b>
-<i>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>
-
-<b>━━━ Результат ━━━</b>
-{status_emoji} <b>{verdict}</b>
-
-{progress_bar} {pass_percent:.0f}%
-
-<b>📊 Статистика:</b>
-✅ Passed: <b>{passed}</b>
-❌ Failed: <b>{failed}</b>
-💔 Broken: <b>{broken}</b>
-⏭ Skipped: <b>{skipped}</b>
-📋 Total: <b>{total}</b>
-
-⏱ <b>Время:</b> {duration_min}м {duration_s}с
-"""
-
-    return msg.strip()
-
-
-# Webhook event emojis
-WEBHOOK_EMOJIS = {
-    "push": "📦",
-    "merge_request": "🔀",
-    "pipeline": "⚙️",
-    "build": "🔨",
-    "deploy": "🚀",
-    "success": "✅",
-    "failed": "❌",
-    "running": "🔄",
-    "pending": "⏳",
-}
-
-
 # =============================================================================
-# GitLab Webhook Formatters
-# =============================================================================
-
-def get_status_emoji(status: str) -> str:
-    """Возвращает emoji для статуса."""
-    status_map = {
-        "success": "✅",
-        "failed": "❌",
-        "canceled": "🚫",
-        "running": "🔄",
-        "pending": "⏳",
-        "created": "🆕",
-        "skipped": "⏭",
-        "manual": "👆",
-    }
-    return status_map.get(status.lower(), "❓")
-
-
-def get_humor_for_status(status: str, event_type: str) -> str:
-    """Возвращает юморную фразу в зависимости от статуса."""
-    if status == "success":
-        jokes = [
-            "Ура! Всё взлетело! 🎉",
-            "Зелёненькое! Чудеса случаются! ✨",
-            "Работает! Даже странно... 🤔",
-            "Успех! Иди налей себе кофе, заслужил! ☕",
-        ]
-    elif status == "failed":
-        jokes = [
-            "Упс... Кто-то накосячил! 🙈",
-            "ПРОВАЛ! Время смотреть логи... 📜",
-            "Красненькое! Классика пятничного деплоя! 🔥",
-            "Failed! Но мы не сдаёмся, правда? 💪",
-        ]
-    elif status == "running":
-        jokes = [
-            "Поехали! Держитесь! 🚀",
-            "Крутим, мутим... ⚙️",
-            "В процессе... Пойду кофе попью. ☕",
-            "Работаем-работаем! 🔧",
-        ]
-    elif status == "pending":
-        jokes = [
-            "Ждём своей очереди... ⏳",
-            "В очереди, как в поликлинике. 😴",
-            "Pending... Жизнь проходит мимо. ⌛",
-        ]
-    else:
-        jokes = ["Что-то происходит... 🤷"]
-
-    return random.choice(jokes)
-
-
-def format_pipeline_message(data: dict) -> str:
-    """
-    Форматирует компактное сообщение о pipeline событии.
-
-    Редизайн WH-120: более компактный и информативный формат.
-
-    Args:
-        data: Webhook payload от GitLab
-    """
-    status = data.get("object_attributes", {}).get("status", "unknown")
-    emoji = get_status_emoji(status)
-
-    pipeline = data.get("object_attributes", {})
-    project = data.get("project", {})
-    user = data.get("user", {})
-
-    project_name = project.get("name", "Unknown")
-    ref = pipeline.get("ref", "unknown")
-    pipeline_url = pipeline.get("url", "")
-    username = user.get("name", "Ghost")
-
-    # Длительность (только для завершённых)
-    duration = pipeline.get("duration")
-    duration_str = ""
-    if duration and status in ["success", "failed", "canceled"]:
-        minutes = int(duration) // 60
-        seconds = int(duration) % 60
-        duration_str = f" • {minutes}м {seconds}с"
-
-    # Компактный статус-бар
-    status_text = {
-        "success": "PASSED",
-        "failed": "FAILED",
-        "running": "RUNNING",
-        "pending": "PENDING",
-        "canceled": "CANCELED"
-    }.get(status, status.upper())
-
-    # Краткий формат для running - одна строка
-    if status == "running":
-        return f"{emoji} <b>{project_name}</b> • <code>{ref}</code> • {username}\n<i>Pipeline запущен...</i>"
-
-    # Для завершённых - полный формат
-    humor = get_humor_for_status(status, "pipeline")
-
-    msg = f"""{emoji} <b>{status_text}</b>{duration_str}
-
-<b>{project_name}</b> • <code>{ref}</code>
-👤 {username}
-
-{humor}
-
-<a href="{pipeline_url}">→ GitLab</a>"""
-
-    return msg.strip()
-
-
-def format_job_message(data: dict) -> str:
-    """
-    Форматирует компактное сообщение о job событии.
-
-    Редизайн WH-120: более компактный формат.
-    - Для running: не отправляем (слишком много шума)
-    - Для success: только если это deploy job
-    - Для failed: полная информация
-
-    Args:
-        data: Webhook payload от GitLab
-    """
-    status = data.get("build_status", "unknown")
-    emoji = get_status_emoji(status)
-
-    project = data.get("project_name", "Unknown")
-    ref = data.get("ref", "unknown")
-    job_name = data.get("build_name", "unknown-job")
-    stage = data.get("build_stage", "?")
-    username = data.get("user", {}).get("name", "Ghost") if isinstance(data.get("user"), dict) else "Ghost"
-
-    # Длительность (только для завершённых)
-    duration = data.get("build_duration")
-    duration_str = ""
-    if duration and status in ["success", "failed"]:
-        minutes = int(duration) // 60
-        seconds = int(duration) % 60
-        duration_str = f" • {minutes}м {seconds}с"
-
-    # Для running - минимальный формат
-    if status == "running":
-        return f"{emoji} <code>{job_name}</code> • {stage}\n<i>Выполняется...</i>"
-
-    # Для success
-    if status == "success":
-        return f"{emoji} <b>{job_name}</b>{duration_str}\n<code>{ref}</code> • {stage}"
-
-    # Для failed - полный формат
-    humor = get_humor_for_status(status, "job")
-
-    msg = f"""{emoji} <b>FAILED: {job_name}</b>{duration_str}
-
-<b>{project}</b> • <code>{ref}</code>
-🏗 Stage: {stage}
-👤 {username}
-
-{humor}"""
-
-    return msg.strip()
-
-
-def format_job_failed_with_log(data: dict, log: str) -> str:
-    """
-    Форматирует сообщение о падении job с логом.
-
-    Редизайн WH-120: компактный лог.
-
-    Args:
-        data: Webhook payload от GitLab
-        log: Последние строки лога
-    """
-    basic_msg = format_job_message(data)
-
-    # Добавляем лог (ограничиваем и очищаем ANSI коды)
-    import re
-    clean_log = re.sub(r'\x1b\[[0-9;]*m', '', log)  # Убираем ANSI escape коды
-    log_preview = clean_log[-600:] if len(clean_log) > 600 else clean_log  # Последние 600 символов
-
-    msg = f"""{basic_msg}
-
-<pre>{log_preview.strip()}</pre>"""
-
-    return msg.strip()
-
-
-# =============================================================================
-# Robot Formatters
+# Robot
 # =============================================================================
 
 ROBOT_JOKES = {
     "started": [
-        "Робот поехал! Держите кофе! ☕",
-        "Сценарий запущен! Скоро склад оживёт! 🏭",
-        "Поехали! Робот на работе! 🤖",
-        "Запуск! Товары начинают двигаться! 📦",
+        "Робот поехал!",
+        "Сценарий запущен!",
+        "Поехали!",
     ],
     "stopped": [
-        "Робот остановлен. Передохнёт! 😴",
-        "Стоп машина! 🛑",
-        "Перерыв на обслуживание! 🔧",
+        "Робот остановлен.",
+        "Стоп машина!",
     ],
     "error": [
-        "Упс! Что-то пошло не так! 🙈",
-        "Робот споткнулся... 🤖💥",
-        "Ошибочка вышла! 😅",
+        "Что-то пошло не так!",
+        "Робот споткнулся...",
     ],
 }
 
 
 def format_robot_menu(status: dict) -> str:
-    """Форматирует главное меню робота."""
     state = status.get("state", "unknown")
     current_scenario = status.get("current_scenario")
 
-    state_emoji = {
-        "idle": "😴",
-        "running": "🏃",
-        "stopping": "🛑",
-        "error": "❌",
-    }
-
-    state_text = {
-        "idle": "Ожидание",
-        "running": "Работает",
-        "stopping": "Останавливается",
-        "error": "Ошибка",
-    }
-
-    emoji = state_emoji.get(state, "❓")
-    text = state_text.get(state, state)
+    state_emoji = {"idle": "😴", "running": "🏃", "stopping": "🛑", "error": "❌"}
+    state_text = {"idle": "Ожидание", "running": "Работает", "stopping": "Останавливается", "error": "Ошибка"}
 
     msg = f"""🤖 *Warehouse Robot*
 
-{emoji} *Статус:* {text}
+{state_emoji.get(state, '❓')} *Статус:* {state_text.get(state, state)}
 """
 
     if current_scenario:
@@ -590,22 +107,17 @@ def format_robot_menu(status: dict) -> str:
             "receiving": "📦 Приёмка",
             "shipping": "🚚 Отгрузка",
             "inventory": "📋 Инвентаризация",
-            "все сценарии": "🎲 Все сценарии",
         }
         msg += f"🎬 *Сценарий:* {scenario_names.get(current_scenario, current_scenario)}\n"
-
-    if status.get("last_scenario"):
-        msg += f"\n📜 *Последний:* {status.get('last_scenario')}"
 
     return msg.strip()
 
 
 def format_robot_status(status: dict, health: dict) -> str:
-    """Форматирует детальный статус робота."""
     state = status.get("state", "unknown")
     api_available = health.get("api_available", False)
 
-    msg = f"""🤖 *Статус Warehouse Robot*
+    return f"""🤖 *Статус Warehouse Robot*
 
 *Робот:*
 • Состояние: {state}
@@ -613,20 +125,15 @@ def format_robot_status(status: dict, health: dict) -> str:
 • Uptime: {status.get('uptime_seconds', 0):.0f}с
 
 *Warehouse API:*
-• Доступен: {'✅ Да' if api_available else '❌ Нет'}
-"""
-    return msg.strip()
+• Доступен: {'✅ Да' if api_available else '❌ Нет'}"""
 
 
 def format_robot_stats(stats: dict) -> str:
-    """Форматирует статистику робота."""
     total = stats.get("total_runs", 0)
     success = stats.get("successful_runs", 0)
     failed = stats.get("failed_runs", 0)
-    last_run = stats.get("last_run", "-")
     last_scenario = stats.get("last_scenario", "-")
 
-    # Последний результат
     last_result = stats.get("last_result", {})
     result_details = ""
 
@@ -655,7 +162,7 @@ def format_robot_stats(stats: dict) -> str:
 • Списано: {last_result.get('deleted', 0)}
 """
 
-    msg = f"""📊 *Статистика Warehouse Robot*
+    return f"""📊 *Статистика Warehouse Robot*
 
 *Общая статистика:*
 • Всего запусков: {total}
@@ -664,265 +171,45 @@ def format_robot_stats(stats: dict) -> str:
 
 *Последний запуск:*
 • Сценарий: {last_scenario}
-• Время: {last_run}
-{result_details}
-"""
-    return msg.strip()
+{result_details}""".strip()
 
 
 def format_robot_started(scenario: str, speed: str, environment: str = "staging", duration: int = 0) -> str:
-    """Форматирует сообщение о запуске сценария."""
-    import random
-
     scenario_names = {
         "receiving": "📦 Приёмка товара",
         "shipping": "🚚 Отгрузка",
         "inventory": "📋 Инвентаризация",
-        "all": "🎲 Все сценарии (случайный порядок)",
+        "all": "🎲 Все сценарии",
     }
-
     speed_names = {
-        "slow": "🐢 Медленно (пауза 15с)",
-        "normal": "🚶 Нормально (пауза 5с)",
-        "fast": "🚀 Быстро (пауза 1с)",
+        "slow": "🐢 Медленно (15с)",
+        "normal": "🚶 Нормально (5с)",
+        "fast": "🚀 Быстро (1с)",
     }
-
     env_names = {
-        "staging": "🔧 STAGING (тест)",
-        "prod": "🚀 PROD (боевой)",
+        "staging": "🔧 STAGING",
+        "prod": "🚀 PROD",
     }
-
-    duration_names = {
-        0: "один раз",
-        5: "5 минут",
-        30: "30 минут",
-        60: "1 час",
-    }
-
-    joke = random.choice(ROBOT_JOKES["started"])
-
-    duration_text = duration_names.get(duration, f"{duration} мин")
+    duration_names = {0: "один раз", 5: "5 минут", 30: "30 минут", 60: "1 час"}
 
     return f"""✅ *Сценарий запущен!*
 
 🎬 *Сценарий:* {scenario_names.get(scenario, scenario)}
-⏱ *Продолжительность:* {duration_text}
+⏱ *Продолжительность:* {duration_names.get(duration, f"{duration} мин")}
 🌍 *Окружение:* {env_names.get(environment, environment)}
 ⚡ *Скорость:* {speed_names.get(speed, speed)}
-
-{joke}
 """
 
 
 def format_robot_stopped() -> str:
-    """Форматирует сообщение об остановке робота."""
-    import random
-    joke = random.choice(ROBOT_JOKES["stopped"])
-    return f"🛑 *Робот останавливается...*\n\n{joke}"
+    return "🛑 *Робот останавливается...*"
 
 
 def format_robot_error(error: str) -> str:
-    """Форматирует сообщение об ошибке."""
-    import random
-    joke = random.choice(ROBOT_JOKES["error"])
-    return f"❌ *Ошибка:* {error}\n\n{joke}"
-
-
-# =============================================================================
-# WH-217: Сообщения нагрузочного тестирования
-# =============================================================================
-
-def format_load_confirm_message(
-    environment: str,
-    scenario: str,
-    users: int,
-    duration: int,
-    pattern: str
-) -> str:
-    """
-    Форматирует сводку параметров перед запуском НТ.
-    Показывается на шаге 7 wizard.
-    WH-235
-    """
-    env_names = {
-        "staging": "🧪 STAGING (K3s)",
-        "prod": "🚀 PRODUCTION (Yandex Cloud)"
-    }
-    scenario_names = {
-        "locust": "🦗 Locust (HTTP API)",
-        "k6": "⚡ k6 (Kafka)"
-    }
-    pattern_names = {
-        "smooth": "📈 Плавный",
-        "fast": "⚡ Быстрый",
-        "instant": "🚀 Мгновенный",
-        "step": "📊 Ступенчатый"
-    }
-
-    duration_min = duration // 60
-
-    warning = ""
-    if environment == "prod":
-        warning = "\n\n⚠️ <b>ВНИМАНИЕ!</b> Это боевой сервер!"
-
-    return f"""<b>📋 Подтверждение запуска НТ</b>
-
-<b>Параметры:</b>
-🌍 Среда: {env_names.get(environment, environment)}
-🎯 Сценарий: {scenario_names.get(scenario, scenario)}
-👥 Пользователей: <b>{users} VU</b>
-⏱ Длительность: <b>{duration_min} мин</b>
-📊 Паттерн: {pattern_names.get(pattern, pattern)}{warning}
-
-<i>Нажми "Запустить" для начала теста</i>"""
-
-
-def format_cooldown_message(remaining_minutes: float, last_test_info: dict = None) -> str:
-    """
-    Форматирует сообщение о необходимости подождать между тестами.
-    WH-236
-
-    Args:
-        remaining_minutes: сколько минут осталось ждать
-        last_test_info: информация о последнем тесте (опционально)
-    """
-    msg = f"""<b>⏳ Cooldown активен</b>
-
-Подожди ещё <b>{remaining_minutes:.0f} мин</b> перед следующим тестом.
-
-<i>Это защита от перегрузки систем.</i>"""
-
-    if last_test_info:
-        env = last_test_info.get('environment', '?')
-        scenario = last_test_info.get('scenario', '?')
-        finished = last_test_info.get('finished_at', '?')
-        msg += f"""\n\n<b>Последний тест:</b>
-🌍 Среда: {env}
-🎯 Сценарий: {scenario}
-⏱ Завершён: {finished}"""
-
-    return msg
-
-
-def format_cleanup_result(result: dict) -> str:
-    """
-    Форматирует результат очистки данных.
-    WH-237
-
-    Args:
-        result: словарь с результатами очистки
-            - redis: {success: bool, keys_deleted: int, error: str}
-            - kafka: {success: bool, topics_cleared: list, error: str}
-            - postgres: {success: bool, rows_deleted: int, error: str}
-    """
-    msg = "<b>🧹 Результат очистки</b>\n\n"
-
-    # Redis
-    if 'redis' in result:
-        r = result['redis']
-        if r.get('success'):
-            msg += f"✅ <b>Redis:</b> удалено {r.get('keys_deleted', 0)} ключей\n"
-        else:
-            msg += f"❌ <b>Redis:</b> {r.get('error', 'ошибка')}\n"
-
-    # Kafka
-    if 'kafka' in result:
-        k = result['kafka']
-        if k.get('success'):
-            topics = ', '.join(k.get('topics_cleared', [])) or "нет групп"
-            msg += f"✅ <b>Kafka:</b> очищено: {topics}\n"
-        else:
-            msg += f"❌ <b>Kafka:</b> {k.get('error', 'ошибка')}\n"
-
-    # PostgreSQL
-    if 'postgres' in result:
-        p = result['postgres']
-        if p.get('success'):
-            msg += f"✅ <b>PostgreSQL:</b> удалено {p.get('rows_deleted', 0)} строк\n"
-        else:
-            msg += f"❌ <b>PostgreSQL:</b> {p.get('error', 'ошибка')}\n"
-
-    # Итог
-    all_success = all(
-        v.get('success', False)
-        for v in result.values()
-        if isinstance(v, dict)
-    )
-
-    if all_success:
-        msg += "\n✨ <b>Всё очищено успешно!</b>"
-    else:
-        msg += "\n⚠️ <b>Есть ошибки, проверь логи</b>"
-
-    return msg
-
-
-def format_load_status_message(status: dict) -> str:
-    """
-    Форматирует сообщение о статусе нагрузочного тестирования.
-    WH-238
-
-    Args:
-        status: словарь со статусом
-            - running: bool
-            - environment: str
-            - scenario: str
-            - users: int
-            - duration: int
-            - elapsed: int
-            - stats: dict (rps, errors, avg_response)
-    """
-    if not status.get('running'):
-        return """<b>📊 Статус нагрузочного теста</b>
-
-😴 <b>Нет активного теста</b>
-
-<i>Нажми "Запустить тест" чтобы начать</i>"""
-
-    env_names = {"staging": "🧪 STAGING", "prod": "🚀 PRODUCTION"}
-    scenario_names = {"locust": "🦗 Locust", "k6": "⚡ k6"}
-
-    elapsed = status.get('elapsed', 0)
-    duration = status.get('duration', 0)
-    progress = min(100, (elapsed / duration * 100)) if duration > 0 else 0
-
-    # Progress bar
-    bar_filled = int(progress / 10)
-    bar_empty = 10 - bar_filled
-    progress_bar = "🟩" * bar_filled + "⬜" * bar_empty
-
-    msg = f"""<b>📊 Статус нагрузочного теста</b>
-
-🏃 <b>ТЕСТ ЗАПУЩЕН</b>
-
-{progress_bar} {progress:.0f}%
-
-<b>Параметры:</b>
-🌍 Среда: {env_names.get(status.get('environment'), status.get('environment'))}
-🎯 Сценарий: {scenario_names.get(status.get('scenario'), status.get('scenario'))}
-👥 Пользователей: {status.get('users', 0)} VU
-⏱ Прошло: {elapsed // 60}м {elapsed % 60}с / {duration // 60}м"""
-
-    # Stats если есть
-    stats = status.get('stats', {})
-    if stats:
-        msg += f"""\n\n<b>Метрики:</b>
-⚡ RPS: {stats.get('rps', 0)}
-❌ Ошибок: {stats.get('errors', 0)}
-📈 Avg: {stats.get('avg_response', 0)}ms"""
-
-    return msg
+    return f"❌ *Ошибка:* {error}"
 
 
 def format_robot_notification(scenario: str, result: dict) -> str:
-    """
-    Форматирует уведомление о завершении сценария.
-
-    Показывает детали по каждому товару:
-    - Приёмка: список добавленных товаров с количеством и суммой
-    - Отгрузка: список отгруженных товаров с количеством и остатком
-    - Инвентаризация: список корректировок и списаний
-    """
     scenario_names = {
         "receiving": "📦 Приёмка",
         "shipping": "🚚 Отгрузка",
@@ -930,7 +217,6 @@ def format_robot_notification(scenario: str, result: dict) -> str:
     }
 
     emoji = "✅" if not result.get("error") else "❌"
-
     msg = f"""{emoji} *{scenario_names.get(scenario, scenario)} завершена*
 
 """

@@ -1,6 +1,6 @@
 """
 Health check сервисы.
-Проверяем, живы ли наши сервера или уже пора паниковать! 🏥
+Проверяем docker-compose сервисы и production.
 """
 
 import httpx
@@ -52,7 +52,7 @@ async def check_service_health(url: str, name: str) -> dict:
 
 
 async def get_k8s_resources() -> dict:
-    """Получает информацию о сервисах K8s через внешние HTTP проверки."""
+    """Получает информацию о docker-compose сервисах через HTTP проверки."""
     pods = []
 
     # Проверяем API и получаем статус БД
@@ -85,34 +85,33 @@ async def get_k8s_resources() -> dict:
     except:
         pods.append({"name": "warehouse-frontend", "status": "Unknown", "restarts": "?"})
 
-    # Prometheus метрики для ресурсов
+    # Prometheus метрики (skip if URL is empty)
     node_info = {}
-    try:
-        async with httpx.AsyncClient(timeout=PROMETHEUS_TIMEOUT) as client:
-            # CPU метрики (WH-181: используем константу для window)
-            cpu_query = f'100 - (avg(rate(node_cpu_seconds_total{{mode="idle"}}[{PROMETHEUS_QUERY_WINDOW}])) * 100)'
-            response = await client.get(
-                f"{PROMETHEUS_URL}/api/v1/query",
-                params={"query": cpu_query}
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("data", {}).get("result"):
-                    cpu_value = float(data["data"]["result"][0]["value"][1])
-                    node_info["cpu_percent"] = f"{cpu_value:.1f}%"
+    if PROMETHEUS_URL:
+        try:
+            async with httpx.AsyncClient(timeout=PROMETHEUS_TIMEOUT) as client:
+                cpu_query = f'100 - (avg(rate(node_cpu_seconds_total{{mode="idle"}}[{PROMETHEUS_QUERY_WINDOW}])) * 100)'
+                response = await client.get(
+                    f"{PROMETHEUS_URL}/api/v1/query",
+                    params={"query": cpu_query}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("data", {}).get("result"):
+                        cpu_value = float(data["data"]["result"][0]["value"][1])
+                        node_info["cpu_percent"] = f"{cpu_value:.1f}%"
 
-            # Memory метрики
-            mem_response = await client.get(
-                f"{PROMETHEUS_URL}/api/v1/query",
-                params={"query": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"}
-            )
-            if mem_response.status_code == 200:
-                mem_data = mem_response.json()
-                if mem_data.get("data", {}).get("result"):
-                    mem_value = float(mem_data["data"]["result"][0]["value"][1])
-                    node_info["memory_percent"] = f"{mem_value:.1f}%"
-    except:
-        pass
+                mem_response = await client.get(
+                    f"{PROMETHEUS_URL}/api/v1/query",
+                    params={"query": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100"}
+                )
+                if mem_response.status_code == 200:
+                    mem_data = mem_response.json()
+                    if mem_data.get("data", {}).get("result"):
+                        mem_value = float(mem_data["data"]["result"][0]["value"][1])
+                        node_info["memory_percent"] = f"{mem_value:.1f}%"
+        except:
+            pass
 
     return {"pods": pods, "node": node_info}
 
