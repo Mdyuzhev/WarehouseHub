@@ -6,33 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warehouse - Управление складом</title>
     <script>
-      // Runtime API URL configuration - этот код выполняется ДО загрузки бандла
-      // и не может быть оптимизирован Vite/Rollup
       (function() {
         var host = window.location.hostname;
-        var port = window.location.port;
         var apiUrl;
         var analyticsUrl;
+
         if (host === 'wh-lab.ru' || host === 'www.wh-lab.ru') {
+          // Yandex Cloud production
           apiUrl = 'https://api.wh-lab.ru/api';
           analyticsUrl = 'https://api.wh-lab.ru/analytics';
-        } else if (host === 'warehouse.local') {
-          apiUrl = '/api';
-          analyticsUrl = 'http://analytics-service.warehouse.svc.cluster.local:8090';
         } else if (host === '192.168.1.74') {
-          // Dev environment (port 31081) uses API on 31080
-          // Prod environment (port 30081) uses API on 30080
-          if (port === '31081') {
-            apiUrl = 'http://192.168.1.74:31080/api';
-            analyticsUrl = 'http://192.168.1.74:31091';
-          } else {
-            apiUrl = 'http://192.168.1.74:30080/api';
-            analyticsUrl = 'http://192.168.1.74:30091';
-          }
+          // Homelab — API on port 8080, frontend on port 80
+          apiUrl = 'http://192.168.1.74:8080/api';
+          analyticsUrl = 'http://192.168.1.74:8090';
         } else {
-          apiUrl = 'http://' + host + ':30080/api';
-          analyticsUrl = 'http://' + host + ':30091';
+          // Local dev (localhost) or any other host — use relative path
+          // Vite proxy handles /api → localhost:8080
+          apiUrl = '/api';
+          analyticsUrl = 'http://' + host + ':8090';
         }
+
         window.__API_URL__ = apiUrl;
         window.__ANALYTICS_URL__ = analyticsUrl;
       })();

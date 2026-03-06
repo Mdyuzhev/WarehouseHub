@@ -46,8 +46,21 @@ export function getBaseUrl() {
   return apiUrl.replace(/\/api$/, '')
 }
 
+/**
+ * Analytics service URL
+ * @returns {string}
+ */
+export function getAnalyticsUrl() {
+  if (import.meta.env.VITE_ANALYTICS_URL) {
+    return import.meta.env.VITE_ANALYTICS_URL
+  }
+  // eslint-disable-next-line no-eval
+  return eval('window.__ANALYTICS_URL__') || 'http://localhost:8090'
+}
+
 export default {
   getApiUrl,
   getHealthUrl,
-  getBaseUrl
+  getBaseUrl,
+  getAnalyticsUrl
 }
