@@ -32,7 +32,7 @@ from scenarios import SCENARIOS
 
 class Environment(str, Enum):
     """Окружение для выполнения сценария."""
-    STAGING = "staging"
+    HOME = "home"
     PROD = "prod"
 
 # Настройка логирования
@@ -187,8 +187,8 @@ class StartRequest(BaseModel):
         description="Скорость выполнения (slow=15с, normal=5с, fast=1с пауза)",
     )
     environment: Environment = Field(
-        default=Environment.STAGING,
-        description="Окружение: staging или prod",
+        default=Environment.HOME,
+        description="Окружение: home или prod",
     )
     duration: int = Field(
         default=0,
@@ -217,8 +217,8 @@ class ScheduleRequest(BaseModel):
         description="Скорость выполнения",
     )
     environment: Environment = Field(
-        default=Environment.STAGING,
-        description="Окружение: staging или prod",
+        default=Environment.HOME,
+        description="Окружение: home или prod",
     )
     scheduled_time: str = Field(
         ...,
@@ -291,14 +291,14 @@ def get_pause_seconds(speed: str) -> int:
     return {"slow": 15, "normal": 5, "fast": 1}.get(speed, 5)
 
 
-def run_scenario_task(scenario_name: str, speed: str, environment: str = "staging", duration: int = 0):
+def run_scenario_task(scenario_name: str, speed: str, environment: str = "home", duration: int = 0):
     """
     Выполнение сценария в фоновом потоке.
 
     Args:
         scenario_name: Название сценария (или "all" для всех сценариев)
         speed: Скорость выполнения (slow=15с, normal=5с, fast=1с пауза)
-        environment: Окружение (staging или prod)
+        environment: Окружение (home или prod)
         duration: Продолжительность повторения в минутах (0 = один раз)
     """
     # Для "all" запускаем все сценарии по очереди
@@ -383,13 +383,13 @@ def run_scenario_task(scenario_name: str, speed: str, environment: str = "stagin
         robot.finish_run(False, {"error": str(e), "iterations": iteration, "results": all_results})
 
 
-def run_all_scenarios_task(speed: str, environment: str = "staging", duration: int = 0):
+def run_all_scenarios_task(speed: str, environment: str = "home", duration: int = 0):
     """
     Запуск всех сценариев по очереди в случайном порядке.
 
     Args:
         speed: Скорость выполнения (slow=15с, normal=5с, fast=1с пауза)
-        environment: Окружение (staging или prod)
+        environment: Окружение (home или prod)
         duration: Продолжительность повторения в минутах (0 = один раз)
     """
     api_url = get_api_url(environment)
@@ -550,14 +550,14 @@ def aggregate_results(scenario_name: str, results: list) -> dict:
     return final
 
 
-def send_telegram_notification(scenario_name: str, result: Dict[str, Any], environment: str = "staging"):
+def send_telegram_notification(scenario_name: str, result: Dict[str, Any], environment: str = "home"):
     """
     Отправить уведомление в Telegram Bot.
 
     Args:
         scenario_name: Название сценария
         result: Результат выполнения
-        environment: Окружение (staging или prod)
+        environment: Окружение (home или prod)
     """
     if not settings.telegram_bot_url:
         logger.debug("Telegram Bot URL не настроен, уведомление пропущено")
@@ -678,7 +678,7 @@ def parse_scheduled_time(time_str: str) -> datetime:
         )
 
 
-def run_scheduled_task(task_id: str, scenario_name: str, speed: str, environment: str = "staging"):
+def run_scheduled_task(task_id: str, scenario_name: str, speed: str, environment: str = "home"):
     """Запуск запланированной задачи."""
     logger.info(f"⏰ Запуск запланированной задачи {task_id}: {scenario_name} (env={environment})")
 
@@ -763,7 +763,7 @@ async def start_scenario(request: StartRequest, background_tasks: BackgroundTask
     )
     thread.start()
 
-    env_label = "🔧 staging" if request.environment == Environment.STAGING else "🚀 prod"
+    env_label = "🏠 home" if request.environment == Environment.HOME else "🚀 prod"
     duration_label = f"duration={request.duration}мин" if request.duration > 0 else "однократно"
     pause_seconds = get_pause_seconds(request.speed.value)
 
@@ -818,7 +818,7 @@ async def schedule_scenario(request: ScheduleRequest):
     }
     scheduled_timers[task_id] = timer
 
-    env_label = "🔧 staging" if request.environment == Environment.STAGING else "🚀 prod"
+    env_label = "🏠 home" if request.environment == Environment.HOME else "🚀 prod"
     logger.info(f"📅 Запланирован сценарий {request.scenario} на {scheduled_dt} ({env_label}, task_id={task_id})")
 
     return ScheduleResponse(

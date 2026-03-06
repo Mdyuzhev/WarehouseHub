@@ -142,8 +142,28 @@ services:
       - KAFKA_STAGING_BROKERS=kafka:9092
       - HOMELAB_HOST=192.168.1.74
       - DEPLOY_PASSWORD=${DEPLOY_PASSWORD}
+      - ROBOT_API_URL=http://warehouse-robot:8070
     ports:
       - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  warehouse-robot:
+    build:
+      context: ./warehouse-robot
+      dockerfile: Dockerfile
+    container_name: warehouse-robot
+    environment:
+      - ROBOT_API_URL_HOME=http://api:8080
+      - ROBOT_API_URL_PROD=https://api.wh-lab.ru
+      - ROBOT_API_URL=http://api:8080
+      - ROBOT_DEFAULT_ENVIRONMENT=home
+      - ROBOT_EMPLOYEE_USERNAME=admin
+      - ROBOT_EMPLOYEE_PASSWORD=admin123
+      - ROBOT_TELEGRAM_BOT_URL=http://telegram-bot:8000
+    ports:
+      - "8070:8070"
     restart: unless-stopped
     depends_on:
       - api

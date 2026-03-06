@@ -20,6 +20,7 @@ on:
       - 'frontend/**'
       - 'analytics-service/**'
       - 'telegram-bot/**'
+      - 'warehouse-robot/**'
       - 'production/**'
       - 'docker-compose*.yml'
       - '.github/workflows/deploy-prod.yml'
