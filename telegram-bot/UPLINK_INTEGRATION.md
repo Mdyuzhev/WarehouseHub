@@ -16,14 +16,14 @@
 POST https://uplink.wh-lab.ru/hooks/<integration_id>
 ```
 
-Маршрут `/hooks/ci` уже реализован — `handlers/ci.mjs` умеет принимать события
-от GitLab CI, GitHub Actions и деплой-скриптов, форматировать их и отправлять
-сообщения от `@bot_ci` в нужные комнаты.
+Для WarehouseHub выделен отдельный бот `@bot_wh_ci:uplink.wh-lab.ru` с эндпоинтом
+`/hooks/wh_ci` и собственным токеном `WH_CI_WEBHOOK_TOKEN`. Это позволяет
+не смешивать CI-уведомления Uplink и WarehouseHub.
 
 Для подключения Python-бота нужно три шага:
 
 1. Получить `Room ID` целевой комнаты (например, `#CI` в пространстве WAREHOUSE).
-2. Прописать `CI_NOTIFY_ROOM_ID` и `GITLAB_WEBHOOK_TOKEN` в `.env` Uplink.
+2. Прописать `WH_CI_NOTIFY_ROOM_ID` и `WH_CI_WEBHOOK_TOKEN` в `.env` Uplink.
 3. Добавить в Python-бот класс `UplinkNotifier` и вызывать его там, где сейчас пишется в Telegram.
 
 Бот **не** обращается напрямую к Matrix API — только к HTTP-эндпоинту botservice,
@@ -41,7 +41,7 @@ POST https://uplink.wh-lab.ru/hooks/<integration_id>
 !lcvmJcVFFAPWaFHXfh:uplink.wh-lab.ru
 ```
 
-Именно это значение нужно передать в переменную `CI_NOTIFY_ROOM_ID`.
+Именно это значение нужно передать в переменную `WH_CI_NOTIFY_ROOM_ID`.
 
 ---
 
@@ -51,10 +51,10 @@ POST https://uplink.wh-lab.ru/hooks/<integration_id>
 
 ```dotenv
 # Room ID комнаты #CI в пространстве WAREHOUSE
-CI_NOTIFY_ROOM_ID=!lcvmJcVFFAPWaFHXfh:uplink.wh-lab.ru
+WH_CI_NOTIFY_ROOM_ID=!TUYRxuvWCgyzUKuiOt:uplink.wh-lab.ru
 
-# Секрет для верификации webhook-запросов от GitLab
-GITLAB_WEBHOOK_TOKEN=warehouse-ci-uplink-2026
+# Секрет для верификации webhook-запросов от WarehouseHub
+WH_CI_WEBHOOK_TOKEN=warehouse-wh-ci-2026
 ```
 
 После этого передеплойте botservice:
@@ -65,7 +65,7 @@ cd ~/projects/uplink
 docker compose -f docker-compose.production.yml up -d --no-deps uplink-botservice
 ```
 
-Botservice при старте автоматически войдёт в указанную комнату от имени `@bot_ci`
+Botservice при старте автоматически войдёт в указанную комнату от имени `@bot_wh_ci`
 и будет готов принимать уведомления.
 
 ---
@@ -111,7 +111,7 @@ async def send_message(text: str, html: str = None) -> bool:
 
     headers = {}
     if UPLINK_WEBHOOK_TOKEN:
-        # botservice проверяет X-Gitlab-Token для /hooks/ci
+        # botservice проверяет X-Gitlab-Token для /hooks/wh_ci
         headers["X-Gitlab-Token"] = UPLINK_WEBHOOK_TOKEN
 
     try:
@@ -187,9 +187,9 @@ async def send_deploy_event(
 # =============================================================================
 # Uplink (Matrix messenger)
 # =============================================================================
-# URL вида: https://uplink.wh-lab.ru/hooks/ci
+# URL вида: https://uplink.wh-lab.ru/hooks/wh_ci
 UPLINK_WEBHOOK_URL = os.getenv("UPLINK_WEBHOOK_URL", "")
-# Должен совпадать с GITLAB_WEBHOOK_TOKEN в .env Uplink
+# Должен совпадать с WH_CI_WEBHOOK_TOKEN в .env Uplink
 UPLINK_WEBHOOK_TOKEN = os.getenv("UPLINK_WEBHOOK_TOKEN", "")
 ```
 
@@ -201,10 +201,10 @@ UPLINK_WEBHOOK_TOKEN = os.getenv("UPLINK_WEBHOOK_TOKEN", "")
 # =============================================================================
 # Uplink (Matrix messenger) — параллельные уведомления
 # =============================================================================
-# URL webhook-эндпоинта botservice: https://uplink.wh-lab.ru/hooks/ci
-UPLINK_WEBHOOK_URL=https://uplink.wh-lab.ru/hooks/ci
-# Секрет должен совпадать с GITLAB_WEBHOOK_TOKEN в docker/.env Uplink
-UPLINK_WEBHOOK_TOKEN=warehouse-ci-uplink-2026
+# URL webhook-эндпоинта botservice: https://uplink.wh-lab.ru/hooks/wh_ci
+UPLINK_WEBHOOK_URL=https://uplink.wh-lab.ru/hooks/wh_ci
+# Секрет должен совпадать с WH_CI_WEBHOOK_TOKEN в docker/.env Uplink
+UPLINK_WEBHOOK_TOKEN=warehouse-wh-ci-2026
 ```
 
 ---
@@ -263,8 +263,8 @@ services:
 Добавьте значения в `.env` WarehouseHub-проекта:
 
 ```dotenv
-UPLINK_WEBHOOK_URL=https://uplink.wh-lab.ru/hooks/ci
-UPLINK_WEBHOOK_TOKEN=warehouse-ci-uplink-2026
+UPLINK_WEBHOOK_URL=https://uplink.wh-lab.ru/hooks/wh_ci
+UPLINK_WEBHOOK_TOKEN=warehouse-wh-ci-2026
 ```
 
 ---
@@ -278,7 +278,7 @@ UPLINK_WEBHOOK_TOKEN=warehouse-ci-uplink-2026
 curl -X POST https://uplink.wh-lab.ru/hooks/ci \
   -H "Content-Type: application/json" \
   -H "x-deploy-event: deploy" \
-  -H "X-Gitlab-Token: warehouse-ci-uplink-2026" \
+  -H "X-Gitlab-Token: warehouse-wh-ci-2026" \
   -d '{
     "status": "success",
     "commit": {
@@ -342,13 +342,13 @@ await uplink.send_message(text="✅ Деплой успешен — abc1234", ht
 WarehouseHub (docker-compose)
   └── telegram-bot (Python/FastAPI)
         ├── bot/telegram.py  →  api.telegram.org  →  Telegram-чат
-        └── bot/uplink.py    →  uplink.wh-lab.ru/hooks/ci
+        └── bot/uplink.py    →  uplink.wh-lab.ru/hooks/wh_ci
                                       │
                                       ▼
                             uplink-botservice (Node.js)
                                       │
                                       ▼ Matrix event
-                            Synapse (@bot_ci:uplink.wh-lab.ru)
+                            Synapse (@bot_wh_ci:uplink.wh-lab.ru)
                                       │
                                       ▼
                             Комната #CI в пространстве WAREHOUSE
