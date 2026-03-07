@@ -160,9 +160,9 @@ jobs:
         if: always()
         run: |
           STATUS="${{ job.status }}"
-          COMMIT="${{ github.event.head_commit.message }}"
           SHORT_SHA="${{ github.sha }}"
           SHORT_SHA="${SHORT_SHA:0:7}"
+          COMMIT=$(echo "${{ github.event.head_commit.message }}" | head -1 | tr -d '"\\')
 
           curl -s -X POST http://localhost:8001/deploy/notify \
             -H "Content-Type: application/json" \
