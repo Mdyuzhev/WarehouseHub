@@ -15,6 +15,7 @@ from typing import Dict, Any
 from config import LOG_FORMAT, LOG_LEVEL, UPLINK_WEBHOOK_URL
 from bot import uplink
 from bot.messages import format_robot_notification, format_health_message
+from bot.commands import handle_command
 from services import check_all_health
 
 
@@ -191,3 +192,25 @@ async def send_generic(payload: MessagePayload):
     except Exception as e:
         logger.error(f"Send message error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Incoming Commands (from Uplink botservice)
+# =============================================================================
+
+class IncomingMessage(BaseModel):
+    body: str = ""
+    sender: str = ""
+    room_id: str = ""
+
+
+@app.post("/incoming")
+async def incoming_message(msg: IncomingMessage):
+    """Receive messages from Uplink botservice and handle /commands."""
+    text = msg.body.strip()
+    if not text or not text.startswith("/"):
+        return {"status": "ok", "handled": False}
+
+    logger.info(f"Command from {msg.sender}: {text}")
+    handled = await handle_command(text)
+    return {"status": "ok", "handled": handled}
