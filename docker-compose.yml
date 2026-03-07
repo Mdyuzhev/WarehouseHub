@@ -149,6 +149,24 @@ services:
     depends_on:
       - api
 
+  uplink-bot:
+    build:
+      context: ./uplink-bot
+      dockerfile: Dockerfile
+    container_name: warehouse-uplink-bot
+    environment:
+      - UPLINK_WEBHOOK_URL=${UPLINK_WEBHOOK_URL:-}
+      - UPLINK_WEBHOOK_TOKEN=${UPLINK_WEBHOOK_TOKEN:-}
+      - STAGING_API_URL=http://api:8080
+      - STAGING_FRONTEND_URL=http://frontend:80
+      - PROMETHEUS_URL=http://prometheus:9090
+      - ROBOT_API_URL=http://warehouse-robot:8070
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    depends_on:
+      - api
+
   warehouse-robot:
     build:
       context: ./warehouse-robot
@@ -162,6 +180,7 @@ services:
       - ROBOT_EMPLOYEE_USERNAME=admin
       - ROBOT_EMPLOYEE_PASSWORD=admin123
       - ROBOT_TELEGRAM_BOT_URL=http://telegram-bot:8000
+      - ROBOT_UPLINK_BOT_URL=http://uplink-bot:8001
     ports:
       - "8070:8070"
     restart: unless-stopped

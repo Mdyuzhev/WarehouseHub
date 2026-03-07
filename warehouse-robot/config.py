@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # Telegram Bot для уведомлений
     telegram_bot_url: str = "http://telegram-bot:8000"
 
+    # Uplink Bot для уведомлений в Matrix
+    uplink_bot_url: str = ""
+
     # Порт API робота
     api_port: int = 8070
 

@@ -552,37 +552,47 @@ def aggregate_results(scenario_name: str, results: list) -> dict:
 
 def send_telegram_notification(scenario_name: str, result: Dict[str, Any], environment: str = "home"):
     """
-    Отправить уведомление в Telegram Bot.
+    Отправить уведомление в Telegram Bot и Uplink Bot.
 
     Args:
         scenario_name: Название сценария
         result: Результат выполнения
         environment: Окружение (home или prod)
     """
-    if not settings.telegram_bot_url:
-        logger.debug("Telegram Bot URL не настроен, уведомление пропущено")
-        return
+    import httpx
 
-    try:
-        import httpx
+    message = format_notification_message(scenario_name, result)
+    payload = {"message": message, "scenario": scenario_name, "result": result, "environment": environment}
 
-        # Формируем сообщение
-        message = format_notification_message(scenario_name, result)
+    # Telegram Bot
+    if settings.telegram_bot_url:
+        try:
+            with httpx.Client(timeout=10) as client:
+                response = client.post(
+                    f"{settings.telegram_bot_url}/robot/notify",
+                    json=payload,
+                )
+                if response.status_code == 200:
+                    logger.info("Уведомление отправлено в Telegram")
+                else:
+                    logger.warning(f"Telegram уведомление не отправлено: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"Ошибка отправки в Telegram: {e}")
 
-        # Отправляем в Telegram Bot
-        with httpx.Client(timeout=10) as client:
-            response = client.post(
-                f"{settings.telegram_bot_url}/robot/notify",
-                json={"message": message, "scenario": scenario_name, "result": result, "environment": environment},
-            )
-
-            if response.status_code == 200:
-                logger.info("📱 Уведомление отправлено в Telegram")
-            else:
-                logger.warning(f"⚠️ Telegram уведомление не отправлено: {response.status_code}")
-
-    except Exception as e:
-        logger.warning(f"⚠️ Ошибка отправки уведомления: {e}")
+    # Uplink Bot (Matrix)
+    if settings.uplink_bot_url:
+        try:
+            with httpx.Client(timeout=10) as client:
+                response = client.post(
+                    f"{settings.uplink_bot_url}/robot/notify",
+                    json=payload,
+                )
+                if response.status_code == 200:
+                    logger.info("Уведомление отправлено в Uplink")
+                else:
+                    logger.warning(f"Uplink уведомление не отправлено: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"Ошибка отправки в Uplink: {e}")
 
 
 def format_notification_message(scenario_name: str, result: Dict[str, Any]) -> str:
