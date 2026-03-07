@@ -44,16 +44,18 @@ async def _send_action(ws, action):
 async def _send_message(ws, room_id, text, buttons=None, edit_event_id=None):
     """Send message via WS with optional buttons and edit support."""
     action = {
+        "type": "action",
         "action": "send_message",
         "room_id": room_id,
-        "text": text,
+        "body": text,
     }
     if buttons:
         action["uplink.buttons"] = buttons
     if edit_event_id:
+        action["action"] = "edit_message"
         action["edit_event_id"] = edit_event_id
 
-    logger.info(f"[ws_bridge] Sending WS action: room={room_id}, text={text[:50]}, buttons={bool(buttons)}, edit={edit_event_id}")
+    logger.info(f"[ws_bridge] Sending WS: action={action['action']}, room={room_id}, body={text[:50]}, buttons={bool(buttons)}")
     return await _send_action(ws, action)
 
 
