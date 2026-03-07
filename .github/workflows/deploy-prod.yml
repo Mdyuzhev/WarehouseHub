@@ -164,6 +164,13 @@ jobs:
           SHORT_SHA="${SHORT_SHA:0:7}"
           COMMIT=$(echo "${{ github.event.head_commit.message }}" | head -1 | tr -d '"\\')
 
+          # Wait for uplink-bot to be ready after rebuild
+          for i in 1 2 3 4 5; do
+            curl -sf http://localhost:8001/health > /dev/null 2>&1 && break
+            echo "Waiting for uplink-bot... ($i)"
+            sleep 3
+          done
+
           curl -s -X POST http://localhost:8001/deploy/notify \
             -H "Content-Type: application/json" \
             -d "{\"status\": \"${STATUS}\", \"commit_message\": \"${COMMIT}\", \"commit_hash\": \"${SHORT_SHA}\", \"commit_author\": \"${{ github.actor }}\"}" || true
