@@ -63,8 +63,8 @@ public class RedisConfig {
 
         return RedisCacheManager.builder(java.util.Objects.requireNonNull(connectionFactory))
                 .cacheDefaults(config)
-                .withCacheConfiguration("products", RedisCacheConfiguration.defaultCacheConfig().entryTtl(productsTtl))
-                .withCacheConfiguration("productsByCategory", RedisCacheConfiguration.defaultCacheConfig().entryTtl(productsTtl))
+                .withCacheConfiguration("products", config.entryTtl(productsTtl))
+                .withCacheConfiguration("productsByCategory", config.entryTtl(productsTtl))
                 .build();
     }
 }
