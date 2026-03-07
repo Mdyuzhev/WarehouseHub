@@ -43,18 +43,13 @@ async def _send_action(ws, action):
 
 async def _send_message(ws, room_id, text, buttons=None, edit_event_id=None):
     """Send message via WS with optional buttons and edit support."""
-    content = {
-        "msgtype": "m.text",
-        "body": text,
-    }
-    if buttons:
-        content["uplink.buttons"] = buttons
-
     action = {
         "action": "send_message",
         "room_id": room_id,
-        "content": content,
+        "text": text,
     }
+    if buttons:
+        action["uplink.buttons"] = buttons
     if edit_event_id:
         action["edit_event_id"] = edit_event_id
 
