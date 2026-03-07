@@ -15,8 +15,8 @@ from typing import Dict, Any
 from config import LOG_FORMAT, LOG_LEVEL, UPLINK_WEBHOOK_URL
 from bot import uplink
 from bot.messages import format_robot_notification, format_health_message
-from bot.commands import handle_command_text
-from bot.ws_bridge import bridge_loop, set_command_handler
+from bot.commands import handle_command_text, handle_callback
+from bot.ws_bridge import bridge_loop, set_command_handler, set_callback_handler
 from services import check_all_health
 
 
@@ -67,13 +67,18 @@ bridge_task = None
 # =============================================================================
 # Command handler for WS bridge
 # =============================================================================
-async def ws_command_handler(command: str, args: list) -> str:
+async def ws_command_handler(command: str, args: list) -> dict:
     """Handle /wh commands from Uplink WS bridge."""
     if command == "/wh":
         sub = args[0].lower() if args else "help"
         rest = args[1:] if len(args) > 1 else []
         return await handle_command_text(f"/{sub}", rest)
     return None
+
+
+async def ws_callback_handler(callback_data: str) -> dict:
+    """Handle button callbacks from Uplink WS bridge."""
+    return await handle_callback(callback_data)
 
 
 # =============================================================================
@@ -85,6 +90,7 @@ async def lifespan(app: FastAPI):
     global bridge_task
 
     set_command_handler(ws_command_handler)
+    set_callback_handler(ws_callback_handler)
     bridge_task = asyncio.create_task(bridge_loop())
 
     if UPLINK_WEBHOOK_URL:
