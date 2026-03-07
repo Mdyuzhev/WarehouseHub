@@ -148,7 +148,8 @@ export default {
         }
         const r = await auth.authFetch(url)
         if (r.ok) {
-          this.products = await r.json()
+          const data = await r.json()
+          this.products = data.content || data
         }
       } catch (e) {
         this.showMessage('Ошибка: ' + e.message, 'error')
