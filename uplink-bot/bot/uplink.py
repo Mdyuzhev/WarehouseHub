@@ -61,36 +61,28 @@ async def send_deploy_event(
     error: str = None,
 ) -> bool:
     """
-    Отправляет событие деплоя в формате, который ci.mjs обрабатывает нативно.
+    Форматирует и отправляет событие деплоя как HTML-сообщение.
     """
-    if not UPLINK_WEBHOOK_URL:
-        return False
+    if status == "success":
+        emoji = "&#9989;"
+        title = "Деплой WarehouseHub успешен"
+    else:
+        emoji = "&#10060;"
+        title = "Деплой WarehouseHub провален"
 
-    payload = {
-        "status": status,
-        "commit": {
-            "message": commit_message,
-            "hash": commit_hash,
-            "author": commit_author,
-        },
-    }
+    html = f"<b>{emoji} {title}</b>"
+    if commit_hash or commit_message:
+        short_hash = commit_hash[:7] if commit_hash else ""
+        html += f"<br/>&#128230; <code>{short_hash}</code> {commit_message}"
+        if commit_author:
+            html += f" <i>({commit_author})</i>"
     if elapsed is not None:
-        payload["elapsed"] = elapsed
+        html += f"<br/>&#9201; {elapsed:.0f} секунд"
     if error:
-        payload["error"] = error
+        html += f"<br/>&#128308; {error}"
 
-    headers = {"x-deploy-event": "deploy"}
-    if UPLINK_WEBHOOK_TOKEN:
-        headers["X-Gitlab-Token"] = UPLINK_WEBHOOK_TOKEN
+    plain = f"{'✅' if status == 'success' else '❌'} Deploy {status}"
+    if commit_hash:
+        plain += f" — {commit_hash[:7]} {commit_message}"
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                UPLINK_WEBHOOK_URL,
-                json=payload,
-                headers=headers,
-            )
-            return response.status_code == 200
-    except Exception as e:
-        logger.error(f"Error sending deploy event to Uplink: {e}")
-        return False
+    return await send_message(text=plain, html=html)
