@@ -1,7 +1,7 @@
 """
-Warehouse Uplink Bot v1.0
-Sends notifications to Uplink (Matrix) via botservice webhook.
-No polling — notification-only service.
+Warehouse Uplink Bot v2.0
+SDK bot — connects to Uplink via WebSocket for commands.
+FastAPI still serves health, notifications (robot, deploy).
 """
 
 import asyncio
@@ -15,7 +15,8 @@ from typing import Dict, Any
 from config import LOG_FORMAT, LOG_LEVEL, UPLINK_WEBHOOK_URL
 from bot import uplink
 from bot.messages import format_robot_notification, format_health_message
-from bot.commands import handle_command
+from bot.commands import handle_command_text
+from bot.ws_bridge import bridge_loop, set_command_handler
 from services import check_all_health
 
 
@@ -34,7 +35,7 @@ def setup_logging():
                 "logger": record.name,
                 "message": record.getMessage(),
                 "service": "uplink-bot",
-                "version": "1.0.0"
+                "version": "2.0.0"
             }
             if record.exc_info:
                 log_obj["exception"] = self.formatException(record.exc_info)
@@ -60,6 +61,20 @@ def setup_logging():
 setup_logging()
 logger = logging.getLogger(__name__)
 
+bridge_task = None
+
+
+# =============================================================================
+# Command handler for WS bridge
+# =============================================================================
+async def ws_command_handler(command: str, args: list) -> str:
+    """Handle /wh commands from Uplink WS bridge."""
+    if command == "/wh":
+        sub = args[0].lower() if args else "help"
+        rest = args[1:] if len(args) > 1 else []
+        return await handle_command_text(f"/{sub}", rest)
+    return None
+
 
 # =============================================================================
 # FastAPI App
@@ -67,18 +82,27 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global bridge_task
+
+    set_command_handler(ws_command_handler)
+    bridge_task = asyncio.create_task(bridge_loop())
+
     if UPLINK_WEBHOOK_URL:
         logger.info(f"Uplink bot started, webhook: {UPLINK_WEBHOOK_URL}")
-    else:
-        logger.warning("UPLINK_WEBHOOK_URL not set — notifications will be skipped")
+    logger.info("SDK bot bridge starting...")
+
     yield
+
+    logger.info("Shutting down...")
+    if bridge_task:
+        bridge_task.cancel()
     logger.info("Uplink bot stopped")
 
 
 app = FastAPI(
     title="Warehouse Uplink Bot",
-    description="Notifications to Uplink (Matrix) via webhook",
-    version="1.0.0",
+    description="SDK bot for Uplink + notifications via webhook",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -91,7 +115,7 @@ app = FastAPI(
 async def health_check():
     return {
         "status": "healthy",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "timestamp": datetime.now().isoformat(),
         "uplink_configured": bool(UPLINK_WEBHOOK_URL),
     }
@@ -99,10 +123,7 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    return {
-        "name": "Warehouse Uplink Bot",
-        "version": "1.0.0",
-    }
+    return {"name": "Warehouse Uplink Bot", "version": "2.0.0"}
 
 
 # =============================================================================
@@ -163,7 +184,6 @@ async def deploy_notify(notification: DeployNotification):
 
 @app.post("/health/notify")
 async def health_notify():
-    """Check infrastructure health and send report to Uplink."""
     try:
         health_data = await check_all_health()
         plain, html = format_health_message(health_data)
@@ -185,32 +205,9 @@ class MessagePayload(BaseModel):
 
 @app.post("/send")
 async def send_generic(payload: MessagePayload):
-    """Send arbitrary message to Uplink."""
     try:
         success = await uplink.send_message(text=payload.text, html=payload.html)
         return {"status": "ok", "sent": success}
     except Exception as e:
         logger.error(f"Send message error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# =============================================================================
-# Incoming Commands (from Uplink botservice)
-# =============================================================================
-
-class IncomingMessage(BaseModel):
-    body: str = ""
-    sender: str = ""
-    room_id: str = ""
-
-
-@app.post("/incoming")
-async def incoming_message(msg: IncomingMessage):
-    """Receive messages from Uplink botservice and handle /commands."""
-    text = msg.body.strip()
-    if not text or not text.startswith("/"):
-        return {"status": "ok", "handled": False}
-
-    logger.info(f"Command from {msg.sender}: {text}")
-    handled = await handle_command(text)
-    return {"status": "ok", "handled": handled}

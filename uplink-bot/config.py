@@ -50,3 +50,9 @@ GRACEFUL_SHUTDOWN_TIMEOUT = float(os.getenv("GRACEFUL_SHUTDOWN_TIMEOUT", "5.0"))
 # Warehouse Robot
 # =============================================================================
 ROBOT_API_URL = os.getenv("ROBOT_API_URL", "")
+
+# =============================================================================
+# Uplink SDK Bot (WebSocket)
+# =============================================================================
+UPLINK_WS_URL = os.getenv("UPLINK_WS_URL", "")
+UPLINK_BOT_TOKEN = os.getenv("UPLINK_BOT_TOKEN", "")

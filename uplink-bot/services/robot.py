@@ -5,7 +5,7 @@
 
 import httpx
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from config import ROBOT_API_URL
 
@@ -71,6 +71,40 @@ class RobotService:
                     return response.json()
         except Exception as e:
             logger.error(f"Robot stats error: {e}")
+        return None
+
+    def start_scenario(
+        self, scenario: str, speed: str = "normal", environment: str = "home", duration: int = 0
+    ) -> Optional[Dict[str, Any]]:
+        """Start a robot scenario."""
+        if not self._is_configured():
+            return None
+        try:
+            with self._get_client() as client:
+                response = client.post(
+                    f"{self.base_url}/start",
+                    json={
+                        "scenario": scenario,
+                        "speed": speed,
+                        "environment": environment,
+                        "duration": duration,
+                    }
+                )
+                return response.json()
+        except Exception as e:
+            logger.error(f"Robot start error: {e}")
+        return None
+
+    def stop(self) -> Optional[Dict[str, Any]]:
+        """Stop the robot."""
+        if not self._is_configured():
+            return None
+        try:
+            with self._get_client() as client:
+                response = client.post(f"{self.base_url}/stop")
+                return response.json()
+        except Exception as e:
+            logger.error(f"Robot stop error: {e}")
         return None
 
     def is_available(self) -> bool:
