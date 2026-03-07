@@ -157,6 +157,8 @@ services:
     environment:
       - UPLINK_WEBHOOK_URL=${UPLINK_WEBHOOK_URL:-}
       - UPLINK_WEBHOOK_TOKEN=${UPLINK_WEBHOOK_TOKEN:-}
+      - UPLINK_WS_URL=${UPLINK_WS_URL:-}
+      - UPLINK_BOT_TOKEN=${UPLINK_BOT_TOKEN:-}
       - STAGING_API_URL=http://api:8080
       - STAGING_FRONTEND_URL=http://frontend:80
       - PROMETHEUS_URL=http://prometheus:9090
