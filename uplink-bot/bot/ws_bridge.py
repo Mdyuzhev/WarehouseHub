@@ -101,19 +101,14 @@ async def _handle_event(ws, event):
 
     try:
         result = await _command_handler(command, args)
-        if result and room_id:
-            await _send_action(ws, {
-                "type": "action",
-                "action": "send_message",
-                "room_id": room_id,
-                "body": result,
-            })
+        if result:
+            # Send via webhook so all messages come from bot_wh_ci
+            from bot import uplink
+            await uplink.send_message(text=result)
     except Exception as e:
         logger.error(f"[ws_bridge] Handler error: {e}", exc_info=True)
-        if room_id:
-            await _send_action(ws, {
-                "type": "action",
-                "action": "send_message",
-                "room_id": room_id,
-                "body": f"Error: {e}",
-            })
+        try:
+            from bot import uplink
+            await uplink.send_message(text=f"Error: {e}")
+        except Exception:
+            pass
