@@ -6,6 +6,7 @@
       </div>
 
       <div class="nav-links">
+        <router-link v-if="dashboardPath" :to="dashboardPath" class="nav-link" data-testid="nav-dashboard">Главная</router-link>
         <router-link to="/" class="nav-link" data-testid="nav-products">Продукты</router-link>
         <router-link v-if="canEditProducts" to="/add" class="nav-link" data-testid="nav-add-product">+ Добавить</router-link>
         <router-link v-if="canAccessAnalytics" to="/analytics" class="nav-link" data-testid="nav-analytics">Аналитика</router-link>
@@ -73,6 +74,13 @@ export default {
 
     canEditProducts() {
       return auth.canAccess('edit-products')
+    },
+
+    dashboardPath() {
+      const facilityStore = useFacilityStore()
+      const type = facilityStore.facilityType
+      if (!type) return null
+      return '/' + type.toLowerCase()
     },
 
     roleClass() {
