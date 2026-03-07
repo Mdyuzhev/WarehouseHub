@@ -58,6 +58,7 @@ async def _send_message(ws, room_id, text, buttons=None, edit_event_id=None):
     if edit_event_id:
         action["edit_event_id"] = edit_event_id
 
+    logger.info(f"[ws_bridge] Sending WS action: room={room_id}, text={text[:50]}, buttons={bool(buttons)}, edit={edit_event_id}")
     return await _send_action(ws, action)
 
 
@@ -138,6 +139,7 @@ async def _handle_command_event(ws, event):
 
     try:
         result = await _command_handler(command, args)
+        logger.info(f"[ws_bridge] Handler result: {type(result)}, room_id={room_id}")
         if result:
             await _send_response(ws, room_id, result)
     except Exception as e:
