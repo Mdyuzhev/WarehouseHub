@@ -64,24 +64,24 @@ async def send_deploy_event(
     Форматирует и отправляет событие деплоя как HTML-сообщение.
     """
     if status == "success":
-        emoji = "&#9989;"
+        emoji = "🚀"
         title = "Деплой WarehouseHub успешен"
     else:
-        emoji = "&#10060;"
+        emoji = "💥"
         title = "Деплой WarehouseHub провален"
 
     html = f"<b>{emoji} {title}</b>"
     if commit_hash or commit_message:
         short_hash = commit_hash[:7] if commit_hash else ""
-        html += f"<br/>&#128230; <code>{short_hash}</code> {commit_message}"
+        html += f"<br/>📦 <code>{short_hash}</code> {commit_message}"
         if commit_author:
-            html += f" <i>({commit_author})</i>"
+            html += f" <i>by {commit_author}</i>"
     if elapsed is not None:
-        html += f"<br/>&#9201; {elapsed:.0f} секунд"
+        html += f"<br/>⏱ {elapsed:.0f}s"
     if error:
-        html += f"<br/>&#128308; {error}"
+        html += f"<br/>🔴 {error}"
 
-    plain = f"{'✅' if status == 'success' else '❌'} Deploy {status}"
+    plain = f"{'🚀' if status == 'success' else '💥'} Deploy {status}"
     if commit_hash:
         plain += f" — {commit_hash[:7]} {commit_message}"
 
