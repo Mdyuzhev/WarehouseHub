@@ -21,6 +21,7 @@ on:
       - 'analytics-service/**'
       - 'telegram-bot/**'
       - 'warehouse-robot/**'
+      - 'uplink-bot/**'
       - 'production/**'
       - 'docker-compose*.yml'
       - '.github/workflows/deploy-prod.yml'
@@ -154,3 +155,15 @@ jobs:
           curl -s -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=${TEXT}" || true
+
+      - name: Notify Uplink
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COMMIT="${{ github.event.head_commit.message }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+
+          curl -s -X POST http://localhost:8001/deploy/notify \
+            -H "Content-Type: application/json" \
+            -d "{\"status\": \"${STATUS}\", \"commit_message\": \"${COMMIT}\", \"commit_hash\": \"${SHORT_SHA}\", \"commit_author\": \"${{ github.actor }}\"}" || true
